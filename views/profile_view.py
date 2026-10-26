@@ -14,10 +14,10 @@ def createProfileView(page: ft.Page):
                 [
                     ft.Container(height=40),
 
-                    ft.Icon(name=ft.icons.ACCOUNT_CIRCLE, size=100),
+                    ft.Icon(name=ft.Icons.ACCOUNT_CIRCLE, size=100),
 
                     ft.Text(currentUser["nickname"], size=20, weight=ft.FontWeight.BOLD),
-                    ft.Text(currentUser["email"], size=14, color=ft.colors.GREY),
+                    ft.Text(currentUser["email"], size=14, color=ft.Colors.GREY),
 
                     ft.Container(height=20),
 

@@ -100,12 +100,11 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
     )
 
     def showMessage(messageText, isError=False):
-        page.snack_bar = ft.SnackBar(
+        snackBar = ft.SnackBar(
             content=ft.Text(messageText),
             bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
         )
-        page.snack_bar.open = True
-        page.update()
+        page.open(snackBar)
 
     def refreshComments():
         commentsColumn.controls.clear()
@@ -404,12 +403,11 @@ def createHomeTab(page, currentUser, nickname):
     )
 
     def showMessage(messageText, isError=False):
-        page.snack_bar = ft.SnackBar(
+        snackBar = ft.SnackBar(
             content=ft.Text(messageText),
             bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
         )
-        page.snack_bar.open = True
-        page.update()
+        page.open(snackBar)
 
     def clearPostForm():
         postTitleField.value = ""
@@ -611,12 +609,11 @@ def createSearchTab(page, currentUser):
     )
 
     def showMessage(messageText, isError=False):
-        page.snack_bar = ft.SnackBar(
+        snackBar = ft.SnackBar(
             content=ft.Text(messageText),
             bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
         )
-        page.snack_bar.open = True
-        page.update()
+        page.open(snackBar)
 
     def handleCreateProjectFromIdea(ideaData):
         if currentUser is None:
@@ -1076,12 +1073,11 @@ def createColorsTab(page, currentUser):
     selectedColorsColumn = ft.Column(spacing=8)
 
     def showMessage(messageText, isError=False):
-        page.snack_bar = ft.SnackBar(
+        snackBar = ft.SnackBar(
             content=ft.Text(messageText),
             bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
         )
-        page.snack_bar.open = True
-        page.update()
+        page.open(snackBar)
 
     def getTextColorForBackground(hexColor):
         return ft.Colors.BLACK if hexColor.upper() in ["#FFFFFF", "#F5DEB3", "#FFD60A"] else ft.Colors.WHITE
@@ -1896,12 +1892,11 @@ def createProjectsTab(page, currentUser):
     )
 
     def showMessage(messageText, isError=False):
-        page.snack_bar = ft.SnackBar(
+        snackBar = ft.SnackBar(
             content=ft.Text(messageText),
             bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
         )
-        page.snack_bar.open = True
-        page.update()
+        page.open(snackBar)
 
     def clearProjectForm():
         projectNameField.value = ""
@@ -2405,15 +2400,16 @@ def createProfileTab(page, nickname, email):
         refreshAvatar()
 
     avatarPicker.on_result = handleAvatarPicked
+    # Повторное открытие вкладки не должно накапливать выборщики файлов.
+    page.overlay[:] = [control for control in page.overlay if not isinstance(control, ft.FilePicker)]
     page.overlay.append(avatarPicker)
 
     def showMessage(messageText, isError=False):
-        page.snack_bar = ft.SnackBar(
+        snackBar = ft.SnackBar(
             content=ft.Text(messageText),
             bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
         )
-        page.snack_bar.open = True
-        page.update()
+        page.open(snackBar)
 
     def handleLogout(event):
         page.session.clear()
@@ -2515,8 +2511,7 @@ def createProfileTab(page, nickname, email):
             return
 
         def closeDialog(event):
-            confirmDialog.open = False
-            page.update()
+            page.close(confirmDialog)
 
         def confirmDelete(event):
             successStatus, messageText = deleteUserAccount(
@@ -2524,7 +2519,7 @@ def createProfileTab(page, nickname, email):
                 deletePasswordField.value,
             )
 
-            confirmDialog.open = False
+            page.close(confirmDialog)
 
             if not successStatus:
                 showMessage(messageText, True)
@@ -2555,9 +2550,7 @@ def createProfileTab(page, nickname, email):
             actions_alignment=ft.MainAxisAlignment.END,
         )
 
-        page.dialog = confirmDialog
-        confirmDialog.open = True
-        page.update()
+        page.open(confirmDialog)
 
     colorWrapControls = []
 
@@ -2673,7 +2666,8 @@ def createProfileTab(page, nickname, email):
                                 size=13,
                                 color=ft.Colors.GREY_600,
                             ),
-                            ft.Wrap(
+                            ft.Row(
+                                wrap=True,
                                 controls=colorWrapControls,
                                 spacing=4,
                                 run_spacing=0,
@@ -2874,11 +2868,11 @@ def createHomeView(page: ft.Page):
         selected_index=0,
         on_change=update_tab,
         destinations=[
-            ft.NavigationDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label="Главная"),
-            ft.NavigationDestination(icon=ft.Icons.SEARCH, selected_icon=ft.Icons.SEARCH, label="Поиск"),
-            ft.NavigationDestination(icon=ft.Icons.PALETTE_OUTLINED, selected_icon=ft.Icons.PALETTE, label="Цвета"),
-            ft.NavigationDestination(icon=ft.Icons.FOLDER_OUTLINED, selected_icon=ft.Icons.FOLDER, label="Проекты"),
-            ft.NavigationDestination(icon=ft.Icons.PERSON_OUTLINE, selected_icon=ft.Icons.PERSON, label="Профиль"),
+            ft.NavigationBarDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label="Главная"),
+            ft.NavigationBarDestination(icon=ft.Icons.SEARCH, selected_icon=ft.Icons.SEARCH, label="Поиск"),
+            ft.NavigationBarDestination(icon=ft.Icons.PALETTE_OUTLINED, selected_icon=ft.Icons.PALETTE, label="Цвета"),
+            ft.NavigationBarDestination(icon=ft.Icons.FOLDER_OUTLINED, selected_icon=ft.Icons.FOLDER, label="Проекты"),
+            ft.NavigationBarDestination(icon=ft.Icons.PERSON_OUTLINE, selected_icon=ft.Icons.PERSON, label="Профиль"),
         ],
     )
 

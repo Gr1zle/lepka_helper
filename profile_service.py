@@ -1,7 +1,6 @@
-import hashlib
-import hmac
+from password_service import createPasswordHash, checkPassword
+from validators import validatePassword
 import json
-import secrets
 
 from database import (
     getUserByNickname,
@@ -48,45 +47,8 @@ LANGUAGE_OPTIONS = [
 ]
 
 
-def createPasswordHash(password, passwordSalt=None):
-    if passwordSalt is None:
-        passwordSalt = secrets.token_hex(16)
-
-    passwordHash = hashlib.pbkdf2_hmac(
-        "sha256",
-        password.encode("utf-8"),
-        passwordSalt.encode("utf-8"),
-        100000,
-    ).hex()
-
-    return passwordHash, passwordSalt
-
-
-def checkPassword(password, passwordHash, passwordSalt):
-    candidateHash, _ = createPasswordHash(password, passwordSalt)
-    return hmac.compare_digest(candidateHash, passwordHash)
-
-
 def validateNewPassword(newPassword):
-    if len(newPassword) < 8:
-        return "Новый пароль должен быть не короче 8 символов"
-
-    hasUppercase = False
-    hasDigit = False
-
-    for passwordChar in newPassword:
-        if passwordChar.isupper():
-            hasUppercase = True
-        if passwordChar.isdigit():
-            hasDigit = True
-
-    if not hasUppercase:
-        return "Новый пароль должен содержать минимум 1 заглавную букву"
-
-    if not hasDigit:
-        return "Новый пароль должен содержать минимум 1 цифру"
-
-    return None
+    return validatePassword(newPassword)
 
 
 def getUserProfile(userId):

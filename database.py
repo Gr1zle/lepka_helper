@@ -1,8 +1,8 @@
 import sqlite3
-from pathlib import Path
+from app_paths import DATA_DIRECTORY
 
 
-DATABASE_PATH = Path("lepka_helper.db")
+DATABASE_PATH = DATA_DIRECTORY / "lepka_helper.db"
 
 
 def getConnection():

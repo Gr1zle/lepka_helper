@@ -1,7 +1,7 @@
 import json
-from pathlib import Path
+from app_paths import DATA_DIRECTORY
 
-STATE_FILE = Path(__file__).with_name('app_state.json')
+STATE_FILE = DATA_DIRECTORY / 'app_state.json'
 
 
 def getAppState(key, default=None):

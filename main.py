@@ -1,5 +1,5 @@
 import flet as ft
-import asyncio
+import argparse
 
 from database import initializeDatabase
 from auth_service import ensureDemoUser
@@ -43,6 +43,7 @@ def main(page: ft.Page):
             page.views.append(createHomeView(page))
         else:
             page.go("/")
+            return
 
         page.update()
 
@@ -57,4 +58,13 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main, view=ft.AppView.WEB_BROWSER)  # для теста, потом поменяешь на FLET_APP
+    parser = argparse.ArgumentParser(description="Lepka Helper")
+    parser.add_argument("--desktop", action="store_true", help="Открыть отдельное окно")
+    parser.add_argument("--port", type=int, default=8550, help="Порт веб-версии")
+    options = parser.parse_args()
+    ft.app(
+        target=main,
+        view=ft.AppView.FLET_APP if options.desktop else ft.AppView.WEB_BROWSER,
+        host="127.0.0.1",
+        port=options.port,
+    )

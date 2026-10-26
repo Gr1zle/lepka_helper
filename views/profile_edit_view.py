@@ -23,7 +23,7 @@ def createProfileEditView(page: ft.Page):
         page.session.set("currentUser", currentUser)
 
         statusText.value = "Сохранено"
-        statusText.color = ft.colors.GREEN
+        statusText.color = ft.Colors.GREEN
         page.update()
 
     return ft.View(

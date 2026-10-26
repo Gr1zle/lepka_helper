@@ -1,4 +1,4 @@
-import hashlib
+from password_service import createPasswordHash as hashWithSalt, checkPassword
 import secrets
 
 from database import createUser, deleteUserDataById, getUserByEmail, getUserByNickname, updateUserPassword
@@ -11,8 +11,7 @@ from validators import (
 
 
 def createPasswordHash(password, passwordSalt):
-    hashSource = f"{password}{passwordSalt}".encode("utf-8")
-    return hashlib.sha256(hashSource).hexdigest()
+    return hashWithSalt(password, passwordSalt)[0]
 
 
 def registerUser(email, password, passwordConfirmation, nickname, isPolicyAccepted):
@@ -76,9 +75,7 @@ def loginUser(email, password):
     if userRecord["isBlocked"] == 1:
         return False, "Аккаунт заблокирован", None
 
-    passwordHash = createPasswordHash(password, userRecord["passwordSalt"])
-
-    if passwordHash != userRecord["passwordHash"]:
+    if not checkPassword(password, userRecord["passwordHash"], userRecord["passwordSalt"]):
         return False, "Неверный email или пароль", None
 
     return True, f"Добро пожаловать, {userRecord['nickname']}!", {
@@ -96,9 +93,7 @@ def deleteUserAccount(email, password):
     if not userRecord:
         return False, "Пользователь не найден"
 
-    passwordHash = createPasswordHash(password, userRecord["passwordSalt"])
-
-    if passwordHash != userRecord["passwordHash"]:
+    if not checkPassword(password, userRecord["passwordHash"], userRecord["passwordSalt"]):
         return False, "Неверный пароль"
 
     deleteUserDataById(userRecord["userId"])

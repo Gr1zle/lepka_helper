@@ -11,6 +11,7 @@ SECONDARY_COLOR = "#4ECDC4"
 
 def createAuthView(page):
     recoveryCodeState = {"email": "", "code": ""}
+    dialog = None
 
     loginEmailField = ft.TextField(label="Email", value="test@email.com", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
     loginPasswordField = ft.TextField(label="Пароль", value="Test123456", prefix_icon=ft.Icons.LOCK, password=True, can_reveal_password=True, border_radius=12)
@@ -29,12 +30,11 @@ def createAuthView(page):
     activeFormContainer = ft.Container(width=360, alignment=ft.alignment.center)
 
     def showMessage(messageText, isError=False):
-        page.snack_bar = ft.SnackBar(
+        snackBar = ft.SnackBar(
             content=ft.Text(messageText),
             bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
         )
-        page.snack_bar.open = True
-        page.update()
+        page.open(snackBar)
 
     def clearLoginErrors():
         loginEmailField.error_text = None
@@ -81,11 +81,12 @@ def createAuthView(page):
         showMessage("Google-вход отмечен в ТЗ. В курсовом MVP показан как демонстрационная кнопка.", True)
 
     def closeDialog(event=None):
-        if page.dialog:
-            page.dialog.open = False
-            page.update()
+        if dialog is not None:
+            page.close(dialog)
 
     def openPasswordRecoveryDialog(event):
+        nonlocal dialog
+        recoveryCodeState.update(email="", code="")
         emailField = ft.TextField(label="Email аккаунта", value=loginEmailField.value or "", prefix_icon=ft.Icons.EMAIL, border_radius=12)
         codeField = ft.TextField(label="Код из письма", hint_text="6 цифр", prefix_icon=ft.Icons.PIN, border_radius=12)
         newPasswordField = ft.TextField(label="Новый пароль", password=True, can_reveal_password=True, prefix_icon=ft.Icons.LOCK, border_radius=12)
@@ -110,7 +111,9 @@ def createAuthView(page):
             emailValue = (emailField.value or "").strip().lower()
             enteredCode = (codeField.value or "").strip()
 
-            if emailValue != recoveryCodeState["email"] or enteredCode != recoveryCodeState["code"]:
+            if (not recoveryCodeState["code"]
+                    or emailValue != recoveryCodeState["email"]
+                    or enteredCode != recoveryCodeState["code"]):
                 showMessage("Неверный email или код восстановления", True)
                 return
 
@@ -148,9 +151,7 @@ def createAuthView(page):
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
-        page.dialog = dialog
-        dialog.open = True
-        page.update()
+        page.open(dialog)
 
     loginForm = ft.Container(
         width=350,

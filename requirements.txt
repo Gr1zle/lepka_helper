@@ -1,2 +1,8 @@
-flet>=0.25.0
+# Стабильный API, под который написан интерфейс.
+flet[web]==0.28.3
+# Flet Web 0.28.3 использует параметры старого FastAPI.
+fastapi==0.115.12
+starlette==0.46.2
+pydantic==2.11.4
+uvicorn==0.34.2
 requests==2.32.3
