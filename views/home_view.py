@@ -1877,7 +1877,7 @@ def createProjectsTab(page, currentUser):
 
     deadlineField = ft.TextField(
         label="Дедлайн",
-        hint_text="Например: 25.04.2026",
+        hint_text="ДД.ММ.ГГГГ, можно оставить пустым",
         prefix_icon=ft.Icons.DATE_RANGE,
         border_radius=12,
     )
@@ -1944,8 +1944,8 @@ def createProjectsTab(page, currentUser):
                 descriptionText = "Описание не добавлено"
 
             def handleDeleteProject(event, currentProjectId=projectItem["projectId"]):
-                removeProject(currentProjectId, currentUser["userId"])
-                showMessage("Проект удалён")
+                deleted = removeProject(currentProjectId, currentUser["userId"])
+                showMessage("Проект удалён" if deleted else "Проект не найден или недоступен", not deleted)
                 refreshProjectList()
                 page.update()
 
@@ -1968,17 +1968,20 @@ def createProjectsTab(page, currentUser):
             else:
                 for stepItem in projectItem["stepItems"]:
                     def handleStepChange(event, currentProjectId=projectItem["projectId"], currentStepId=stepItem["stepId"]):
-                        changeProjectStepStatus(
+                        progress = changeProjectStepStatus(
                             currentProjectId,
                             currentStepId,
                             event.control.value,
+                            currentUser["userId"],
                         )
+                        if progress is None:
+                            showMessage("Этап не найден или недоступен", True)
                         refreshProjectList()
                         page.update()
 
                     def handleDeleteStep(event, currentProjectId=projectItem["projectId"], currentStepId=stepItem["stepId"]):
-                        removeProjectStep(currentProjectId, currentStepId)
-                        showMessage("Этап удалён")
+                        progress = removeProjectStep(currentProjectId, currentStepId, currentUser["userId"])
+                        showMessage("Этап удалён" if progress is not None else "Этап не найден или недоступен", progress is None)
                         refreshProjectList()
                         page.update()
 
@@ -2010,6 +2013,7 @@ def createProjectsTab(page, currentUser):
                 successStatus, messageText, stepId = saveProjectStep(
                     currentProjectId,
                     fieldControl.value,
+                    currentUser["userId"],
                 )
 
                 if not successStatus:

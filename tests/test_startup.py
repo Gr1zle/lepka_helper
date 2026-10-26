@@ -19,7 +19,8 @@ from profile_service import changeUserPassword
 from password_service import checkPassword
 from main import main
 from views.auth_view import createAuthView
-from views.home_view import createHomeView
+from views.home_view import createHomeView, createProjectsTab
+import project_service as projects
 from views.onboarding_view import createOnboardingView
 from views.splash_view import createSplashView
 
@@ -89,6 +90,47 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 nav.selected_index = index
                 nav.on_change(SimpleNamespace(control=nav))
                 self.page.update()
+
+    async def test_project_form_rejects_bad_deadline_and_accepts_empty(self):
+        view = self.mount(ft.View('/projects', controls=[createProjectsTab(self.page, self.user)]))
+        find(view, ft.TextField, label='Название проекта').value = 'Тестовый котик'
+        deadline = find(view, ft.TextField, label='Дедлайн')
+        deadline.value = 'НЕ ДАТА'
+        save = find(view, ft.ElevatedButton, text='Сохранить проект')
+        save.on_click(None)
+        self.assertEqual(projects.getUserProjects(self.user['userId']), [])
+        snacks = [c for c in self.page.overlay if isinstance(c, ft.SnackBar)]
+        self.assertIn('ДД.ММ.ГГГГ', snacks[-1].content.value)
+        self.assertEqual(deadline.value, 'НЕ ДАТА')
+        deadline.value = ''
+        save.on_click(None)
+        self.assertEqual(len(projects.getUserProjects(self.user['userId'])), 1)
+        self.assertTrue(any(isinstance(c, ft.Text) and 'Без дедлайна' in (c.value or '')
+                            for c in walk(view)))
+
+    async def test_project_step_and_delete_handlers(self):
+        userId = self.user['userId']
+        projectId = projects.saveProject(userId, 'Котик', 'Животные', '', '')[2]
+        view = self.mount(ft.View('/projects', controls=[createProjectsTab(self.page, self.user)]))
+        find(view, ft.TextField, label='Новый этап').value = 'Слепить основу'
+        find(view, ft.IconButton, icon=ft.Icons.ADD_CIRCLE).on_click(None)
+        self.assertEqual(len(projects.getProjectSteps(projectId, userId)), 1)
+        checkbox = find(view, ft.Checkbox)
+        checkbox.value = True
+        checkbox.on_change(SimpleNamespace(control=checkbox))
+        self.assertEqual(projects.getUserProjects(userId)[0]['progressPercent'], 100)
+        find(view, ft.IconButton, icon=ft.Icons.DELETE_OUTLINE).on_click(None)
+        self.assertEqual(projects.getProjectSteps(projectId, userId), [])
+        # Удаление проекта проверяем с этапом, а не только с пустой карточкой.
+        find(view, ft.TextField, label='Новый этап').value = 'Слепить уши'
+        find(view, ft.IconButton, icon=ft.Icons.ADD_CIRCLE).on_click(None)
+        find(view, ft.IconButton, icon=ft.Icons.DELETE).on_click(None)
+        self.assertEqual(projects.getUserProjects(userId), [])
+        connection = database.getConnection()
+        try:
+            self.assertEqual(connection.execute('SELECT COUNT(*) FROM projectSteps').fetchone()[0], 0)
+        finally:
+            connection.close()
 
     async def test_onboarding_saves_completion(self):
         view = self.mount(createOnboardingView(self.page))
