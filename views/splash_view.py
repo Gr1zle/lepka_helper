@@ -1,6 +1,7 @@
 import asyncio
 import flet as ft
 from app_state import getAppState
+from ui_helpers import getCurrentUser
 
 APP_TITLE = "Lepka Helper"
 APP_VERSION = "Версия 1.0.2"
@@ -17,7 +18,7 @@ def createSplashView(page):
         if page.route != "/":
             return
 
-        currentUser = page.session.get("currentUser")
+        currentUser = getCurrentUser(page)
         if currentUser is not None:
             page.go("/home")
             return

@@ -1,21 +1,22 @@
-import random
 import flet as ft
 
-from auth_service import changePasswordByEmail, loginUser, registerUser
+from auth_service import (changePasswordByEmail, loginUser, registerUser,
+                          requestPasswordRecovery, requestRegistrationCode)
+from account_security import confirmRegistration, logoutUser
+from ui_helpers import showMessage as showPageMessage
 from profile_service import getUserProfile
-from validators import validateEmail
+from validators import validateEmail, validateNickname, validatePassword, validatePasswordConfirmation
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
 
 
 def createAuthView(page):
-    recoveryCodeState = {"email": "", "code": ""}
     dialog = None
 
     loginEmailField = ft.TextField(label="Email", value="test@email.com", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
     loginPasswordField = ft.TextField(label="Пароль", value="Test123456", prefix_icon=ft.Icons.LOCK, password=True, can_reveal_password=True, border_radius=12)
-    rememberMeSwitch = ft.Switch(label="Запомнить меня", value=True)
+    rememberMeSwitch = ft.Switch(label="Запомнить меня (пока недоступно)", value=False, disabled=True)
 
     registerEmailField = ft.TextField(label="Email", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
     registerNicknameField = ft.TextField(label="Никнейм", prefix_icon=ft.Icons.PERSON, border_radius=12)
@@ -30,11 +31,7 @@ def createAuthView(page):
     activeFormContainer = ft.Container(width=360, alignment=ft.alignment.center)
 
     def showMessage(messageText, isError=False):
-        snackBar = ft.SnackBar(
-            content=ft.Text(messageText),
-            bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
-        )
-        page.open(snackBar)
+        showPageMessage(page, messageText, isError)
 
     def clearLoginErrors():
         loginEmailField.error_text = None
@@ -48,11 +45,18 @@ def createAuthView(page):
 
     def handleLogin(event):
         clearLoginErrors()
+        loginEmailField.error_text = validateEmail((loginEmailField.value or '').strip().lower())
+        loginPasswordField.error_text = None if loginPasswordField.value else 'Введите пароль'
+        if loginEmailField.error_text or loginPasswordField.error_text:
+            page.update()
+            return
         successStatus, messageText, userData = loginUser(loginEmailField.value, loginPasswordField.value)
         if not successStatus:
             showMessage(messageText, True)
             return
 
+        previousUser = page.session.get("currentUser") or {}
+        logoutUser(previousUser.get("sessionToken"))
         page.session.set("currentUser", userData)
         profileData = getUserProfile(userData["userId"])
         page.theme_mode = ft.ThemeMode.DARK if profileData and profileData["themeMode"] == "dark" else ft.ThemeMode.LIGHT
@@ -61,6 +65,18 @@ def createAuthView(page):
 
     def handleRegister(event):
         clearRegisterErrors()
+        fieldErrors = [
+            (registerEmailField, validateEmail((registerEmailField.value or '').strip().lower())),
+            (registerNicknameField, validateNickname((registerNicknameField.value or '').strip())),
+            (registerPasswordField, validatePassword(registerPasswordField.value)),
+            (registerPasswordConfirmationField, validatePasswordConfirmation(
+                registerPasswordField.value, registerPasswordConfirmationField.value)),
+        ]
+        for field, error in fieldErrors:
+            field.error_text = error
+        if any(error for field, error in fieldErrors):
+            page.update()
+            return
         successStatus, messageText, userData = registerUser(
             registerEmailField.value,
             registerPasswordField.value,
@@ -72,13 +88,39 @@ def createAuthView(page):
             showMessage(messageText, True)
             return
 
-        page.session.set("currentUser", userData)
-        page.theme_mode = ft.ThemeMode.LIGHT
-        showMessage("Регистрация успешна. Email подтверждён в демонстрационном режиме.")
-        page.go("/home")
+        openRegistrationDialog(email=userData['email'])
+
+    def openRegistrationDialog(event=None, email=None):
+        nonlocal dialog
+        emailField = ft.TextField(label='Email аккаунта', value=email or loginEmailField.value or '')
+        codeField = ft.TextField(label='Код из письма', hint_text='6 цифр')
+
+        def sendCode(event=None):
+            success, message = requestRegistrationCode(emailField.value)
+            showMessage(message, not success)
+
+        def confirmCode(event):
+            success, message = confirmRegistration(emailField.value, codeField.value)
+            if success:
+                loginEmailField.value = emailField.value
+                loginPasswordField.value = ''
+                closeDialog()
+            showMessage(message, not success)
+
+        dialog = ft.AlertDialog(
+            modal=True, title=ft.Text('Подтверждение регистрации'),
+            content=ft.Column(tight=True, controls=[
+                ft.Text('Код действует 24 часа. Вход станет доступен после подтверждения почты.'),
+                emailField, ft.OutlinedButton(text='Получить код', on_click=sendCode), codeField]),
+            actions=[ft.TextButton(text='Отмена', on_click=closeDialog),
+                     ft.ElevatedButton(text='Подтвердить email', on_click=confirmCode)],
+        )
+        page.open(dialog)
+        if email:
+            sendCode()
 
     def handleGoogleStub(event):
-        showMessage("Google-вход отмечен в ТЗ. В курсовом MVP показан как демонстрационная кнопка.", True)
+        showMessage("Вход через Google пока не подключён.", True)
 
     def closeDialog(event=None):
         if dialog is not None:
@@ -86,12 +128,11 @@ def createAuthView(page):
 
     def openPasswordRecoveryDialog(event):
         nonlocal dialog
-        recoveryCodeState.update(email="", code="")
         emailField = ft.TextField(label="Email аккаунта", value=loginEmailField.value or "", prefix_icon=ft.Icons.EMAIL, border_radius=12)
         codeField = ft.TextField(label="Код из письма", hint_text="6 цифр", prefix_icon=ft.Icons.PIN, border_radius=12)
         newPasswordField = ft.TextField(label="Новый пароль", password=True, can_reveal_password=True, prefix_icon=ft.Icons.LOCK, border_radius=12)
         confirmPasswordField = ft.TextField(label="Повторите новый пароль", password=True, can_reveal_password=True, prefix_icon=ft.Icons.LOCK_OUTLINE, border_radius=12)
-        infoText = ft.Text("Введите email и нажмите «Получить код». Для курсовой код показывается прямо в сообщении.", size=13, color=ft.Colors.GREY_600)
+        infoText = ft.Text("Код будет отправлен на почту. Он действует 10 минут; допускается 5 попыток.", size=13, color=ft.Colors.GREY_600)
 
         def sendRecoveryCode(event):
             emailValue = (emailField.value or "").strip().lower()
@@ -101,23 +142,19 @@ def createAuthView(page):
                 dialog.update()
                 return
 
-            recoveryCodeState["email"] = emailValue
-            recoveryCodeState["code"] = str(random.randint(100000, 999999))
+            successStatus, messageText = requestPasswordRecovery(emailValue)
             emailField.error_text = None
-            infoText.value = f"Демонстрационное письмо отправлено. Код: {recoveryCodeState['code']}"
+            infoText.value = messageText
             dialog.update()
+            if not successStatus:
+                showMessage(messageText, True)
 
         def resetPassword(event):
             emailValue = (emailField.value or "").strip().lower()
             enteredCode = (codeField.value or "").strip()
 
-            if (not recoveryCodeState["code"]
-                    or emailValue != recoveryCodeState["email"]
-                    or enteredCode != recoveryCodeState["code"]):
-                showMessage("Неверный email или код восстановления", True)
-                return
-
-            successStatus, messageText = changePasswordByEmail(emailValue, newPasswordField.value, confirmPasswordField.value)
+            successStatus, messageText = changePasswordByEmail(
+                emailValue, newPasswordField.value, confirmPasswordField.value, enteredCode)
             if not successStatus:
                 showMessage(messageText, True)
                 return
@@ -173,6 +210,7 @@ def createAuthView(page):
                 ),
                 ft.OutlinedButton(text="Войти через Google", icon=ft.Icons.LOGIN, height=48, width=320, on_click=handleGoogleStub),
                 ft.TextButton(text="Забыли пароль?", on_click=openPasswordRecoveryDialog),
+                ft.TextButton(text="Подтвердить регистрацию", on_click=openRegistrationDialog),
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=12,
