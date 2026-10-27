@@ -1,12 +1,15 @@
 from password_service import createPasswordHash, checkPassword
 from validators import validatePassword
 import json
+import sqlite3
+import time
+
+from account_security import revokeUserSessions
+from database import openDatabase
 
 from database import (
     getUserByNickname,
-    getUserPasswordById,
     getUserProfileById,
-    updateUserPassword,
     updateUserProfile,
     updateUserSettings,
 )
@@ -59,7 +62,10 @@ def getUserProfile(userId):
 
     try:
         favoriteColors = json.loads(userRecord["favoriteColorsJson"])
-    except Exception:
+    except (ValueError, TypeError):
+        favoriteColors = []
+
+    if not isinstance(favoriteColors, list):
         favoriteColors = []
 
     return {
@@ -78,8 +84,10 @@ def getUserProfile(userId):
 
 
 def saveUserProfile(userId, nickname, bioText, ageCategory, favoriteColors, avatarPath=""):
-    nickname = nickname.strip()
-    bioText = bioText.strip()
+    if getUserProfile(userId) is None:
+        return False, "Пользователь не найден", None
+    nickname = (nickname or "").strip()
+    bioText = (bioText or "").strip()
     avatarPath = avatarPath.strip() if avatarPath else ""
 
     nicknameError = validateNickname(nickname)
@@ -92,6 +100,9 @@ def saveUserProfile(userId, nickname, bioText, ageCategory, favoriteColors, avat
     if ageCategory not in AGE_CATEGORIES:
         return False, "Выберите корректную возрастную категорию", None
 
+    if not isinstance(favoriteColors, list):
+        return False, "Выберите любимые цвета из списка", None
+    favoriteColors = list(dict.fromkeys(favoriteColors))
     if len(favoriteColors) > 5:
         return False, "Можно выбрать не больше 5 любимых цветов", None
 
@@ -106,21 +117,25 @@ def saveUserProfile(userId, nickname, bioText, ageCategory, favoriteColors, avat
 
     favoriteColorsJson = json.dumps(favoriteColors, ensure_ascii=False)
 
-    updateUserProfile(
-        userId,
-        nickname,
-        bioText,
-        ageCategory,
-        favoriteColorsJson,
-        avatarPath,
-    )
+    try:
+        updateUserProfile(
+            userId, nickname, bioText, ageCategory, favoriteColorsJson, avatarPath,
+        )
+    except sqlite3.IntegrityError:
+        return False, "Такой никнейм уже занят", None
 
     updatedProfile = getUserProfile(userId)
 
+    if updatedProfile is None:
+        return False, "Пользователь не найден", None
     return True, "Профиль сохранён", updatedProfile
 
 
 def saveUserSettings(userId, themeMode, languageCode, notificationsEnabled):
+    if getUserProfile(userId) is None:
+        return False, "Пользователь не найден", None
+    if not isinstance(notificationsEnabled, bool):
+        return False, "Некорректное значение уведомлений", None
     allowedThemeValues = []
 
     for themeItem in THEME_OPTIONS:
@@ -146,6 +161,8 @@ def saveUserSettings(userId, themeMode, languageCode, notificationsEnabled):
 
     updatedProfile = getUserProfile(userId)
 
+    if updatedProfile is None:
+        return False, "Пользователь не найден", None
     return True, "Настройки сохранены", updatedProfile
 
 
@@ -167,19 +184,23 @@ def changeUserPassword(userId, currentPassword, newPassword, repeatedNewPassword
     if currentPassword == newPassword:
         return False, "Новый пароль должен отличаться от текущего"
 
-    userPasswordRecord = getUserPasswordById(userId)
-
-    if userPasswordRecord is None:
-        return False, "Пользователь не найден"
-
-    if not checkPassword(
-        currentPassword,
-        userPasswordRecord["passwordHash"],
-        userPasswordRecord["passwordSalt"],
-    ):
-        return False, "Текущий пароль указан неверно"
-
-    passwordHash, passwordSalt = createPasswordHash(newPassword)
-    updateUserPassword(userId, passwordHash, passwordSalt)
-
-    return True, "Пароль успешно изменён. Выполните вход снова"
+    with openDatabase() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        userRecord = connection.execute('SELECT * FROM users WHERE userId = ? AND isBlocked = 0', (userId,)).fetchone()
+        if userRecord is None:
+            return False, "Пользователь не найден"
+        if userRecord['passwordBlockedUntil'] > time.time():
+            return False, "Смена пароля заблокирована на 5 минут"
+        if not checkPassword(currentPassword, userRecord['passwordHash'], userRecord['passwordSalt']):
+            failures = userRecord['passwordFailures'] + 1 if userRecord['passwordBlockedUntil'] == 0 else 1
+            blockedUntil = time.time() + 300 if failures >= 3 else 0
+            connection.execute('UPDATE users SET passwordFailures = ?, passwordBlockedUntil = ? WHERE userId = ?',
+                               (failures, blockedUntil, userId))
+            return False, "Текущий пароль указан неверно"
+        passwordHash, passwordSalt = createPasswordHash(newPassword)
+        connection.execute(
+            """UPDATE users SET passwordHash = ?, passwordSalt = ?, passwordFailures = 0,
+            passwordBlockedUntil = 0 WHERE userId = ?""", (passwordHash, passwordSalt, userId)
+        )
+        revokeUserSessions(connection, userId)
+    return True, "Пароль успешно изменён. Все сессии завершены. Выполните вход снова"

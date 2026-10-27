@@ -1,16 +1,13 @@
 from database import (
-    countPostLikes,
+    togglePostLikeForUser,
     createPost,
     createPostComment,
-    createPostLike,
     deletePostById,
     deletePostCommentById,
-    deletePostLike,
     getAllPosts,
     getCommentsByPostId,
     getPostLikeByUser,
     getPostsByUserId,
-    updatePostLikesCount,
 )
 
 POST_CATEGORIES = [
@@ -111,6 +108,7 @@ def getCommunityPosts():
                 "categoryName": postRecord["categoryName"],
                 "tagsText": postRecord["tagsText"] or "",
                 "likesCount": postRecord["likesCount"],
+                "isDeleted": bool(postRecord["isDeleted"]),
                 "createdAt": postRecord["createdAt"],
                 "nickname": postRecord["nickname"],
             }
@@ -133,6 +131,7 @@ def getUserPosts(userId):
                 "categoryName": postRecord["categoryName"],
                 "tagsText": postRecord["tagsText"] or "",
                 "likesCount": postRecord["likesCount"],
+                "isDeleted": bool(postRecord["isDeleted"]),
                 "createdAt": postRecord["createdAt"],
             }
         )
@@ -141,29 +140,17 @@ def getUserPosts(userId):
 
 
 def togglePostLike(postId, userId):
-    existingLike = getPostLikeByUser(postId, userId)
-
-    if existingLike:
-        deletePostLike(postId, userId)
-        isLiked = False
-    else:
-        createPostLike(postId, userId)
-        isLiked = True
-
-    likesCount = countPostLikes(postId)
-    updatePostLikesCount(postId, likesCount)
-
-    return isLiked, likesCount
+    return togglePostLikeForUser(postId, userId)
 
 
 def removePost(postId, userId):
-    deletePostById(postId, userId)
+    return deletePostById(postId, userId)
 
 def validateCommentText(commentText):
     if not commentText:
         return "Введите комментарий"
 
-    cleanCommentText = commentText.strip()
+    cleanCommentText = (commentText or "").strip()
 
     if len(cleanCommentText) < 5:
         return "Комментарий должен быть не короче 5 символов"
@@ -175,7 +162,7 @@ def validateCommentText(commentText):
 
 
 def savePostComment(postId, userId, commentText):
-    cleanCommentText = commentText.strip()
+    cleanCommentText = (commentText or "").strip()
 
     commentError = validateCommentText(cleanCommentText)
 
@@ -188,6 +175,8 @@ def savePostComment(postId, userId, commentText):
         cleanCommentText,
     )
 
+    if commentId is None:
+        return False, "Публикация или аккаунт недоступны", None
     return True, "Комментарий добавлен", commentId
 
 
