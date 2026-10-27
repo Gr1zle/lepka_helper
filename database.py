@@ -362,20 +362,39 @@ def getProjectsByUserId(userId):
     return projectRecords
 
 
+def getProjectById(projectId, userId):
+    connection = getConnection()
+    try:
+        return connection.execute(
+            "SELECT * FROM projects WHERE projectId = ? AND userId = ?",
+            (projectId, userId),
+        ).fetchone()
+    finally:
+        connection.close()
+
+
 def deleteProjectById(projectId, userId):
     connection = getConnection()
-    cursor = connection.cursor()
+    try:
+        # Одна транзакция: либо удаляются и этапы, и проект, либо ничего.
+        # Работает и с существующей базой без изменения её схемы.
+        with connection:
+            connection.execute(
+                """DELETE FROM projectSteps
+                WHERE projectId IN (
+                    SELECT projectId FROM projects
+                    WHERE projectId = ? AND userId = ?
+                )""",
+                (projectId, userId),
+            )
+            cursor = connection.execute(
+                "DELETE FROM projects WHERE projectId = ? AND userId = ?",
+                (projectId, userId),
+            )
+        return cursor.rowcount > 0
+    finally:
+        connection.close()
 
-    cursor.execute(
-        """
-        DELETE FROM projects
-        WHERE projectId = ? AND userId = ?
-        """,
-        (projectId, userId),
-    )
-
-    connection.commit()
-    connection.close()
 
 def getUserProfileById(userId):
     connection = getConnection()
@@ -455,94 +474,80 @@ def updateUserProfile(userId, nickname, bioText, ageCategory, favoriteColorsJson
     connection.commit()
     connection.close()
 
-def createProjectStep(projectId, stepDescription):
+def createProjectStep(projectId, stepDescription, userId):
     connection = getConnection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        INSERT INTO projectSteps (projectId, stepDescription)
-        VALUES (?, ?)
-        """,
-        (projectId, stepDescription),
-    )
-
-    stepId = cursor.lastrowid
-
-    connection.commit()
-    connection.close()
-
-    return stepId
+    try:
+        with connection:
+            cursor = connection.execute(
+                """INSERT INTO projectSteps (projectId, stepDescription)
+                SELECT projectId, ? FROM projects
+                WHERE projectId = ? AND userId = ?""",
+                (stepDescription, projectId, userId),
+            )
+        return cursor.lastrowid if cursor.rowcount else None
+    finally:
+        connection.close()
 
 
-def getProjectStepsByProjectId(projectId):
+def getProjectStepsByProjectId(projectId, userId):
     connection = getConnection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        SELECT stepId, projectId, stepDescription, isCompleted, createdAt
-        FROM projectSteps
-        WHERE projectId = ?
-        ORDER BY createdAt ASC
-        """,
-        (projectId,),
-    )
-
-    stepRecords = cursor.fetchall()
-    connection.close()
-
-    return stepRecords
+    try:
+        return connection.execute(
+            """SELECT s.stepId, s.projectId, s.stepDescription,
+                      s.isCompleted, s.createdAt
+            FROM projectSteps AS s
+            JOIN projects AS p ON p.projectId = s.projectId
+            WHERE p.projectId = ? AND p.userId = ?
+            ORDER BY s.createdAt ASC, s.stepId ASC""",
+            (projectId, userId),
+        ).fetchall()
+    finally:
+        connection.close()
 
 
-def updateProjectStepStatus(stepId, isCompleted):
+def updateProjectStepStatus(projectId, stepId, isCompleted, userId):
     connection = getConnection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        UPDATE projectSteps
-        SET isCompleted = ?
-        WHERE stepId = ?
-        """,
-        (1 if isCompleted else 0, stepId),
-    )
-
-    connection.commit()
-    connection.close()
+    try:
+        with connection:
+            cursor = connection.execute(
+                """UPDATE projectSteps SET isCompleted = ?
+                WHERE stepId = ? AND projectId = ?
+                AND projectId IN (SELECT projectId FROM projects WHERE userId = ?)""",
+                (1 if isCompleted else 0, stepId, projectId, userId),
+            )
+        return cursor.rowcount > 0
+    finally:
+        connection.close()
 
 
-def deleteProjectStepById(stepId):
+def deleteProjectStepById(projectId, stepId, userId):
     connection = getConnection()
-    cursor = connection.cursor()
+    try:
+        with connection:
+            cursor = connection.execute(
+                """DELETE FROM projectSteps
+                WHERE stepId = ? AND projectId = ?
+                AND projectId IN (SELECT projectId FROM projects WHERE userId = ?)""",
+                (stepId, projectId, userId),
+            )
+        return cursor.rowcount > 0
+    finally:
+        connection.close()
 
-    cursor.execute(
-        """
-        DELETE FROM projectSteps
-        WHERE stepId = ?
-        """,
-        (stepId,),
-    )
 
-    connection.commit()
-    connection.close()
-
-
-def updateProjectProgress(projectId, progressPercent):
+def updateProjectProgress(projectId, progressPercent, userId):
     connection = getConnection()
-    cursor = connection.cursor()
+    try:
+        with connection:
+            cursor = connection.execute(
+                """UPDATE projects SET progressPercent = ?
+                WHERE projectId = ? AND userId = ?""",
+                (progressPercent, projectId, userId),
+            )
+        return cursor.rowcount > 0
+    finally:
+        connection.close()
 
-    cursor.execute(
-        """
-        UPDATE projects
-        SET progressPercent = ?
-        WHERE projectId = ?
-        """,
-        (progressPercent, projectId),
-    )
-
-    connection.commit()
-    connection.close()
 
 def updateUserSettings(userId, themeMode, languageCode, notificationsEnabled):
     connection = getConnection()

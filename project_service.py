@@ -1,5 +1,9 @@
+import re
+from datetime import datetime
+
 from database import (
     createProject,
+    getProjectById,
     createProjectStep,
     deleteProjectById,
     deleteProjectStepById,
@@ -10,6 +14,8 @@ from database import (
 )
 
 
+# userId в операциях передаётся из текущей сессии пользователя,
+# а не из поля формы. Проверка владельца выполняется также в database.py.
 PROJECT_CATEGORIES = [
     "Животные",
     "Персонажи",
@@ -59,9 +65,28 @@ def validateStepDescription(stepDescription):
     return None
 
 
+def validateProjectDeadline(deadlineDate):
+    # Пустая дата означает «Без дедлайна». Прошедшие даты допустимы.
+    if not deadlineDate:
+        return None
+    error = "Введите дедлайн в формате ДД.ММ.ГГГГ (например: 25.04.2026)"
+    if not re.fullmatch(r"[0-9]{2}\.[0-9]{2}\.[0-9]{4}", deadlineDate):
+        return error
+    try:
+        datetime.strptime(deadlineDate, "%d.%m.%Y")
+    except ValueError:
+        return "Такой даты не существует. Проверьте день, месяц и год"
+    return None
+
+
 def saveProject(userId, projectName, categoryName, deadlineDate, descriptionText):
     projectName = projectName.strip()
-    descriptionText = descriptionText.strip()
+    descriptionText = (descriptionText or "").strip()
+    deadlineDate = (deadlineDate or "").strip()
+
+    deadlineError = validateProjectDeadline(deadlineDate)
+    if deadlineError:
+        return False, deadlineError, None
 
     projectNameError = validateProjectName(projectName)
     if projectNameError:
@@ -85,8 +110,8 @@ def saveProject(userId, projectName, categoryName, deadlineDate, descriptionText
     return True, "Проект сохранён", projectId
 
 
-def getProjectSteps(projectId):
-    stepRecords = getProjectStepsByProjectId(projectId)
+def getProjectSteps(projectId, userId):
+    stepRecords = getProjectStepsByProjectId(projectId, userId)
 
     stepItems = []
 
@@ -104,8 +129,10 @@ def getProjectSteps(projectId):
     return stepItems
 
 
-def calculateProjectProgress(projectId):
-    stepItems = getProjectSteps(projectId)
+def calculateProjectProgress(projectId, userId):
+    if getProjectById(projectId, userId) is None:
+        return None
+    stepItems = getProjectSteps(projectId, userId)
 
     if len(stepItems) == 0:
         return 0
@@ -119,9 +146,12 @@ def calculateProjectProgress(projectId):
     return round(completedCount / len(stepItems) * 100, 1)
 
 
-def refreshProjectProgress(projectId):
-    progressPercent = calculateProjectProgress(projectId)
-    updateProjectProgress(projectId, progressPercent)
+def refreshProjectProgress(projectId, userId):
+    progressPercent = calculateProjectProgress(projectId, userId)
+    if progressPercent is None:
+        return None
+    if not updateProjectProgress(projectId, progressPercent, userId):
+        return None
 
     return progressPercent
 
@@ -133,8 +163,10 @@ def getUserProjects(userId):
 
     for projectRecord in projectRecords:
         projectId = projectRecord["projectId"]
-        progressPercent = refreshProjectProgress(projectId)
-        stepItems = getProjectSteps(projectId)
+        progressPercent = refreshProjectProgress(projectId, userId)
+        if progressPercent is None:
+            continue  # Проект мог быть удалён после получения списка.
+        stepItems = getProjectSteps(projectId, userId)
 
         projectItems.append(
             {
@@ -153,32 +185,36 @@ def getUserProjects(userId):
 
 
 def removeProject(projectId, userId):
-    deleteProjectById(projectId, userId)
+    return deleteProjectById(projectId, userId)
 
 
-def saveProjectStep(projectId, stepDescription):
-    stepDescription = stepDescription.strip()
+def saveProjectStep(projectId, stepDescription, userId):
+    stepDescription = (stepDescription or "").strip()
 
     stepDescriptionError = validateStepDescription(stepDescription)
     if stepDescriptionError:
         return False, stepDescriptionError, None
 
-    stepId = createProjectStep(projectId, stepDescription)
-    refreshProjectProgress(projectId)
+    stepId = createProjectStep(projectId, stepDescription, userId)
+    if stepId is None:
+        return False, "Проект не найден или недоступен", None
+    refreshProjectProgress(projectId, userId)
 
     return True, "Этап добавлен", stepId
 
 
-def changeProjectStepStatus(projectId, stepId, isCompleted):
-    updateProjectStepStatus(stepId, isCompleted)
-    progressPercent = refreshProjectProgress(projectId)
+def changeProjectStepStatus(projectId, stepId, isCompleted, userId):
+    if not updateProjectStepStatus(projectId, stepId, isCompleted, userId):
+        return None
+    progressPercent = refreshProjectProgress(projectId, userId)
 
     return progressPercent
 
 
-def removeProjectStep(projectId, stepId):
-    deleteProjectStepById(stepId)
-    progressPercent = refreshProjectProgress(projectId)
+def removeProjectStep(projectId, stepId, userId):
+    if not deleteProjectStepById(projectId, stepId, userId):
+        return None
+    progressPercent = refreshProjectProgress(projectId, userId)
 
     return progressPercent
 
