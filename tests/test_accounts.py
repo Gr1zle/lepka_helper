@@ -1,4 +1,5 @@
 """Аккаунты: настоящий SQLite, временная база, письма перехватываются в памяти."""
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -305,19 +306,27 @@ class MigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'legacy.db'
             passwordHash, passwordSalt = createPasswordHash('Legacy123')
-            with sqlite3.connect(path) as connection:
-                connection.execute("""CREATE TABLE users (
-                    userId INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE,
-                    passwordHash TEXT NOT NULL, passwordSalt TEXT NOT NULL, nickname TEXT NOT NULL UNIQUE,
-                    roleName TEXT NOT NULL DEFAULT 'user', isBlocked INTEGER NOT NULL DEFAULT 0,
-                    createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
-                connection.execute('INSERT INTO users (email, passwordHash, passwordSalt, nickname) VALUES (?, ?, ?, ?)',
-                                   ('legacy@example.com', passwordHash, passwordSalt, 'legacy'))
+            # Контекст connection завершает транзакцию, closing закрывает файл.
+            # Без closing Windows не сможет удалить временную базу после теста.
+            with closing(sqlite3.connect(path)) as connection:
+                with connection:
+                    connection.execute("""CREATE TABLE users (
+                        userId INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE,
+                        passwordHash TEXT NOT NULL, passwordSalt TEXT NOT NULL, nickname TEXT NOT NULL UNIQUE,
+                        roleName TEXT NOT NULL DEFAULT 'user', isBlocked INTEGER NOT NULL DEFAULT 0,
+                        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
+                    connection.execute('INSERT INTO users (email, passwordHash, passwordSalt, nickname) VALUES (?, ?, ?, ?)',
+                                       ('legacy@example.com', passwordHash, passwordSalt, 'legacy'))
+            with self.assertRaises(sqlite3.ProgrammingError):
+                connection.execute('SELECT 1')
             with patch.object(db, 'DATABASE_PATH', path):
                 db.initializeDatabase()
                 # Имитация записи, оставшейся от прежней версии без контроля FK.
-                with sqlite3.connect(path) as connection:
-                    connection.execute("INSERT INTO projectSteps (projectId, stepDescription) VALUES (99999, 'Старый этап')")
+                with closing(sqlite3.connect(path)) as connection:
+                    with connection:
+                        connection.execute("INSERT INTO projectSteps (projectId, stepDescription) VALUES (99999, 'Старый этап')")
+                with self.assertRaises(sqlite3.ProgrammingError):
+                    connection.execute('SELECT 1')
                 db.initializeDatabase()
                 self.assertTrue(auth.loginUser('legacy@example.com', 'Legacy123')[0])
                 self.assertEqual(db.getUserByEmail('legacy@example.com')['passwordHash'], passwordHash)
