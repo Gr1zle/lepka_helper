@@ -5,6 +5,7 @@ from api_client import getApiUrl
 from account_gateway import (deleteUserAccount, requestEmailChange, confirmEmailChange,
                              getUserProfile, saveUserProfile, saveUserSettings, changeUserPassword)
 from post_service import getCommunityPosts
+from views.community_tab import createMyWorksButton
 from project_service import getUserProjects
 from profile_service import (
     AGE_CATEGORIES, FAVORITE_COLOR_OPTIONS, LANGUAGE_OPTIONS, THEME_OPTIONS,
@@ -469,7 +470,15 @@ def createProfileTab(page, nickname, email):
         favoriteColorCheckboxes.append(checkboxControl)
         colorWrapControls.append(checkboxControl)
 
+    statNumbers = {}
+
+    def refreshPostStats(postItems):
+        statNumbers['Работ'].value = str(len(postItems))
+        statNumbers['Лайков'].value = str(sum(item['likesCount'] for item in postItems))
+
     def createStatItem(countText, labelText, itemColor, backgroundColor):
+        number = ft.Text(str(countText), size=24, weight=ft.FontWeight.BOLD, color=itemColor)
+        statNumbers[labelText] = number
         return ft.Container(
             expand=True,
             padding=12,
@@ -478,12 +487,7 @@ def createProfileTab(page, nickname, email):
             content=ft.Column(
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    ft.Text(
-                        str(countText),
-                        size=24,
-                        weight=ft.FontWeight.BOLD,
-                        color=itemColor,
-                    ),
+                    number,
                     ft.Text(
                         labelText,
                         size=12,
@@ -643,6 +647,7 @@ def createProfileTab(page, nickname, email):
                                 size=18,
                                 weight=ft.FontWeight.BOLD,
                             ),
+                            createMyWorksButton(page, currentUser, refreshPostStats),
                             ft.Row(
                                 controls=[
                                     createStatItem(userPostsCount, "Работ", PRIMARY_COLOR, "#FFF0F0"),

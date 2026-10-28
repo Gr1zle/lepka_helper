@@ -1,6 +1,6 @@
 from database import (
     togglePostLikeForUser,
-    createPost,
+    createPostWithPhotos, getPostPhotoIds, updatePostComment,
     createPostComment,
     deletePostById,
     deletePostCommentById,
@@ -9,6 +9,7 @@ from database import (
     getPostLikeByUser,
     getPostsByUserId,
 )
+from photo_service import preparePhoto
 
 POST_CATEGORIES = [
     "Животные",
@@ -53,24 +54,33 @@ def normalizeTags(tagsText):
     if not tagsText:
         return ""
 
+    if not isinstance(tagsText, str):
+        raise ValueError('Введите теги через запятую')
     tagItems = []
 
     for tagText in tagsText.split(","):
         cleanTag = tagText.strip()
 
         if cleanTag:
+            if not 2 <= len(cleanTag) <= 30:
+                raise ValueError('Каждый тег должен содержать от 2 до 30 символов')
             tagItems.append(cleanTag)
 
     if len(tagItems) > 10:
-        tagItems = tagItems[:10]
+        raise ValueError('Допускается не больше 10 тегов')
 
     return ", ".join(tagItems)
 
 
-def savePost(userId, titleText, descriptionText, categoryName, tagsText):
+def savePost(userId, titleText, descriptionText, categoryName, tagsText, photoFiles=None):
+    if not isinstance(titleText, str) or not isinstance(descriptionText, str):
+        return False, 'Введите название и описание работы', None
     titleText = titleText.strip()
     descriptionText = descriptionText.strip()
-    tagsText = normalizeTags(tagsText)
+    try:
+        tagsText = normalizeTags(tagsText)
+    except ValueError as error:
+        return False, str(error), None
 
     titleError = validatePostTitle(titleText)
     if titleError:
@@ -80,17 +90,30 @@ def savePost(userId, titleText, descriptionText, categoryName, tagsText):
     if descriptionError:
         return False, descriptionError, None
 
-    if not categoryName:
-        return False, "Выберите категорию", None
+    if categoryName not in POST_CATEGORIES:
+        return False, "Выберите категорию из списка", None
 
-    postId = createPost(
+    if not isinstance(photoFiles, list) or not 1 <= len(photoFiles) <= 10:
+        return False, 'Добавьте от 1 до 10 фотографий', None
+    try:
+        photos = []
+        for photo in photoFiles:
+            if not isinstance(photo, dict):
+                raise ValueError('Некорректная фотография')
+            photos.append(preparePhoto(photo.get('name'), photo.get('data'))['data'])
+    except ValueError as error:
+        return False, str(error), None
+
+    postId = createPostWithPhotos(
         userId,
         titleText,
         descriptionText,
         categoryName,
         tagsText,
+        photos,
     )
-
+    if postId is None:
+        return False, 'Аккаунт недоступен', None
     return True, "Работа опубликована", postId
 
 
@@ -111,6 +134,7 @@ def getCommunityPosts():
                 "isDeleted": bool(postRecord["isDeleted"]),
                 "createdAt": postRecord["createdAt"],
                 "nickname": postRecord["nickname"],
+                "photoIds": getPostPhotoIds(postRecord['postId']),
             }
         )
 
@@ -133,6 +157,8 @@ def getUserPosts(userId):
                 "likesCount": postRecord["likesCount"],
                 "isDeleted": bool(postRecord["isDeleted"]),
                 "createdAt": postRecord["createdAt"],
+                "nickname": postRecord['nickname'],
+                "photoIds": getPostPhotoIds(postRecord['postId']),
             }
         )
 
@@ -158,10 +184,15 @@ def validateCommentText(commentText):
     if len(cleanCommentText) > 1000:
         return "Комментарий должен быть не длиннее 1000 символов"
 
+    if not any(character.isalnum() for character in cleanCommentText):
+        return 'Добавьте текст: комментарий не может состоять только из эмодзи или символов'
+
     return None
 
 
 def savePostComment(postId, userId, commentText):
+    if not isinstance(commentText, str):
+        return False, 'Введите текст комментария', None
     cleanCommentText = (commentText or "").strip()
 
     commentError = validateCommentText(cleanCommentText)
@@ -169,11 +200,10 @@ def savePostComment(postId, userId, commentText):
     if commentError:
         return False, commentError, None
 
-    commentId = createPostComment(
-        postId,
-        userId,
-        cleanCommentText,
-    )
+    try:
+        commentId = createPostComment(postId, userId, cleanCommentText)
+    except ValueError as error:
+        return False, str(error), None
 
     if commentId is None:
         return False, "Публикация или аккаунт недоступны", None
@@ -200,7 +230,18 @@ def getPostComments(postId):
 
 
 def removePostComment(commentId, userId):
-    deletePostCommentById(commentId, userId)
+    return deletePostCommentById(commentId, userId)
+
+
+def editPostComment(commentId, userId, commentText):
+    if not isinstance(commentText, str):
+        return False, 'Введите текст комментария'
+    error = validateCommentText(commentText)
+    if error:
+        return False, error
+    if not updatePostComment(commentId, userId, commentText.strip()):
+        return False, 'Комментарий недоступен или истекли 30 минут для редактирования'
+    return True, 'Комментарий изменён'
 
 def checkPostLikedByUser(postId, userId):
     if userId is None:

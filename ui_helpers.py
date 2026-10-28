@@ -6,6 +6,11 @@ from account_gateway import getSessionUser, logoutUser
 from api_client import ApiError
 
 
+def isWebClient(page):
+    state = page.data
+    return bool(isinstance(state, dict) and state.get('isWebServer')) or page.web
+
+
 def showMessage(page, messageText, isError=False):
     page.open(ft.SnackBar(content=ft.Text(messageText),
                          bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400))

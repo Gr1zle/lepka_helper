@@ -213,6 +213,17 @@ def initializeDatabase():
 
     addColumnIfNotExists(cursor, 'posts', 'isDeleted', 'isDeleted INTEGER NOT NULL DEFAULT 0')
 
+    cursor.execute("""CREATE TABLE IF NOT EXISTS postPhotos (
+        photoId INTEGER PRIMARY KEY AUTOINCREMENT, postId INTEGER NOT NULL,
+        position INTEGER NOT NULL, imageData BLOB NOT NULL,
+        FOREIGN KEY (postId) REFERENCES posts(postId), UNIQUE(postId, position)
+    )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS commentEvents (
+        userId INTEGER NOT NULL, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (userId) REFERENCES users(userId)
+    )""")
+    cursor.execute('CREATE INDEX IF NOT EXISTS commentEventsUserTime ON commentEvents(userId, createdAt)')
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS postComments (
@@ -629,7 +640,7 @@ def getAllPosts():
         FROM posts
         INNER JOIN users ON posts.userId = users.userId
         LEFT JOIN remoteAccounts ON remoteAccounts.localUserId = users.userId
-        ORDER BY posts.createdAt DESC
+        ORDER BY posts.createdAt DESC, posts.postId DESC
         """
     )
 
@@ -645,19 +656,12 @@ def getPostsByUserId(userId):
 
     cursor.execute(
         """
-        SELECT
-            postId,
-            userId,
-            titleText,
-            descriptionText,
-            categoryName,
-            tagsText,
-            likesCount,
-            isDeleted,
-            createdAt
+        SELECT posts.*, COALESCE(remoteAccounts.displayNickname, users.nickname) AS nickname
         FROM posts
-        WHERE userId = ?
-        ORDER BY createdAt DESC
+        JOIN users ON users.userId = posts.userId
+        LEFT JOIN remoteAccounts ON remoteAccounts.localUserId = users.userId
+        WHERE posts.userId = ?
+        ORDER BY posts.createdAt DESC, posts.postId DESC
         """,
         (userId,),
     )
@@ -688,26 +692,38 @@ def increasePostLikes(postId):
 def deletePostById(postId, userId):
     with openDatabase() as connection:
         ownedPost = connection.execute(
-            'SELECT postId FROM posts WHERE postId = ? AND userId = ?',
-            (postId, userId),
+            '''SELECT postId FROM posts WHERE postId = ? AND userId = ?
+            AND EXISTS (SELECT 1 FROM users WHERE userId = ? AND isBlocked = 0)''',
+            (postId, userId, userId),
         ).fetchone()
         if ownedPost is None:
             return False
         connection.execute('DELETE FROM postComments WHERE postId = ?', (postId,))
         connection.execute('DELETE FROM postLikes WHERE postId = ?', (postId,))
+        connection.execute('DELETE FROM postPhotos WHERE postId = ?', (postId,))
         connection.execute('DELETE FROM posts WHERE postId = ?', (postId,))
         return True
 
 
 def createPostComment(postId, userId, commentText):
     with openDatabase() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        recent = connection.execute("""SELECT COUNT(*) FROM commentEvents
+            WHERE userId = ? AND createdAt > datetime('now', '-1 minute')""", (userId,)).fetchone()[0]
+        if recent >= 5:
+            raise ValueError('Можно отправить не больше 5 комментариев в минуту')
         cursor = connection.execute(
             """INSERT INTO postComments (postId, userId, commentText)
             SELECT p.postId, u.userId, ? FROM posts AS p, users AS u
             WHERE p.postId = ? AND p.isDeleted = 0 AND u.userId = ? AND u.isBlocked = 0""",
             (commentText, postId, userId),
         )
-        return cursor.lastrowid if cursor.rowcount else None
+        if not cursor.rowcount:
+            return None
+        commentId = cursor.lastrowid
+        connection.execute('INSERT INTO commentEvents (userId) VALUES (?)', (userId,))
+        connection.execute("DELETE FROM commentEvents WHERE createdAt < datetime('now', '-1 day')")
+        return commentId
 
 
 def togglePostLikeForUser(postId, userId):
@@ -758,22 +774,11 @@ def getCommentsByPostId(postId):
 
 
 def deletePostCommentById(commentId, userId):
-    connection = getConnection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        DELETE FROM postComments
-        WHERE commentId = ? AND userId = ?
-        """,
-        (
-            commentId,
-            userId,
-        ),
-    )
-
-    connection.commit()
-    connection.close()
+    with openDatabase() as connection:
+        cursor = connection.execute("""DELETE FROM postComments WHERE commentId = ? AND userId = ?
+            AND EXISTS (SELECT 1 FROM users WHERE userId = ? AND isBlocked = 0)""",
+            (commentId, userId, userId))
+        return cursor.rowcount > 0
 
 def getPostLikeByUser(postId, userId):
     connection = getConnection()
@@ -866,6 +871,7 @@ def deleteUserDataById(userId, existingConnection=None):
     with context as connection:
         # Сначала удаляются личные данные. Чужие комментарии остаются под заглушкой.
         connection.execute('DELETE FROM postComments WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM commentEvents WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM postLikes WHERE userId = ?', (userId,))
         ownedPosts = connection.execute('SELECT postId FROM posts WHERE userId = ?', (userId,)).fetchall()
         if ownedPosts:
@@ -888,6 +894,7 @@ def deleteUserDataById(userId, existingConnection=None):
             )
             for postRecord in ownedPosts:
                 connection.execute('DELETE FROM postLikes WHERE postId = ?', (postRecord['postId'],))
+                connection.execute('DELETE FROM postPhotos WHERE postId = ?', (postRecord['postId'],))
         connection.execute("""UPDATE posts SET likesCount = (
             SELECT COUNT(*) FROM postLikes WHERE postLikes.postId = posts.postId)""")
         connection.execute('DELETE FROM projectSteps WHERE projectId IN (SELECT projectId FROM projects WHERE userId = ?)', (userId,))
@@ -978,4 +985,43 @@ def updateProjectStepDescription(projectId, stepId, userId, description):
         cursor = connection.execute("""UPDATE projectSteps SET stepDescription = ?
             WHERE stepId = ? AND projectId = ? AND projectId IN
             (SELECT projectId FROM projects WHERE userId = ?)""", (description, stepId, projectId, userId))
+        return cursor.rowcount > 0
+
+
+def createPostWithPhotos(userId, titleText, descriptionText, categoryName, tagsText, photos):
+    with openDatabase() as connection:
+        cursor = connection.execute("""INSERT INTO posts (userId, titleText, descriptionText, categoryName, tagsText)
+            SELECT userId, ?, ?, ?, ? FROM users WHERE userId = ? AND isBlocked = 0""",
+            (titleText, descriptionText, categoryName, tagsText, userId))
+        if not cursor.rowcount:
+            return None
+        postId = cursor.lastrowid
+        connection.executemany('INSERT INTO postPhotos (postId, position, imageData) VALUES (?, ?, ?)',
+                               [(postId, index, data) for index, data in enumerate(photos)])
+        return postId
+
+
+def getPostPhotoIds(postId):
+    with openDatabase() as connection:
+        return [row['photoId'] for row in connection.execute("""SELECT ph.photoId FROM postPhotos AS ph
+            JOIN posts AS p ON p.postId = ph.postId WHERE ph.postId = ? AND p.isDeleted = 0
+            ORDER BY ph.position""", (postId,))]
+
+
+def getPostPhoto(photoId):
+    # Опубликованные фотографии общедоступны. Пути к файлам здесь не принимаются.
+    with openDatabase() as connection:
+        row = connection.execute("""SELECT ph.imageData FROM postPhotos AS ph
+            JOIN posts AS p ON p.postId = ph.postId WHERE ph.photoId = ? AND p.isDeleted = 0""",
+            (photoId,)).fetchone()
+        return bytes(row['imageData']) if row else None
+
+
+def updatePostComment(commentId, userId, commentText):
+    with openDatabase() as connection:
+        cursor = connection.execute("""UPDATE postComments SET commentText = ?
+            WHERE commentId = ? AND userId = ? AND createdAt >= datetime('now', '-30 minutes')
+            AND EXISTS (SELECT 1 FROM users WHERE userId = ? AND isBlocked = 0)
+            AND EXISTS (SELECT 1 FROM posts WHERE posts.postId = postComments.postId AND isDeleted = 0)""",
+            (commentText, commentId, userId, userId))
         return cursor.rowcount > 0

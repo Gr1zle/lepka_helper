@@ -303,7 +303,8 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         from fastapi.testclient import TestClient
         from web_app import createWebApp
         from views.home_view import createColorsTab
-        self.page._set_attr('web', 'true')
+        self.page._set_attr('web', 'false')
+        self.page.data = {'isWebServer': True}
         self.connection.page_url = 'ws://127.0.0.1:8550/ws'
         view = self.openToolsTab(createColorsTab)
         self.chooseBaseColor(view, 'Белый')
