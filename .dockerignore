@@ -1,0 +1,12 @@
+.git
+.venv
+**/__pycache__
+**/*.pyc
+**/*.db
+**/*.db-*
+**/.env
+**/.env.*
+server-data
+build
+dist
+exports

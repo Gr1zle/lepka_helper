@@ -14,7 +14,10 @@ from flet.core.connection import Connection
 import app_state
 import database
 ORIGINAL_DATABASE_PATH = database.DATABASE_PATH
-from auth_service import ensureDemoUser, loginUser, registerUser, changePasswordByEmail
+from auth_service import (ensureDemoUser, loginUser, registerUser, changePasswordByEmail,
+                          requestRegistrationCode, requestPasswordRecovery)
+from account_security import confirmRegistration, getSessionUser
+from ui_helpers import logoutPage
 from profile_service import changeUserPassword
 from password_service import checkPassword
 from main import main
@@ -56,6 +59,9 @@ def find(root, cls, **attrs):
 
 class StartupTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        modePatch = patch('account_gateway.getApiUrl', return_value='')
+        modePatch.start()
+        self.addCleanup(modePatch.stop)
         self.temp = tempfile.TemporaryDirectory()
         folder = Path(self.temp.name)
         self.db_patch = patch.object(database, 'DATABASE_PATH', folder/'test.db')
@@ -63,7 +69,8 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         self.db_patch.start()
         self.state_patch.start()
         database.initializeDatabase()
-        self.user = ensureDemoUser()
+        ensureDemoUser()
+        self.user = loginUser("test@email.com", "Test123456")[2]
         self.page = ft.Page(MemoryConnection(), 'test', asyncio.get_event_loop())
         self.page.theme_mode = ft.ThemeMode.LIGHT
         self.page.session.set('currentUser', self.user)
@@ -131,6 +138,132 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(connection.execute('SELECT COUNT(*) FROM projectSteps').fetchone()[0], 0)
         finally:
             connection.close()
+
+    async def test_stale_profile_handler_cannot_save_after_logout(self):
+        from views.profile_tab import createProfileTab
+        view = self.mount(ft.View('/profile', controls=[createProfileTab(self.page, self.user['nickname'], self.user['email'])]))
+        field = find(view, ft.TextField, label='Никнейм')
+        save = find(view, ft.ElevatedButton, text='Сохранить профиль')
+        field.value = 'changed_name'
+        logoutPage(self.page)
+        save.on_click(None)
+        self.assertIsNone(getSessionUser(self.user['sessionToken']))
+        self.assertEqual(database.getUserByEmail(self.user['email'])['nickname'], self.user['nickname'])
+        self.assertEqual(self.page.route, '/auth')
+
+    async def test_stale_profile_handler_cannot_save_after_account_switch(self):
+        from views.profile_tab import createProfileTab
+        from password_service import createPasswordHash
+        view = self.mount(ft.View('/profile', controls=[createProfileTab(self.page, self.user['nickname'], self.user['email'])]))
+        find(view, ft.TextField, label='Никнейм').value = 'changed_name'
+        save = find(view, ft.ElevatedButton, text='Сохранить профиль')
+        passwordHash, salt = createPasswordHash('OtherPass123')
+        database.createUser('other@example.com', passwordHash, salt, 'other')
+        other = loginUser('other@example.com', 'OtherPass123')[2]
+        self.page.session.set('currentUser', other)
+        save.on_click(None)
+        self.assertEqual(database.getUserByEmail(self.user['email'])['nickname'], self.user['nickname'])
+        self.assertEqual(database.getUserByEmail(other['email'])['nickname'], 'other')
+        self.assertEqual(self.page.session.get('currentUser')['userId'], other['userId'])
+
+    async def test_revoked_session_cannot_navigate_to_private_tab(self):
+        view = self.mount(createHomeView(self.page))
+        nav = find(view, ft.NavigationBar)
+        self.assertTrue(changeUserPassword(self.user['userId'], 'Test123456', 'Changed123', 'Changed123')[0])
+        nav.selected_index = 3
+        nav.on_change(SimpleNamespace(control=nav))
+        self.assertEqual(self.page.route, '/auth')
+        self.assertIsNone(self.page.session.get('currentUser'))
+
+    async def test_recovery_dialog_uses_delivered_code_without_showing_it(self):
+        view = self.mount(createAuthView(self.page))
+        find(view, ft.TextButton, text='Забыли пароль?').on_click(None)
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog))
+        with patch('account_security.sendAccountCode') as mail:
+            find(dialog, ft.OutlinedButton, text='Получить код').on_click(None)
+            code = mail.call_args.args[1]
+        self.assertFalse(any(isinstance(c, ft.Text) and code in (c.value or '') for c in walk(dialog)))
+        find(dialog, ft.TextField, label='Код из письма').value = code
+        find(dialog, ft.TextField, label='Новый пароль').value = 'Changed123'
+        find(dialog, ft.TextField, label='Повторите новый пароль').value = 'Changed123'
+        find(dialog, ft.ElevatedButton, text='Сменить пароль').on_click(None)
+        self.assertFalse(dialog.open)
+        self.assertFalse(loginUser(self.user['email'], 'Test123456')[0])
+        self.assertTrue(loginUser(self.user['email'], 'Changed123')[0])
+
+    async def test_registration_form_requires_confirmation_and_displays_field_errors(self):
+        view = self.mount(createAuthView(self.page))
+        tabs = find(view, ft.Tabs)
+        tabs.selected_index = 1
+        tabs.on_change(SimpleNamespace(control=tabs))
+        register = find(view, ft.ElevatedButton, text='Зарегистрироваться')
+        register.on_click(None)
+        self.assertIsNotNone(find(view, ft.TextField, label='Никнейм').error_text)
+        find(view, ft.TextField, label='Email').value = 'new@example.com'
+        find(view, ft.TextField, label='Никнейм').value = 'new_user'
+        find(view, ft.TextField, label='Пароль').value = 'NewPass123'
+        find(view, ft.TextField, label='Подтверждение пароля').value = 'NewPass123'
+        find(view, ft.Checkbox).value = True
+        with patch('account_security.sendAccountCode') as mail:
+            register.on_click(None)
+            code = mail.call_args.args[1]
+        self.assertFalse(loginUser('new@example.com', 'NewPass123')[0])
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog))
+        find(dialog, ft.TextField, label='Код из письма').value = code
+        find(dialog, ft.ElevatedButton, text='Подтвердить email').on_click(None)
+        self.assertFalse(dialog.open)
+        self.assertTrue(loginUser('new@example.com', 'NewPass123')[0])
+
+    async def test_email_change_dialog_and_account_delete_confirmation(self):
+        from views.profile_tab import createProfileTab
+        view = self.mount(ft.View('/profile', controls=[createProfileTab(self.page, self.user['nickname'], self.user['email'])]))
+        find(view, ft.OutlinedButton, text='Изменить email').on_click(None)
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog))
+        find(dialog, ft.TextField, label='Новый email').value = 'changed@example.com'
+        find(dialog, ft.TextField, label='Текущий пароль').value = 'Test123456'
+        with patch('account_security.sendAccountCode') as mail:
+            find(dialog, ft.OutlinedButton, text='Получить код').on_click(None)
+            code = mail.call_args.args[1]
+        find(dialog, ft.TextField, label='Код из письма').value = code
+        find(dialog, ft.ElevatedButton, text='Подтвердить email').on_click(None)
+        self.assertEqual(self.page.route, '/auth')
+        self.assertIsNone(self.page.session.get('currentUser'))
+        user = loginUser('changed@example.com', 'Test123456')[2]
+        self.page.session.set('currentUser', user)
+        view = self.mount(ft.View('/profile', controls=[createProfileTab(self.page, user['nickname'], user['email'])]))
+        find(view, ft.TextField, label='Пароль для удаления аккаунта').value = 'Test123456'
+        find(view, ft.ElevatedButton, text='Удалить аккаунт').on_click(None)
+        self.assertIsNotNone(database.getUserByEmail('changed@example.com'))
+        confirm = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog))
+        find(confirm, ft.TextButton, text='Удалить').on_click(None)
+        self.assertIsNone(database.getUserByEmail('changed@example.com'))
+        self.assertIsNone(self.page.session.get('currentUser'))
+
+    async def test_other_comments_remain_visible_under_deleted_post(self):
+        from views.home_view import createPostCard
+        from auth_service import deleteUserAccount
+        from post_service import getCommunityPosts
+        from password_service import createPasswordHash
+        passwordHash, salt = createPasswordHash('OtherPass123')
+        otherId = database.createUser('other@example.com', passwordHash, salt, 'other')
+        post = database.createPost(self.user['userId'], 'Котик', 'Описание котика', 'Животные', '')
+        database.createPostComment(post, otherId, 'Сохранённый чужой комментарий')
+        self.assertTrue(deleteUserAccount(self.user['userId'], 'Test123456')[0])
+        item = getCommunityPosts()[0]
+        view = self.mount(ft.View('/post', controls=[createPostCard(self.page, item, None, lambda: None)]))
+        self.assertEqual(find(view, ft.Text, value='Сохранённый чужой комментарий').value,
+                         'Сохранённый чужой комментарий')
+        self.assertTrue(item['isDeleted'])
+
+    async def test_android_without_api_cannot_start_local_account_mode(self):
+        with patch('main.getApiUrl', return_value=''):
+            self.page._set_attr('platform', 'android')
+            with patch('main.initializeDatabase') as initialize, patch('main.ensureDemoUser') as demo:
+                main(self.page)
+                initialize.assert_not_called()
+                demo.assert_not_called()
+            self.assertTrue(any(isinstance(control, ft.Text) and 'HTTPS' in (control.value or '')
+                                for control in walk(self.page)))
 
     async def test_onboarding_saves_completion(self):
         view = self.mount(createOnboardingView(self.page))
@@ -211,11 +344,17 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
     async def test_registration_password_change_login_and_recovery(self):
         success, _, user = registerUser('student@example.com', 'Student123', 'Student123', 'student', True)
         self.assertTrue(success)
+        self.assertFalse(loginUser('student@example.com', 'Student123')[0])
+        with patch('account_security.sendAccountCode') as mail:
+            self.assertTrue(requestRegistrationCode('student@example.com')[0])
+            self.assertTrue(confirmRegistration('student@example.com', mail.call_args.args[1])[0])
         self.assertTrue(loginUser('student@example.com', 'Student123')[0])
         self.assertTrue(changeUserPassword(user['userId'], 'Student123', 'NewPass123', 'NewPass123')[0])
         self.assertFalse(loginUser('student@example.com', 'Student123')[0])
         self.assertTrue(loginUser('student@example.com', 'NewPass123')[0])
-        self.assertTrue(changePasswordByEmail('student@example.com', 'ResetPass123', 'ResetPass123')[0])
+        with patch('account_security.sendAccountCode') as mail:
+            self.assertTrue(requestPasswordRecovery('student@example.com')[0])
+            self.assertTrue(changePasswordByEmail('student@example.com', 'ResetPass123', 'ResetPass123', mail.call_args.args[1])[0])
         self.assertTrue(loginUser('student@example.com', 'ResetPass123')[0])
         self.assertFalse(loginUser('student@example.com', 'NewPass123')[0])
 

@@ -2,7 +2,9 @@ import flet as ft
 import argparse
 
 from database import initializeDatabase
-from auth_service import ensureDemoUser
+from account_gateway import ensureDemoUser
+from api_client import ApiError, getApiUrl
+from ui_helpers import serverAction
 from views.splash_view import createSplashView
 from views.onboarding_view import createOnboardingView
 from views.auth_view import createAuthView
@@ -14,6 +16,18 @@ SECONDARY_COLOR = "#4ECDC4"
 
 
 def main(page: ft.Page):
+    try:
+        isAndroid = page.platform == ft.PagePlatform.ANDROID
+    except ValueError:
+        isAndroid = False  # Транспорт ещё не сообщил платформу.
+    try:
+        apiUrl = getApiUrl()
+    except ApiError as error:
+        page.add(ft.Text(str(error)))
+        return
+    if isAndroid and not apiUrl:
+        page.add(ft.Text('Для Android задайте HTTPS-адрес сервера в assets/client_config.json'))
+        return
     initializeDatabase()
     ensureDemoUser()
 
@@ -30,21 +44,21 @@ def main(page: ft.Page):
     page.session.set("PRIMARY_COLOR", PRIMARY_COLOR)
     page.session.set("SECONDARY_COLOR", SECONDARY_COLOR)
 
+    @serverAction(page)
     def route_change(e):
-        page.views.clear()
-
         if page.route == "/" or page.route == "":
-            page.views.append(createSplashView(page))
+            view = createSplashView(page)
         elif page.route == "/onboarding":
-            page.views.append(createOnboardingView(page))
+            view = createOnboardingView(page)
         elif page.route == "/auth":
-            page.views.append(createAuthView(page))
+            view = createAuthView(page)
         elif page.route == "/home":
-            page.views.append(createHomeView(page))
+            view = createHomeView(page)
         else:
             page.go("/")
             return
 
+        page.views[:] = [view]
         page.update()
 
     def view_pop(e):
