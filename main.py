@@ -1,5 +1,6 @@
 import flet as ft
 import argparse
+from pathlib import Path
 
 from database import initializeDatabase
 from account_gateway import ensureDemoUser
@@ -76,9 +77,26 @@ if __name__ == "__main__":
     parser.add_argument("--desktop", action="store_true", help="Открыть отдельное окно")
     parser.add_argument("--port", type=int, default=8550, help="Порт веб-версии")
     options = parser.parse_args()
-    ft.app(
-        target=main,
-        view=ft.AppView.FLET_APP if options.desktop else ft.AppView.WEB_BROWSER,
-        host="127.0.0.1",
-        port=options.port,
-    )
+    if options.desktop:
+        ft.app(target=main, view=ft.AppView.FLET_APP, host="127.0.0.1", port=options.port,
+               assets_dir=str(Path(__file__).resolve().parent / "assets"))
+    else:
+        import socket
+        import threading
+        import time
+        import webbrowser
+        import uvicorn
+        from web_app import createWebApp
+
+        def openBrowser():
+            for _ in range(100):
+                try:
+                    with socket.create_connection(('127.0.0.1', options.port), timeout=0.1):
+                        webbrowser.open(f'http://127.0.0.1:{options.port}')
+                        return
+                except OSError:
+                    time.sleep(0.05)
+
+        threading.Thread(target=openBrowser, daemon=True).start()
+        # Не записываем одноразовые адреса скачивания в access-log.
+        uvicorn.run(createWebApp(), host='127.0.0.1', port=options.port, access_log=False)

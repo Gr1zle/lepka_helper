@@ -2,6 +2,7 @@ from ui_helpers import authenticatedAction, getCurrentUser, serverAction, showMe
 import base64
 import colorsys
 import math
+from urllib.parse import urlsplit
 import struct
 import threading
 import zlib
@@ -14,16 +15,20 @@ from pathlib import Path
 from color_service import (
     BASE_COLORS, calculateMixedColor, calculateRecipe,
     findClosestRecipeForTargetColor, getUserColorMixtures,
-    saveColorMixture, validateHexColor, deleteColorMixture
+    saveColorMixture, validateHexColor, deleteColorMixture, normalizeWeight, normalizeSelectedColors, normalizeProportion
 )
-from lesson_service import SEARCH_CATEGORIES, generateRandomIdea, getLessonById, searchLessons
+from lesson_service import (SEARCH_CATEGORIES, IDEA_THEMES, IDEA_LEVELS, IDEA_PALETTES,
+                            generateRandomIdea, getLessonById, searchLessons, getUserLessonState, saveUserLessonState)
+from color_export import createRecipePng
+from download_service import createDownload
+from date_field import createDeadlineField
 from post_service import (
     POST_CATEGORIES, getCommunityPosts, getPostComments, checkPostLikedByUser,
     removePost, removePostComment, savePost, savePostComment, togglePostLike
 )
 from project_service import (
     PROJECT_CATEGORIES, changeProjectStepStatus, getUserProjects,
-    removeProject, removeProjectStep, saveProject, saveProjectStep
+    removeProject, removeProjectStep, saveProject, saveProjectStep, editProject, editProjectStep
 )
 from views.profile_tab import createProfileTab
 
@@ -542,9 +547,10 @@ def createSearchTab(page, currentUser):
 
     selectedLessonId = {"value": None}
     selectedStepIndex = {"value": 0}
+    lessonState = {"value": None}
 
     searchField = ft.TextField(
-        label="Поиск уроков, моделей и работ",
+        label="Поиск уроков",
         hint_text="Например: котик, еда, дракон",
         prefix_icon=ft.Icons.SEARCH,
         border_radius=12,
@@ -559,6 +565,23 @@ def createSearchTab(page, currentUser):
             for categoryName in SEARCH_CATEGORIES
         ],
     )
+
+    levelDropdown = ft.Dropdown(label='Сложность урока', value='Все',
+        options=[ft.dropdown.Option(value) for value in ['Все', *IDEA_LEVELS]])
+    timeDropdown = ft.Dropdown(label='Время до (минут)', value='Любое',
+        options=[ft.dropdown.Option(value) for value in ['Любое', '30', '60', '120']])
+    videoCheckbox = ft.Checkbox(label='Только с видео', value=False)
+    ideaThemeDropdown = ft.Dropdown(label='Тематика идеи', value='Случайная',
+        options=[ft.dropdown.Option(value) for value in ['Случайная', *IDEA_THEMES]])
+    ideaLevelDropdown = ft.Dropdown(label='Сложность идеи', value='Случайная',
+        options=[ft.dropdown.Option(value) for value in ['Случайная', *IDEA_LEVELS]])
+    ideaPaletteDropdown = ft.Dropdown(label='Цветовая гамма', value='Случайная',
+        options=[ft.dropdown.Option(value) for value in IDEA_PALETTES])
+    ideaCountDropdown = ft.Dropdown(label='Количество цветов', value='3',
+        options=[ft.dropdown.Option(str(value)) for value in range(1, 6)])
+
+    def lessonAction(callback):
+        return authenticatedAction(page, currentUser)(callback) if currentUser else callback
 
     def showMessage(messageText, isError=False):
         showPageMessage(page, messageText, isError)
@@ -584,6 +607,7 @@ def createSearchTab(page, currentUser):
             ideaData["theme"],
             "",
             descriptionText,
+            stepDescriptions=ideaData["steps"],
         )
 
         if not successStatus:
@@ -611,6 +635,7 @@ def createSearchTab(page, currentUser):
             lessonItem["category"],
             "",
             descriptionText,
+            stepDescriptions=lessonItem["steps"],
         )
 
         if not successStatus:
@@ -619,9 +644,12 @@ def createSearchTab(page, currentUser):
 
         showMessage("Урок добавлен в проекты")
 
+    @lessonAction
     def showLessonDetail(lessonId):
         selectedLessonId["value"] = lessonId
-        selectedStepIndex["value"] = 0
+        lessonState['value'] = getUserLessonState(currentUser['userId'], lessonId) if currentUser else {
+            'lastStep': 0, 'completedSteps': [], 'checkedMaterials': [], 'isCompleted': False}
+        selectedStepIndex['value'] = lessonState['value']['lastStep']
         refreshMainContent()
         page.update()
 
@@ -635,23 +663,57 @@ def createSearchTab(page, currentUser):
         steps = lessonItem["steps"]
         currentStepIndex = selectedStepIndex["value"]
         currentStepText = steps[currentStepIndex]
-        progressValue = (currentStepIndex + 1) / len(steps)
+        state = lessonState['value']
+        progressValue = len(state['completedSteps']) / len(steps)
 
         materialsText = ", ".join(lessonItem["materials"])
 
-        def handlePreviousStep(event):
-            if selectedStepIndex["value"] > 0:
-                selectedStepIndex["value"] -= 1
-                refreshMainContent()
-                page.update()
+        def persistState():
+            state['lastStep'] = selectedStepIndex['value']
+            if currentUser:
+                lessonState['value'] = saveUserLessonState(currentUser['userId'], lessonItem['lessonId'], state)
 
+        @lessonAction
+        def handlePreviousStep(event):
+            selectedStepIndex['value'] = max(0, selectedStepIndex['value'] - 1)
+            persistState()
+            refreshMainContent()
+            page.update()
+
+        @lessonAction
         def handleNextStep(event):
-            if selectedStepIndex["value"] < len(steps) - 1:
-                selectedStepIndex["value"] += 1
-                refreshMainContent()
-                page.update()
-            else:
-                showMessage("Урок завершён")
+            if currentUser and currentStepIndex not in state['completedSteps']:
+                state['completedSteps'].append(currentStepIndex)
+            selectedStepIndex['value'] = min(len(steps) - 1, currentStepIndex + 1)
+            persistState()
+            refreshMainContent()
+            if currentStepIndex == len(steps) - 1:
+                completed = lessonState['value']['isCompleted'] if currentUser else False
+                showMessage('Урок завершён' if completed else 'Для сохранения завершения отметьте все шаги после входа', not completed)
+            page.update()
+
+        @lessonAction
+        def handleStepChecked(event):
+            values = state['completedSteps']
+            if event.control.value and currentStepIndex not in values:
+                values.append(currentStepIndex)
+            elif not event.control.value and currentStepIndex in values:
+                values.remove(currentStepIndex)
+            persistState()
+            refreshMainContent()
+            page.update()
+
+        def materialControl(index, material):
+            @lessonAction
+            def change(event):
+                checked = state['checkedMaterials']
+                if event.control.value and index not in checked:
+                    checked.append(index)
+                elif not event.control.value and index in checked:
+                    checked.remove(index)
+                persistState()
+            return ft.Checkbox(label=material, value=index in state['checkedMaterials'],
+                               disabled=currentUser is None, on_change=change)
 
         return ft.Column(
             spacing=14,
@@ -698,11 +760,8 @@ def createSearchTab(page, currentUser):
                                     size=18,
                                     weight=ft.FontWeight.BOLD,
                                 ),
-                                ft.Text(
-                                    materialsText,
-                                    size=14,
-                                    color=ft.Colors.GREY_700,
-                                ),
+                                *[materialControl(index, material) for index, material in enumerate(lessonItem['materials'])],
+                                ft.Text('Прогресс сохраняется после входа' if currentUser is None else 'Отметки сохраняются автоматически', size=12),
                             ],
                         ),
                     ),
@@ -729,17 +788,17 @@ def createSearchTab(page, currentUser):
                                     border_radius=18,
                                     bgcolor="#F5F5F5",
                                     alignment=ft.alignment.center,
-                                    content=ft.Icon(
-                                        name=ft.Icons.IMAGE,
-                                        size=64,
-                                        color=ft.Colors.GREY_500,
-                                    ),
+                                    content=ft.Image(src=lessonItem['previewImage'], fit=ft.ImageFit.CONTAIN),
                                 ),
+                                ft.Text('Схематичная иллюстрация итоговой фигурки', size=12),
                                 ft.Text(
                                     currentStepText,
                                     size=16,
-                                    color=DARK_TEXT_COLOR,
+                                    color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else DARK_TEXT_COLOR,
                                 ),
+                                ft.Checkbox(label='Шаг выполнен', value=currentStepIndex in state['completedSteps'],
+                                    disabled=currentUser is None, on_change=handleStepChecked),
+                                ft.Text('Урок завершён' if state['isCompleted'] else f"Выполнено шагов: {len(state['completedSteps'])} из {len(steps)}"),
                                 ft.Row(
                                     controls=[
                                         ft.ElevatedButton(
@@ -798,11 +857,7 @@ def createSearchTab(page, currentUser):
                                     border_radius=16,
                                     bgcolor="#FFF0F0",
                                     alignment=ft.alignment.center,
-                                    content=ft.Icon(
-                                        name=ft.Icons.SCHOOL,
-                                        color=PRIMARY_COLOR,
-                                        size=28,
-                                    ),
+                                    content=ft.Image(src=lessonItem['previewImage'], fit=ft.ImageFit.CONTAIN),
                                 ),
                                 ft.Column(
                                     expand=True,
@@ -861,7 +916,8 @@ def createSearchTab(page, currentUser):
     def refreshSearchResults():
         resultColumn.controls.clear()
 
-        lessonItems = searchLessons(searchField.value or "", categoryDropdown.value)
+        lessonItems = searchLessons(searchField.value or '', categoryDropdown.value, levelDropdown.value,
+                                    None if timeDropdown.value == 'Любое' else timeDropdown.value, videoCheckbox.value)
 
         if len(lessonItems) == 0:
             resultColumn.controls.append(
@@ -885,7 +941,8 @@ def createSearchTab(page, currentUser):
         page.update()
 
     def handleGenerateIdea(event):
-        ideaData = generateRandomIdea()
+        ideaData = generateRandomIdea(ideaThemeDropdown.value, ideaLevelDropdown.value,
+                                      ideaPaletteDropdown.value, int(ideaCountDropdown.value))
 
         colorControls = []
 
@@ -973,11 +1030,18 @@ def createSearchTab(page, currentUser):
                 ),
                 searchField,
                 categoryDropdown,
+                levelDropdown,
+                timeDropdown,
+                videoCheckbox,
                 ft.Text(
                     "Генератор идей",
                     size=18,
                     weight=ft.FontWeight.BOLD,
                 ),
+                ideaThemeDropdown,
+                ideaLevelDropdown,
+                ideaPaletteDropdown,
+                ideaCountDropdown,
                 ft.ElevatedButton(
                     text="Сгенерировать идею",
                     icon=ft.Icons.AUTO_AWESOME,
@@ -1001,6 +1065,9 @@ def createSearchTab(page, currentUser):
 
     searchField.on_change = handleSearchChange
     categoryDropdown.on_change = handleSearchChange
+    levelDropdown.on_change = handleSearchChange
+    timeDropdown.on_change = handleSearchChange
+    videoCheckbox.on_change = handleSearchChange
 
     refreshSearchResults()
     refreshMainContent()
@@ -1030,11 +1097,12 @@ def createColorsTab(page, currentUser):
 
     def getTotalWeight():
         try:
-            totalWeight = float((totalWeightField.value or "100").replace(",", "."))
-        except ValueError:
-            totalWeight = 100
-
-        return totalWeight if totalWeight > 0 else 100
+            weight = normalizeWeight((totalWeightField.value or '').strip())
+            totalWeightField.error_text = None
+            return weight
+        except ValueError as error:
+            totalWeightField.error_text = str(error)
+            raise
 
     def normalizeAndRedistribute(changedColor=None, newValue=None):
         if not selectedColors:
@@ -1045,7 +1113,7 @@ def createColorsTab(page, currentUser):
             return
 
         if changedColor is not None and newValue is not None:
-            fixedValue = max(0.0, min(100.0, float(newValue)))
+            fixedValue = normalizeProportion(newValue)
             changedColor["proportion"] = fixedValue
 
             otherColors = [color for color in selectedColors if color is not changedColor]
@@ -1070,12 +1138,9 @@ def createColorsTab(page, currentUser):
                 for color in selectedColors:
                     color["proportion"] = color["proportion"] / totalValue * 100.0
 
-        roundedTotal = 0
-        for color in selectedColors[:-1]:
-            color["proportion"] = round(color["proportion"], 1)
-            roundedTotal += color["proportion"]
-
-        selectedColors[-1]["proportion"] = round(max(0.0, 100.0 - roundedTotal), 1)
+        normalized = normalizeSelectedColors(selectedColors)
+        for item, result in zip(selectedColors, normalized):
+            item['proportion'] = result['proportion']
 
     resultColorText = ft.Text("#FFFFFF", size=32, weight=ft.FontWeight.BOLD)
     resultColorBox = ft.Container(
@@ -1106,6 +1171,7 @@ def createColorsTab(page, currentUser):
 
     mixtureNameField = ft.TextField(
         label="Название смеси",
+        max_length=80,
         value="Моя новая смесь",
         border_radius=12,
     )
@@ -1181,6 +1247,17 @@ def createColorsTab(page, currentUser):
                 refreshSavedMixtures()
                 showMessage("Смесь удалена")
 
+            @authenticatedAction(page, currentUser)
+            def handleOpenMixture(event, item=dict(mixture)):
+                if item['recipeError']:
+                    showMessage('Сохранённый рецепт повреждён. Исходные данные не изменены', True)
+                    return
+                selectedColors[:] = [{**color, 'proportion': color['percent']} for color in item['recipeItems']]
+                totalWeightField.value = str(item['totalWeight'])
+                mixtureNameField.value = item['mixtureName']
+                refreshRecipe()
+                page.update()
+
             savedMixturesColumn.controls.append(
                 ft.Card(
                     content=ft.Container(
@@ -1199,14 +1276,16 @@ def createColorsTab(page, currentUser):
                                     controls=[
                                         ft.Text(mixture["mixtureName"], weight=ft.FontWeight.BOLD),
                                         ft.Text(
-                                            f"{mixture['resultHex']} • {mixture['totalWeight']} г",
+                                            "Рецепт повреждён" if mixture["recipeError"] else f"{mixture['resultHex']} • {mixture['totalWeight']} г",
                                             size=12,
                                             color=ft.Colors.GREY_600,
                                         ),
                                     ],
                                 ),
+                                ft.IconButton(icon=ft.Icons.OPEN_IN_NEW, tooltip='Открыть рецепт', on_click=handleOpenMixture),
                                 ft.IconButton(
                                     icon=ft.Icons.DELETE,
+                                    tooltip="Удалить смесь",
                                     icon_color=ft.Colors.RED_400,
                                     on_click=handleDeleteMixture,
                                 ),
@@ -1224,9 +1303,12 @@ def createColorsTab(page, currentUser):
 
         normalizeAndRedistribute()
 
-        totalWeight = getTotalWeight()
+        try:
+            totalWeight = getTotalWeight()
+        except ValueError:
+            totalWeight = None
         resultHex = calculateMixedColor(selectedColors) if selectedColors else "#FFFFFF"
-        recipeItems = calculateRecipe(selectedColors, totalWeight) if selectedColors else []
+        recipeItems = calculateRecipe(selectedColors, totalWeight) if selectedColors and totalWeight is not None else []
 
         resultColorBox.bgcolor = resultHex
         resultColorText.value = resultHex
@@ -1251,16 +1333,24 @@ def createColorsTab(page, currentUser):
         else:
             for colorItem in selectedColors:
                 def handleSliderChange(event, currentColor=colorItem):
-                    normalizeAndRedistribute(currentColor, float(event.control.value))
+                    try:
+                        normalizeAndRedistribute(currentColor, float(event.control.value))
+                    except (ValueError, TypeError):
+                        showMessage("Введите долю от 0 до 100", True)
+                        return
                     refreshRecipe()
                     page.update()
 
                 def handlePercentSubmit(event, currentColor=colorItem):
                     try:
-                        value = float((event.control.value or "0").replace(",", "."))
-                    except ValueError:
-                        showMessage("Введите число процента", True)
+                        value = normalizeProportion(event.control.value or '0')
+                    except ValueError as error:
+                        event.control.error_text = str(error)
+                        event.control.value = str(currentColor['proportion'])
+                        page.update()
+                        showMessage(str(error), True)
                         return
+                    event.control.error_text = None
 
                     normalizeAndRedistribute(currentColor, value)
                     refreshRecipe()
@@ -1362,12 +1452,15 @@ def createColorsTab(page, currentUser):
             showMessage("Максимум 5 цветов", True)
             return
 
+        newProportion = 100.0 / (len(selectedColors) + 1)
+        for item in selectedColors:
+            item["proportion"] *= (100.0 - newProportion) / 100.0
         selectedColors.append(
             {
                 "colorId": colorItem["colorId"],
                 "name": colorItem["name"],
                 "hex": colorItem["hex"],
-                "proportion": 0.0,
+                "proportion": newProportion,
             }
         )
 
@@ -1433,14 +1526,20 @@ def createColorsTab(page, currentUser):
             pass
 
     def handleFindRecipe(event):
-        targetHex = normalizeTargetHexText(targetHexField.value)
-
-        if not validateHexColor(targetHex):
-            showMessage("Введите цвет в формате HEX, например #8A4F3A", True)
-            return
-
         recipeSearchState["token"] += 1
         currentToken = recipeSearchState["token"]
+        targetHex = normalizeTargetHexText(targetHexField.value)
+
+        try:
+            if not validateHexColor(targetHex):
+                raise ValueError("Введите цвет в формате HEX, например #8A4F3A")
+            totalWeight = getTotalWeight()
+        except ValueError as error:
+            targetResultText.value = str(error)
+            targetRecipeText.value = "—"
+            showMessage(str(error), True)
+            safePageUpdate()
+            return
 
         targetHexField.value = targetHex
         updateTargetSelectedPreview(targetHex)
@@ -1448,8 +1547,6 @@ def createColorsTab(page, currentUser):
         targetRecipeText.color = ft.Colors.BLACK
         targetResultText.value = "Подбираю рецепт..."
         safePageUpdate()
-
-        totalWeight = getTotalWeight()
 
         def runRecipeSearch():
             try:
@@ -1491,50 +1588,63 @@ def createColorsTab(page, currentUser):
 
         normalizeAndRedistribute()
 
-        resultHex = calculateMixedColor(selectedColors)
-        recipeItems = calculateRecipe(selectedColors, getTotalWeight())
-
-        saveColorMixture(
-            currentUser["userId"],
-            mixtureName,
-            resultHex,
-            getTotalWeight(),
-            recipeItems,
-        )
+        try:
+            weight = getTotalWeight()
+            resultHex = calculateMixedColor(selectedColors)
+            recipeItems = calculateRecipe(selectedColors, weight)
+            saveColorMixture(currentUser['userId'], mixtureName, resultHex, weight, recipeItems)
+        except ValueError as error:
+            showMessage(str(error), True)
+            return
 
         refreshSavedMixtures()
         showMessage("Смесь сохранена")
 
+    def colorAction(callback):
+        return authenticatedAction(page, currentUser)(callback) if currentUser else callback
+
+    @colorAction
     def handleExportRecipe(event):
-        if len(selectedColors) < 2:
-            showMessage("Для экспорта выберите минимум 2 цвета", True)
+        try:
+            png = createRecipePng(mixtureNameField.value, selectedColors, getTotalWeight())
+        except ValueError as error:
+            showMessage(str(error), True)
             return
-
-        totalWeight = getTotalWeight()
-        resultHex = calculateMixedColor(selectedColors)
-        recipeItems = calculateRecipe(selectedColors, totalWeight)
-
-        recipeLines = [
-            "Рецепт смеси Lepka Helper",
-            f"Название: {mixtureNameField.value.strip() or 'Моя смесь'}",
-            f"Итоговый цвет: {resultHex}",
-            f"Общий вес: {totalWeight} г",
-            "",
-            "Состав:",
-        ]
-
-        for recipeItem in recipeItems:
-            recipeLines.append(
-                f"- {recipeItem['name']}: {recipeItem['percent']}% / {recipeItem['grams']} г"
-            )
-
-        exportDirectory = Path("exports")
-        exportDirectory.mkdir(exist_ok=True)
-
-        exportPath = exportDirectory / f"recipe_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        exportPath.write_text("\n".join(recipeLines), encoding="utf-8")
-
-        showMessage(f"Рецепт экспортирован: {exportPath}")
+        if page.web:
+            try:
+                ticket = createDownload(png)
+                address = urlsplit(page.url)
+                scheme = {'ws': 'http', 'wss': 'https'}.get(address.scheme, address.scheme)
+                if scheme not in ('http', 'https') or not address.netloc:
+                    raise ValueError('Не удалось определить адрес скачивания')
+                page.launch_url(f'{scheme}://{address.netloc}/downloads/{ticket}', web_window_name='_self')
+            except ValueError as error:
+                showMessage(str(error), True)
+                return
+            showMessage('PNG-рецепт передан браузеру для скачивания')
+        else:
+            @colorAction
+            def savePicked(result):
+                if not result.path:
+                    return
+                path = Path(result.path)
+                if path.suffix.lower() != '.png':
+                    path = path.with_suffix('.png')
+                try:
+                    with path.open('xb') as output:
+                        output.write(png)
+                except FileExistsError:
+                    showMessage('Файл уже существует. Выберите другое имя', True)
+                    return
+                except OSError:
+                    showMessage('Не удалось сохранить файл в выбранную папку', True)
+                    return
+                showMessage('PNG-рецепт сохранён')
+            picker = ft.FilePicker(on_result=savePicked)
+            page.overlay[:] = [control for control in page.overlay if not isinstance(control, ft.FilePicker)]
+            page.overlay.append(picker)
+            page.update()
+            picker.save_file(file_name='lepka-recipe.png', file_type=ft.FilePickerFileType.CUSTOM, allowed_extensions=['png'])
 
     def createPaletteButton(colorItem, onTap):
         return ft.GestureDetector(
@@ -1756,7 +1866,7 @@ def createColorsTab(page, currentUser):
                         style=ft.ButtonStyle(bgcolor=PRIMARY_COLOR, color=ft.Colors.WHITE),
                     ),
                     ft.OutlinedButton(
-                        "Экспорт TXT",
+                        "Экспорт PNG",
                         icon=ft.Icons.FILE_DOWNLOAD,
                         on_click=handleExportRecipe,
                     ),
@@ -1823,12 +1933,7 @@ def createProjectsTab(page, currentUser):
         value=PROJECT_CATEGORIES[0],
     )
 
-    deadlineField = ft.TextField(
-        label="Дедлайн",
-        hint_text="ДД.ММ.ГГГГ, можно оставить пустым",
-        prefix_icon=ft.Icons.DATE_RANGE,
-        border_radius=12,
-    )
+    deadlineField = createDeadlineField(page)
 
     descriptionField = ft.TextField(
         label="Описание / заметки",
@@ -1894,6 +1999,31 @@ def createProjectsTab(page, currentUser):
                 refreshProjectList()
                 page.update()
 
+            @authenticatedAction(page, currentUser)
+            def handleEditProject(event, currentProject=projectItem):
+                nameField = ft.TextField(label='Название проекта', value=currentProject['projectName'])
+                categoryField = ft.Dropdown(label='Категория', value=currentProject['categoryName'],
+                    options=[ft.dropdown.Option(value) for value in PROJECT_CATEGORIES])
+                dateField = createDeadlineField(page, currentProject['deadlineDate'])
+                notesField = ft.TextField(label='Описание / заметки', value=currentProject['descriptionText'], multiline=True)
+
+                @authenticatedAction(page, currentUser)
+                def save(event):
+                    success, message = editProject(currentProject['projectId'], currentUser['userId'],
+                        nameField.value, categoryField.value, dateField.value, notesField.value)
+                    if success:
+                        page.close(dialog)
+                        refreshProjectList()
+                    showMessage(message, not success)
+                    page.update()
+
+                dialog = ft.AlertDialog(modal=True, title=ft.Text('Редактирование проекта'),
+                    content=ft.Column(tight=True, scroll=ft.ScrollMode.AUTO,
+                                      controls=[nameField, categoryField, dateField, notesField]),
+                    actions=[ft.TextButton(text='Отмена', on_click=lambda event: page.close(dialog)),
+                             ft.ElevatedButton(text='Сохранить изменения', on_click=save)])
+                page.open(dialog)
+
             newStepField = ft.TextField(
                 label="Новый этап",
                 hint_text="Например: слепить основу",
@@ -1932,6 +2062,25 @@ def createProjectsTab(page, currentUser):
                         refreshProjectList()
                         page.update()
 
+                    @authenticatedAction(page, currentUser)
+                    def handleEditStep(event, currentProjectId=projectItem['projectId'], currentStep=dict(stepItem)):
+                        textField = ft.TextField(label='Описание этапа', value=currentStep['stepDescription'], multiline=True)
+
+                        @authenticatedAction(page, currentUser)
+                        def save(event):
+                            success, message = editProjectStep(currentProjectId, currentStep['stepId'],
+                                                              currentUser['userId'], textField.value)
+                            if success:
+                                page.close(dialog)
+                                refreshProjectList()
+                            showMessage(message, not success)
+                            page.update()
+
+                        dialog = ft.AlertDialog(modal=True, title=ft.Text('Редактирование этапа'), content=textField,
+                            actions=[ft.TextButton(text='Отмена', on_click=lambda event: page.close(dialog)),
+                                     ft.ElevatedButton(text='Сохранить этап', on_click=save)])
+                        page.open(dialog)
+
                     stepControls.append(
                         ft.Row(
                             controls=[
@@ -1944,6 +2093,7 @@ def createProjectsTab(page, currentUser):
                                     expand=True,
                                     size=13,
                                 ),
+                                ft.IconButton(icon=ft.Icons.EDIT_OUTLINED, tooltip="Изменить этап", on_click=handleEditStep),
                                 ft.IconButton(
                                     icon=ft.Icons.DELETE_OUTLINE,
                                     icon_size=18,
@@ -2034,6 +2184,7 @@ def createProjectsTab(page, currentUser):
                                             ],
                                             spacing=2,
                                         ),
+                                        ft.IconButton(icon=ft.Icons.EDIT, tooltip="Изменить проект", on_click=handleEditProject),
                                         ft.IconButton(
                                             icon=ft.Icons.DELETE,
                                             icon_color=ft.Colors.RED_400,

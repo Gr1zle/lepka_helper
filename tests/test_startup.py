@@ -71,7 +71,8 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         database.initializeDatabase()
         ensureDemoUser()
         self.user = loginUser("test@email.com", "Test123456")[2]
-        self.page = ft.Page(MemoryConnection(), 'test', asyncio.get_event_loop())
+        self.connection = MemoryConnection()
+        self.page = ft.Page(self.connection, 'test', asyncio.get_event_loop())
         self.page.theme_mode = ft.ThemeMode.LIGHT
         self.page.session.set('currentUser', self.user)
         self.page.update()
@@ -264,6 +265,164 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 demo.assert_not_called()
             self.assertTrue(any(isinstance(control, ft.Text) and 'HTTPS' in (control.value or '')
                                 for control in walk(self.page)))
+
+    def openToolsTab(self, factory):
+        return self.mount(ft.View('/tools', controls=[factory(self.page, self.user)]))
+
+    def chooseBaseColor(self, view, name):
+        gesture = next(control for control in walk(view) if isinstance(control, ft.GestureDetector)
+            and any(isinstance(child, ft.Text) and child.value == name for child in walk(control)))
+        gesture.on_tap(None)
+
+    async def test_color_form_save_open_delete_and_invalid_weight(self):
+        from views.home_view import createColorsTab
+        from color_service import getUserColorMixtures
+        view = self.openToolsTab(createColorsTab)
+        self.chooseBaseColor(view, 'Белый')
+        self.chooseBaseColor(view, 'Чёрный')
+        weight = find(view, ft.TextField, label='Общий вес смеси (граммы)')
+        weight.value = 'НЕ ЧИСЛО'
+        find(view, ft.ElevatedButton, text='Сохранить смесь').on_click(None)
+        self.assertEqual(getUserColorMixtures(self.user['userId']), [])
+        self.assertIsNotNone(weight.error_text)
+        find(view, ft.ElevatedButton, text='Подобрать рецепт').on_click(None)
+        self.assertFalse(any(isinstance(control, ft.Text) and control.value == 'Подбираю рецепт...'
+                             for control in walk(view)))
+        weight.value = '100,25'
+        find(view, ft.ElevatedButton, text='Сохранить смесь').on_click(None)
+        saved = getUserColorMixtures(self.user['userId'])
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(saved[0]['resultHex'], '#808080')
+        find(view, ft.IconButton, tooltip='Открыть рецепт').on_click(None)
+        self.assertEqual(float(weight.value), 100.25)
+        find(view, ft.IconButton, tooltip='Удалить смесь').on_click(None)
+        self.assertEqual(getUserColorMixtures(self.user['userId']), [])
+
+    async def test_color_browser_export_downloads_actual_png(self):
+        from urllib.parse import urlsplit
+        from fastapi.testclient import TestClient
+        from web_app import createWebApp
+        from views.home_view import createColorsTab
+        self.page._set_attr('web', 'true')
+        self.connection.page_url = 'ws://127.0.0.1:8550/ws'
+        view = self.openToolsTab(createColorsTab)
+        self.chooseBaseColor(view, 'Белый')
+        self.chooseBaseColor(view, 'Чёрный')
+        with patch.object(self.page, 'launch_url', autospec=True) as launch:
+            find(view, ft.OutlinedButton, text='Экспорт PNG').on_click(None)
+            url = launch.call_args.args[0]
+            self.assertEqual(urlsplit(url).scheme, 'http')
+            self.assertEqual(launch.call_args.kwargs['web_window_name'], '_self')
+        with TestClient(createWebApp()) as client:
+            response = client.get(urlsplit(url).path)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.content.startswith(b'\x89PNG'))
+            self.assertIn('attachment', response.headers['content-disposition'])
+        export = find(view, ft.OutlinedButton, text='Экспорт PNG')
+        logoutPage(self.page)
+        with patch.object(self.page, 'launch_url', autospec=True) as launch:
+            export.on_click(None)
+            launch.assert_not_called()
+
+    async def test_native_png_save_does_not_overwrite_existing_file(self):
+        from pathlib import Path
+        from views.home_view import createColorsTab
+        self.page._set_attr('web', 'false')
+        view = self.openToolsTab(createColorsTab)
+        self.chooseBaseColor(view, 'Белый')
+        self.chooseBaseColor(view, 'Чёрный')
+        with patch.object(ft.FilePicker, 'save_file', autospec=True):
+            find(view, ft.OutlinedButton, text='Экспорт PNG').on_click(None)
+        picker = next(control for control in self.page.overlay if isinstance(control, ft.FilePicker))
+        path = Path(self.temp.name) / 'recipe.png'
+        picker.on_result(SimpleNamespace(path=str(path)))
+        original = path.read_bytes()
+        self.assertTrue(original.startswith(b'\x89PNG'))
+        picker.on_result(SimpleNamespace(path=str(path)))
+        self.assertEqual(path.read_bytes(), original)
+
+    async def test_invalid_color_percentage_does_not_change_recipe(self):
+        from views.home_view import createColorsTab
+        view = self.openToolsTab(createColorsTab)
+        self.chooseBaseColor(view, 'Белый')
+        self.chooseBaseColor(view, 'Чёрный')
+        field = next(control for control in walk(view) if isinstance(control, ft.TextField)
+                     and control.on_submit is not None and control.width == 70)
+        for value in ('nan', '-1', '101', 'НЕ ЧИСЛО'):
+            field.value = value
+            field.on_submit(SimpleNamespace(control=field))
+            self.assertEqual([control.value for control in walk(view) if isinstance(control, ft.Slider)], [50, 50])
+            self.assertIsNotNone(field.error_text)
+
+    async def test_catalog_filters_and_video_filter_are_real(self):
+        from views.home_view import createSearchTab
+        view = self.openToolsTab(createSearchTab)
+        level = find(view, ft.Dropdown, label='Сложность урока')
+        level.value = 'Начинающий'
+        level.on_change(None)
+        duration = find(view, ft.Dropdown, label='Время до (минут)')
+        duration.value = '30'
+        duration.on_change(None)
+        self.assertEqual(len([c for c in walk(view) if isinstance(c, ft.TextButton) and c.text == 'Открыть']), 1)
+        videos = find(view, ft.Checkbox, label='Только с видео')
+        videos.value = True
+        videos.on_change(None)
+        self.assertFalse(any(isinstance(c, ft.TextButton) and c.text == 'Открыть' for c in walk(view)))
+
+    async def test_lesson_progress_restores_and_adds_all_steps_to_project(self):
+        from views.home_view import createSearchTab
+        from lesson_service import getUserLessonState, getLessonById
+        view = self.openToolsTab(createSearchTab)
+        find(view, ft.TextButton, text='Открыть').on_click(None)
+        firstMaterial = next(c for c in walk(view) if isinstance(c, ft.Checkbox) and c.label != 'Шаг выполнен')
+        firstMaterial.value = True
+        firstMaterial.on_change(SimpleNamespace(control=firstMaterial))
+        find(view, ft.ElevatedButton, text='Следующий').on_click(None)
+        state = getUserLessonState(self.user['userId'], 1)
+        self.assertEqual(state['lastStep'], 1)
+        self.assertEqual(state['completedSteps'], [0])
+        self.assertEqual(state['checkedMaterials'], [0])
+        view = self.openToolsTab(createSearchTab)
+        find(view, ft.TextButton, text='Открыть').on_click(None)
+        self.assertTrue(any(isinstance(c, ft.Text) and c.value == 'Шаг 2 из 6' for c in walk(view)))
+        find(view, ft.ElevatedButton, text='Добавить как проект').on_click(None)
+        project = projects.getUserProjects(self.user['userId'])[0]
+        self.assertEqual([step['stepDescription'] for step in project['stepItems']], getLessonById(1)['steps'])
+
+    async def test_idea_controls_create_project_with_checklist(self):
+        from views.home_view import createSearchTab
+        view = self.openToolsTab(createSearchTab)
+        for label, value in (('Тематика идеи', 'Фэнтези'), ('Сложность идеи', 'Начинающий'),
+                             ('Цветовая гамма', 'Тёплая'), ('Количество цветов', '5')):
+            find(view, ft.Dropdown, label=label).value = value
+        find(view, ft.ElevatedButton, text='Сгенерировать идею').on_click(None)
+        find(view, ft.ElevatedButton, text='Добавить в проекты').on_click(None)
+        project = projects.getUserProjects(self.user['userId'])[0]
+        self.assertEqual(project['categoryName'], 'Фэнтези')
+        self.assertEqual(len(project['stepItems']), 4)
+        self.assertIn('Начинающий', project['descriptionText'])
+
+    async def test_project_calendar_and_edit_dialogs(self):
+        from datetime import datetime
+        from views.home_view import createProjectsTab
+        projectId = projects.saveProject(self.user['userId'], 'Котик', 'Животные', '', '', ['Первый этап'])[2]
+        view = self.openToolsTab(createProjectsTab)
+        dateField = find(view, ft.TextField, label='Дедлайн')
+        find(view, ft.IconButton, tooltip='Выбрать дату').on_click(None)
+        picker = next(c for c in self.page.overlay if isinstance(c, ft.DatePicker))
+        picker.value = datetime(2020, 4, 25)
+        picker.on_change(SimpleNamespace(control=picker))
+        self.assertEqual(dateField.value, '25.04.2020')
+        find(view, ft.IconButton, tooltip='Изменить проект').on_click(None)
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog) and c.open)
+        find(dialog, ft.TextField, label='Название проекта').value = 'Новый котик'
+        find(dialog, ft.ElevatedButton, text='Сохранить изменения').on_click(None)
+        self.assertEqual(projects.getUserProjects(self.user['userId'])[0]['projectName'], 'Новый котик')
+        find(view, ft.IconButton, tooltip='Изменить этап').on_click(None)
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog) and c.open)
+        find(dialog, ft.TextField, label='Описание этапа').value = 'Обновлённый этап'
+        find(dialog, ft.ElevatedButton, text='Сохранить этап').on_click(None)
+        self.assertEqual(projects.getProjectSteps(projectId, self.user['userId'])[0]['stepDescription'], 'Обновлённый этап')
 
     async def test_onboarding_saves_completion(self):
         view = self.mount(createOnboardingView(self.page))

@@ -96,6 +96,12 @@ def initializeDatabase():
         FOREIGN KEY (localUserId) REFERENCES users(userId)
     )""")
 
+    cursor.execute("""CREATE TABLE IF NOT EXISTS lessonProgress (
+        userId INTEGER NOT NULL, lessonId INTEGER NOT NULL, stateJson TEXT NOT NULL,
+        updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (userId, lessonId), FOREIGN KEY (userId) REFERENCES users(userId)
+    )""")
+
     addColumnIfNotExists(
         cursor,
         "users",
@@ -887,6 +893,7 @@ def deleteUserDataById(userId, existingConnection=None):
         connection.execute('DELETE FROM projectSteps WHERE projectId IN (SELECT projectId FROM projects WHERE userId = ?)', (userId,))
         connection.execute('DELETE FROM projects WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM colorMixtures WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM lessonProgress WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM accountCodes WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM accountSessions WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM remoteSessionBindings WHERE localUserId = ?', (userId,))
@@ -931,3 +938,44 @@ def updateUserPassword(userId, passwordHash, passwordSalt):
 
     connection.commit()
     connection.close()
+
+
+def createProjectWithSteps(userId, projectName, categoryName, deadlineDate, descriptionText, stepDescriptions):
+    with openDatabase() as connection:
+        cursor = connection.execute(
+            """INSERT INTO projects (userId, projectName, categoryName, deadlineDate, descriptionText)
+            VALUES (?, ?, ?, ?, ?)""", (userId, projectName, categoryName, deadlineDate, descriptionText))
+        projectId = cursor.lastrowid
+        connection.executemany('INSERT INTO projectSteps (projectId, stepDescription) VALUES (?, ?)',
+                               [(projectId, description) for description in stepDescriptions])
+        return projectId
+
+
+def getLessonProgress(userId, lessonId):
+    with openDatabase() as connection:
+        record = connection.execute('SELECT stateJson FROM lessonProgress WHERE userId = ? AND lessonId = ?',
+                                    (userId, lessonId)).fetchone()
+        return record['stateJson'] if record else None
+
+
+def saveLessonProgress(userId, lessonId, stateJson):
+    with openDatabase() as connection:
+        connection.execute("""INSERT INTO lessonProgress (userId, lessonId, stateJson) VALUES (?, ?, ?)
+            ON CONFLICT (userId, lessonId) DO UPDATE SET stateJson = excluded.stateJson,
+            updatedAt = CURRENT_TIMESTAMP""", (userId, lessonId, stateJson))
+
+
+def updateProjectById(projectId, userId, projectName, categoryName, deadlineDate, descriptionText):
+    with openDatabase() as connection:
+        cursor = connection.execute("""UPDATE projects SET projectName = ?, categoryName = ?,
+            deadlineDate = ?, descriptionText = ? WHERE projectId = ? AND userId = ?""",
+            (projectName, categoryName, deadlineDate, descriptionText, projectId, userId))
+        return cursor.rowcount > 0
+
+
+def updateProjectStepDescription(projectId, stepId, userId, description):
+    with openDatabase() as connection:
+        cursor = connection.execute("""UPDATE projectSteps SET stepDescription = ?
+            WHERE stepId = ? AND projectId = ? AND projectId IN
+            (SELECT projectId FROM projects WHERE userId = ?)""", (description, stepId, projectId, userId))
+        return cursor.rowcount > 0
