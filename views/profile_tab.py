@@ -1,14 +1,15 @@
 """Профиль, настройки и действия с аккаунтом — отдельно от ленты и инструментов."""
 import flet as ft
+from api_client import getApiUrl
 
-from auth_service import deleteUserAccount, requestEmailChange, confirmEmailChange
+from account_gateway import (deleteUserAccount, requestEmailChange, confirmEmailChange,
+                             getUserProfile, saveUserProfile, saveUserSettings, changeUserPassword)
 from post_service import getCommunityPosts
 from project_service import getUserProjects
 from profile_service import (
     AGE_CATEGORIES, FAVORITE_COLOR_OPTIONS, LANGUAGE_OPTIONS, THEME_OPTIONS,
-    getUserProfile, saveUserProfile, saveUserSettings, changeUserPassword,
 )
-from ui_helpers import authenticatedAction, getCurrentUser, logoutPage, showMessage as showPageMessage
+from ui_helpers import authenticatedAction, getCurrentUser, logoutPage, serverAction, showMessage as showPageMessage
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -65,7 +66,7 @@ def createProfileTab(page, nickname, email):
     if currentUser is None:
         profileData = None
     else:
-        profileData = getUserProfile(currentUser["userId"])
+        profileData = getUserProfile(currentUser["userId"], currentUser.get("sessionToken"))
 
     if profileData is None:
         profileData = {
@@ -259,6 +260,9 @@ def createProfileTab(page, nickname, email):
         refreshAvatar()
 
     def handlePickAvatar(event):
+        if getApiUrl():
+            showMessage("Загрузка аватара на сервер пока недоступна", True)
+            return
         avatarPicker.pick_files(
             allow_multiple=False,
             allowed_extensions=["jpg", "jpeg", "png", "webp"],
@@ -278,6 +282,7 @@ def createProfileTab(page, nickname, email):
     def showMessage(messageText, isError=False):
         showPageMessage(page, messageText, isError)
 
+    @serverAction(page)
     def handleLogout(event):
         logoutPage(page)
 
@@ -300,6 +305,7 @@ def createProfileTab(page, nickname, email):
             ageDropdown.value,
             selectedFavoriteColors,
             selectedAvatarPath,
+            sessionToken=currentUser.get("sessionToken"),
         )
 
         if not successStatus:
@@ -330,12 +336,12 @@ def createProfileTab(page, nickname, email):
 
         @authenticatedAction(page, currentUser)
         def sendCode(event):
-            success, message = requestEmailChange(currentUser['userId'], passwordField.value, emailField.value)
+            success, message = requestEmailChange(currentUser['userId'], passwordField.value, emailField.value, currentUser.get("sessionToken"))
             showMessage(message, not success)
 
         @authenticatedAction(page, currentUser)
         def confirmCode(event):
-            success, message = confirmEmailChange(currentUser['userId'], emailField.value, codeField.value)
+            success, message = confirmEmailChange(currentUser['userId'], emailField.value, codeField.value, currentUser.get("sessionToken"))
             if success:
                 logoutPage(page)
             showMessage(message, not success)
@@ -360,6 +366,7 @@ def createProfileTab(page, nickname, email):
             currentPasswordField.value,
             newPasswordField.value,
             repeatPasswordField.value,
+            sessionToken=currentUser.get("sessionToken"),
         )
 
         if not successStatus:
@@ -383,6 +390,7 @@ def createProfileTab(page, nickname, email):
             themeDropdown.value,
             languageDropdown.value,
             notificationsSwitch.value,
+            sessionToken=currentUser.get("sessionToken"),
         )
 
         if not successStatus:
@@ -415,6 +423,7 @@ def createProfileTab(page, nickname, email):
             successStatus, messageText = deleteUserAccount(
                 currentUser["userId"],
                 deletePasswordField.value,
+                sessionToken=currentUser.get("sessionToken"),
             )
 
             page.close(confirmDialog)

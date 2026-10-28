@@ -2,12 +2,31 @@
 from functools import wraps
 import flet as ft
 
-from account_security import getSessionUser, logoutUser
+from account_gateway import getSessionUser, logoutUser
+from api_client import ApiError
 
 
 def showMessage(page, messageText, isError=False):
     page.open(ft.SnackBar(content=ft.Text(messageText),
                          bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400))
+
+
+def serverAction(page):
+    """Сетевая ошибка не превращается в выход; 401 завершает сессию."""
+    def decorate(callback):
+        @wraps(callback)
+        def guarded(*args, **kwargs):
+            try:
+                return callback(*args, **kwargs)
+            except ApiError as error:
+                if error.statusCode == 401:
+                    page.session.clear()
+                    page.overlay.clear()
+                    page.go('/auth')
+                showMessage(page, str(error), True)
+                return None
+        return guarded
+    return decorate
 
 
 def getCurrentUser(page):
@@ -24,15 +43,23 @@ def getCurrentUser(page):
 
 def logoutPage(page):
     currentUser = page.session.get('currentUser') or {}
-    logoutUser(currentUser.get('sessionToken'))
-    page.session.clear()
-    page.overlay.clear()
-    page.go('/auth')
+    errorMessage = None
+    try:
+        logoutUser(currentUser.get('sessionToken'))
+    except ApiError:
+        errorMessage = 'На устройстве выход выполнен. Сервер недоступен: отзыв токена не подтверждён'
+    finally:
+        page.session.clear()
+        page.overlay.clear()
+        page.go('/auth')
+    if errorMessage:
+        showMessage(page, errorMessage, True)
 
 
 def authenticatedAction(page, expectedUser):
     """Старый обработчик не должен выполняться после выхода или смены аккаунта."""
     def decorate(callback):
+        @serverAction(page)
         @wraps(callback)
         def guarded(*args, **kwargs):
             currentUser = getCurrentUser(page)

@@ -1,4 +1,4 @@
-from ui_helpers import authenticatedAction, getCurrentUser, showMessage as showPageMessage
+from ui_helpers import authenticatedAction, getCurrentUser, serverAction, showMessage as showPageMessage
 import base64
 import colorsys
 import math
@@ -2153,6 +2153,7 @@ def createHomeView(page: ft.Page):
 
     content_area = ft.Container(expand=True)
 
+    @serverAction(page)
     def update_tab(e):
         if currentUser is not None:
             sessionUser = getCurrentUser(page)

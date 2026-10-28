@@ -86,6 +86,16 @@ def initializeDatabase():
         eventName TEXT NOT NULL, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )""")
 
+    cursor.execute("""CREATE TABLE IF NOT EXISTS remoteAccounts (
+        apiUrl TEXT NOT NULL, remoteUserId INTEGER NOT NULL, localUserId INTEGER NOT NULL UNIQUE,
+        displayNickname TEXT NOT NULL, PRIMARY KEY (apiUrl, remoteUserId),
+        FOREIGN KEY (localUserId) REFERENCES users(userId)
+    )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS remoteSessionBindings (
+        tokenHash TEXT PRIMARY KEY, apiUrl TEXT NOT NULL, localUserId INTEGER NOT NULL,
+        FOREIGN KEY (localUserId) REFERENCES users(userId)
+    )""")
+
     addColumnIfNotExists(
         cursor,
         "users",
@@ -609,9 +619,10 @@ def getAllPosts():
             posts.likesCount,
             posts.isDeleted,
             posts.createdAt,
-            users.nickname
+            COALESCE(remoteAccounts.displayNickname, users.nickname) AS nickname
         FROM posts
         INNER JOIN users ON posts.userId = users.userId
+        LEFT JOIN remoteAccounts ON remoteAccounts.localUserId = users.userId
         ORDER BY posts.createdAt DESC
         """
     )
@@ -724,9 +735,10 @@ def getCommentsByPostId(postId):
             postComments.userId,
             postComments.commentText,
             postComments.createdAt,
-            users.nickname
+            COALESCE(remoteAccounts.displayNickname, users.nickname) AS nickname
         FROM postComments
         INNER JOIN users ON postComments.userId = users.userId
+        LEFT JOIN remoteAccounts ON remoteAccounts.localUserId = users.userId
         WHERE postComments.postId = ?
         ORDER BY postComments.createdAt ASC
         """,
@@ -877,6 +889,8 @@ def deleteUserDataById(userId, existingConnection=None):
         connection.execute('DELETE FROM colorMixtures WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM accountCodes WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM accountSessions WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM remoteSessionBindings WHERE localUserId = ?', (userId,))
+        connection.execute('DELETE FROM remoteAccounts WHERE localUserId = ?', (userId,))
         cursor = connection.execute("DELETE FROM users WHERE userId = ? AND roleName != 'deleted'", (userId,))
         if cursor.rowcount:
             connection.execute("INSERT INTO accountEvents (userId, eventName) VALUES (?, 'selfDelete')", (userId,))

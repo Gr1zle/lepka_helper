@@ -1,10 +1,11 @@
 import flet as ft
 
-from auth_service import (changePasswordByEmail, loginUser, registerUser,
+from account_gateway import (changePasswordByEmail, loginUser, registerUser,
                           requestPasswordRecovery, requestRegistrationCode)
-from account_security import confirmRegistration, logoutUser
-from ui_helpers import showMessage as showPageMessage
-from profile_service import getUserProfile
+from account_gateway import confirmRegistration, logoutUser
+from api_client import getApiUrl
+from ui_helpers import serverAction, showMessage as showPageMessage
+from account_gateway import getUserProfile
 from validators import validateEmail, validateNickname, validatePassword, validatePasswordConfirmation
 
 PRIMARY_COLOR = "#FF6B6B"
@@ -13,9 +14,10 @@ SECONDARY_COLOR = "#4ECDC4"
 
 def createAuthView(page):
     dialog = None
+    remoteMode = bool(getApiUrl())
 
-    loginEmailField = ft.TextField(label="Email", value="test@email.com", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
-    loginPasswordField = ft.TextField(label="Пароль", value="Test123456", prefix_icon=ft.Icons.LOCK, password=True, can_reveal_password=True, border_radius=12)
+    loginEmailField = ft.TextField(label="Email", value="" if remoteMode else "test@email.com", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
+    loginPasswordField = ft.TextField(label="Пароль", value="" if remoteMode else "Test123456", prefix_icon=ft.Icons.LOCK, password=True, can_reveal_password=True, border_radius=12)
     rememberMeSwitch = ft.Switch(label="Запомнить меня (пока недоступно)", value=False, disabled=True)
 
     registerEmailField = ft.TextField(label="Email", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
@@ -43,6 +45,7 @@ def createAuthView(page):
         registerPasswordField.error_text = None
         registerPasswordConfirmationField.error_text = None
 
+    @serverAction(page)
     def handleLogin(event):
         clearLoginErrors()
         loginEmailField.error_text = validateEmail((loginEmailField.value or '').strip().lower())
@@ -58,11 +61,12 @@ def createAuthView(page):
         previousUser = page.session.get("currentUser") or {}
         logoutUser(previousUser.get("sessionToken"))
         page.session.set("currentUser", userData)
-        profileData = getUserProfile(userData["userId"])
+        profileData = getUserProfile(userData["userId"], userData.get("sessionToken"))
         page.theme_mode = ft.ThemeMode.DARK if profileData and profileData["themeMode"] == "dark" else ft.ThemeMode.LIGHT
         showMessage(messageText)
         page.go("/home")
 
+    @serverAction(page)
     def handleRegister(event):
         clearRegisterErrors()
         fieldErrors = [
@@ -199,7 +203,7 @@ def createAuthView(page):
                 loginEmailField,
                 loginPasswordField,
                 rememberMeSwitch,
-                ft.TextButton(text="Заполнить тестовые данные", icon=ft.Icons.BOLT, on_click=lambda e: (setattr(loginEmailField, "value", "test@email.com"), setattr(loginPasswordField, "value", "Test123456"), page.update())),
+                ft.TextButton(text="Заполнить тестовые данные", disabled=remoteMode, tooltip="Демонстрационный аккаунт доступен только в локальном режиме", icon=ft.Icons.BOLT, on_click=lambda e: (setattr(loginEmailField, "value", "test@email.com"), setattr(loginPasswordField, "value", "Test123456"), page.update())),
                 ft.ElevatedButton(
                     text="Войти",
                     icon=ft.Icons.LOGIN,

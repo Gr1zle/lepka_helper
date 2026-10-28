@@ -59,6 +59,9 @@ def find(root, cls, **attrs):
 
 class StartupTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        modePatch = patch('account_gateway.getApiUrl', return_value='')
+        modePatch.start()
+        self.addCleanup(modePatch.stop)
         self.temp = tempfile.TemporaryDirectory()
         folder = Path(self.temp.name)
         self.db_patch = patch.object(database, 'DATABASE_PATH', folder/'test.db')
@@ -251,6 +254,16 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(find(view, ft.Text, value='Сохранённый чужой комментарий').value,
                          'Сохранённый чужой комментарий')
         self.assertTrue(item['isDeleted'])
+
+    async def test_android_without_api_cannot_start_local_account_mode(self):
+        with patch('main.getApiUrl', return_value=''):
+            self.page._set_attr('platform', 'android')
+            with patch('main.initializeDatabase') as initialize, patch('main.ensureDemoUser') as demo:
+                main(self.page)
+                initialize.assert_not_called()
+                demo.assert_not_called()
+            self.assertTrue(any(isinstance(control, ft.Text) and 'HTTPS' in (control.value or '')
+                                for control in walk(self.page)))
 
     async def test_onboarding_saves_completion(self):
         view = self.mount(createOnboardingView(self.page))
