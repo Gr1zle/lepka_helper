@@ -3,6 +3,9 @@ from datetime import datetime
 
 from database import (
     createProject,
+    createProjectWithSteps,
+    updateProjectById,
+    updateProjectStepDescription,
     getProjectById,
     createProjectStep,
     deleteProjectById,
@@ -53,7 +56,7 @@ def validateProjectDescription(descriptionText):
 
 
 def validateStepDescription(stepDescription):
-    if not stepDescription:
+    if not isinstance(stepDescription, str) or not stepDescription.strip():
         return "Введите описание этапа"
 
     if len(stepDescription.strip()) < 3:
@@ -79,25 +82,37 @@ def validateProjectDeadline(deadlineDate):
     return None
 
 
-def saveProject(userId, projectName, categoryName, deadlineDate, descriptionText):
-    projectName = projectName.strip()
-    descriptionText = (descriptionText or "").strip()
-    deadlineDate = (deadlineDate or "").strip()
+def normalizeProjectData(projectName, categoryName, deadlineDate, descriptionText):
+    projectName = (projectName or '').strip()
+    descriptionText = (descriptionText or '').strip()
+    deadlineDate = (deadlineDate or '').strip()
+    for error in (validateProjectName(projectName), validateProjectDescription(descriptionText),
+                  validateProjectDeadline(deadlineDate)):
+        if error:
+            raise ValueError(error)
+    if categoryName not in PROJECT_CATEGORIES:
+        raise ValueError('Выберите категорию проекта из списка')
+    return projectName, categoryName, deadlineDate, descriptionText
 
-    deadlineError = validateProjectDeadline(deadlineDate)
-    if deadlineError:
-        return False, deadlineError, None
 
-    projectNameError = validateProjectName(projectName)
-    if projectNameError:
-        return False, projectNameError, None
+def saveProject(userId, projectName, categoryName, deadlineDate, descriptionText, stepDescriptions=None):
+    try:
+        projectName, categoryName, deadlineDate, descriptionText = normalizeProjectData(
+            projectName, categoryName, deadlineDate, descriptionText)
+    except ValueError as error:
+        return False, str(error), None
 
-    descriptionError = validateProjectDescription(descriptionText)
-    if descriptionError:
-        return False, descriptionError, None
-
-    if not categoryName:
-        return False, "Выберите категорию проекта", None
+    if stepDescriptions is not None:
+        if not isinstance(stepDescriptions, list) or len(stepDescriptions) > 100:
+            return False, "Допускается не больше 100 этапов", None
+        normalizedSteps = []
+        for description in stepDescriptions:
+            error = validateStepDescription(description)
+            if error:
+                return False, error, None
+            normalizedSteps.append(description.strip())
+        projectId = createProjectWithSteps(userId, projectName, categoryName, deadlineDate, descriptionText, normalizedSteps)
+        return True, "Проект с этапами сохранён", projectId
 
     projectId = createProject(
         userId,
@@ -218,3 +233,22 @@ def removeProjectStep(projectId, stepId, userId):
 
     return progressPercent
 
+
+
+def editProject(projectId, userId, projectName, categoryName, deadlineDate, descriptionText):
+    try:
+        values = normalizeProjectData(projectName, categoryName, deadlineDate, descriptionText)
+    except ValueError as error:
+        return False, str(error)
+    if not updateProjectById(projectId, userId, *values):
+        return False, 'Проект не найден или недоступен'
+    return True, 'Проект изменён'
+
+
+def editProjectStep(projectId, stepId, userId, description):
+    error = validateStepDescription(description)
+    if error:
+        return False, error
+    if not updateProjectStepDescription(projectId, stepId, userId, description.strip()):
+        return False, 'Этап не найден или недоступен'
+    return True, 'Этап изменён'

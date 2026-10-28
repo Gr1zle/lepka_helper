@@ -1,4 +1,6 @@
 import sqlite3
+import uuid
+from contextlib import contextmanager, nullcontext
 from app_paths import DATA_DIRECTORY
 
 
@@ -6,9 +8,21 @@ DATABASE_PATH = DATA_DIRECTORY / "lepka_helper.db"
 
 
 def getConnection():
-    connection = sqlite3.connect(DATABASE_PATH)
+    connection = sqlite3.connect(DATABASE_PATH, timeout=30)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
     return connection
+
+@contextmanager
+def openDatabase():
+    """Транзакция с откатом при исключении и обязательным закрытием соединения."""
+    connection = getConnection()
+    try:
+        with connection:
+            yield connection
+    finally:
+        connection.close()
+
 
 def addColumnIfNotExists(cursor, tableName, columnName, columnSql):
     cursor.execute(f"PRAGMA table_info({tableName})")
@@ -46,6 +60,47 @@ def initializeDatabase():
         )
         """
     )
+
+    # Старые аккаунты сохраняют доступ. Новые требуют подтверждения почты.
+    for columnName, columnSql in (
+        ('emailVerified', 'emailVerified INTEGER NOT NULL DEFAULT 1'),
+        ('loginFailures', 'loginFailures INTEGER NOT NULL DEFAULT 0'),
+        ('loginBlockedUntil', 'loginBlockedUntil REAL NOT NULL DEFAULT 0'),
+        ('passwordFailures', 'passwordFailures INTEGER NOT NULL DEFAULT 0'),
+        ('passwordBlockedUntil', 'passwordBlockedUntil REAL NOT NULL DEFAULT 0'),
+    ):
+        addColumnIfNotExists(cursor, 'users', columnName, columnSql)
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS accountCodes (
+        email TEXT NOT NULL, purpose TEXT NOT NULL, userId INTEGER NOT NULL,
+        codeHash TEXT NOT NULL, expiresAt REAL NOT NULL, sentAt REAL NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (email, purpose), FOREIGN KEY (userId) REFERENCES users(userId)
+    )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS accountSessions (
+        tokenHash TEXT PRIMARY KEY, userId INTEGER NOT NULL, expiresAt REAL NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users(userId)
+    )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS accountEvents (
+        eventId INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER NOT NULL,
+        eventName TEXT NOT NULL, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""")
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS remoteAccounts (
+        apiUrl TEXT NOT NULL, remoteUserId INTEGER NOT NULL, localUserId INTEGER NOT NULL UNIQUE,
+        displayNickname TEXT NOT NULL, PRIMARY KEY (apiUrl, remoteUserId),
+        FOREIGN KEY (localUserId) REFERENCES users(userId)
+    )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS remoteSessionBindings (
+        tokenHash TEXT PRIMARY KEY, apiUrl TEXT NOT NULL, localUserId INTEGER NOT NULL,
+        FOREIGN KEY (localUserId) REFERENCES users(userId)
+    )""")
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS lessonProgress (
+        userId INTEGER NOT NULL, lessonId INTEGER NOT NULL, stateJson TEXT NOT NULL,
+        updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (userId, lessonId), FOREIGN KEY (userId) REFERENCES users(userId)
+    )""")
 
     addColumnIfNotExists(
         cursor,
@@ -156,6 +211,8 @@ def initializeDatabase():
         """
     )
 
+    addColumnIfNotExists(cursor, 'posts', 'isDeleted', 'isDeleted INTEGER NOT NULL DEFAULT 0')
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS postComments (
@@ -194,7 +251,7 @@ def getUserByEmail(email):
 
     cursor.execute(
         """
-        SELECT userId, email, passwordHash, passwordSalt, nickname, roleName, isBlocked
+        SELECT *
         FROM users
         WHERE email = ?
         """,
@@ -226,16 +283,16 @@ def getUserByNickname(nickname):
     return userRecord
 
 
-def createUser(email, passwordHash, passwordSalt, nickname):
+def createUser(email, passwordHash, passwordSalt, nickname, emailVerified=True):
     connection = getConnection()
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        INSERT INTO users (email, passwordHash, passwordSalt, nickname)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO users (email, passwordHash, passwordSalt, nickname, emailVerified)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (email, passwordHash, passwordSalt, nickname),
+        (email, passwordHash, passwordSalt, nickname, int(emailVerified)),
     )
 
     userId = cursor.lastrowid
@@ -427,52 +484,16 @@ def getUserProfileById(userId):
 
 
 def updateUserProfile(userId, nickname, bioText, ageCategory, favoriteColorsJson, avatarPath=None):
-    connection = getConnection()
-    cursor = connection.cursor()
+    with openDatabase() as connection:
+        if avatarPath is None:
+            connection.execute(
+                """UPDATE users SET nickname = ?, bioText = ?, ageCategory = ?, favoriteColorsJson = ?
+                WHERE userId = ?""", (nickname, bioText, ageCategory, favoriteColorsJson, userId))
+        else:
+            connection.execute(
+                """UPDATE users SET nickname = ?, bioText = ?, ageCategory = ?, favoriteColorsJson = ?, avatarPath = ?
+                WHERE userId = ?""", (nickname, bioText, ageCategory, favoriteColorsJson, avatarPath, userId))
 
-    if avatarPath is None:
-        cursor.execute(
-            """
-            UPDATE users
-            SET
-                nickname = ?,
-                bioText = ?,
-                ageCategory = ?,
-                favoriteColorsJson = ?
-            WHERE userId = ?
-            """,
-            (
-                nickname,
-                bioText,
-                ageCategory,
-                favoriteColorsJson,
-                userId,
-            ),
-        )
-    else:
-        cursor.execute(
-            """
-            UPDATE users
-            SET
-                nickname = ?,
-                bioText = ?,
-                ageCategory = ?,
-                favoriteColorsJson = ?,
-                avatarPath = ?
-            WHERE userId = ?
-            """,
-            (
-                nickname,
-                bioText,
-                ageCategory,
-                favoriteColorsJson,
-                avatarPath,
-                userId,
-            ),
-        )
-
-    connection.commit()
-    connection.close()
 
 def createProjectStep(projectId, stepDescription, userId):
     connection = getConnection()
@@ -550,28 +571,11 @@ def updateProjectProgress(projectId, progressPercent, userId):
 
 
 def updateUserSettings(userId, themeMode, languageCode, notificationsEnabled):
-    connection = getConnection()
-    cursor = connection.cursor()
+    with openDatabase() as connection:
+        connection.execute(
+            """UPDATE users SET themeMode = ?, languageCode = ?, notificationsEnabled = ? WHERE userId = ?""",
+            (themeMode, languageCode, int(notificationsEnabled), userId))
 
-    cursor.execute(
-        """
-        UPDATE users
-        SET
-            themeMode = ?,
-            languageCode = ?,
-            notificationsEnabled = ?
-        WHERE userId = ?
-        """,
-        (
-            themeMode,
-            languageCode,
-            1 if notificationsEnabled else 0,
-            userId,
-        ),
-    )
-
-    connection.commit()
-    connection.close()
 
 def createPost(userId, titleText, descriptionText, categoryName, tagsText):
     connection = getConnection()
@@ -619,10 +623,12 @@ def getAllPosts():
             posts.categoryName,
             posts.tagsText,
             posts.likesCount,
+            posts.isDeleted,
             posts.createdAt,
-            users.nickname
+            COALESCE(remoteAccounts.displayNickname, users.nickname) AS nickname
         FROM posts
         INNER JOIN users ON posts.userId = users.userId
+        LEFT JOIN remoteAccounts ON remoteAccounts.localUserId = users.userId
         ORDER BY posts.createdAt DESC
         """
     )
@@ -647,6 +653,7 @@ def getPostsByUserId(userId):
             categoryName,
             tagsText,
             likesCount,
+            isDeleted,
             createdAt
         FROM posts
         WHERE userId = ?
@@ -679,46 +686,47 @@ def increasePostLikes(postId):
 
 
 def deletePostById(postId, userId):
-    connection = getConnection()
-    cursor = connection.cursor()
+    with openDatabase() as connection:
+        ownedPost = connection.execute(
+            'SELECT postId FROM posts WHERE postId = ? AND userId = ?',
+            (postId, userId),
+        ).fetchone()
+        if ownedPost is None:
+            return False
+        connection.execute('DELETE FROM postComments WHERE postId = ?', (postId,))
+        connection.execute('DELETE FROM postLikes WHERE postId = ?', (postId,))
+        connection.execute('DELETE FROM posts WHERE postId = ?', (postId,))
+        return True
 
-    cursor.execute(
-        """
-        DELETE FROM posts
-        WHERE postId = ? AND userId = ?
-        """,
-        (postId, userId),
-    )
-
-    connection.commit()
-    connection.close()
 
 def createPostComment(postId, userId, commentText):
-    connection = getConnection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        INSERT INTO postComments (
-            postId,
-            userId,
-            commentText
+    with openDatabase() as connection:
+        cursor = connection.execute(
+            """INSERT INTO postComments (postId, userId, commentText)
+            SELECT p.postId, u.userId, ? FROM posts AS p, users AS u
+            WHERE p.postId = ? AND p.isDeleted = 0 AND u.userId = ? AND u.isBlocked = 0""",
+            (commentText, postId, userId),
         )
-        VALUES (?, ?, ?)
-        """,
-        (
-            postId,
-            userId,
-            commentText,
-        ),
-    )
+        return cursor.lastrowid if cursor.rowcount else None
 
-    commentId = cursor.lastrowid
 
-    connection.commit()
-    connection.close()
-
-    return commentId
+def togglePostLikeForUser(postId, userId):
+    with openDatabase() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        available = connection.execute(
+            """SELECT p.postId FROM posts AS p, users AS u
+            WHERE p.postId = ? AND p.isDeleted = 0 AND u.userId = ? AND u.isBlocked = 0""",
+            (postId, userId),
+        ).fetchone()
+        if available is None:
+            return False, None
+        cursor = connection.execute('DELETE FROM postLikes WHERE postId = ? AND userId = ?', (postId, userId))
+        isLiked = cursor.rowcount == 0
+        if isLiked:
+            connection.execute('INSERT INTO postLikes (postId, userId) VALUES (?, ?)', (postId, userId))
+        likesCount = connection.execute('SELECT COUNT(*) FROM postLikes WHERE postId = ?', (postId,)).fetchone()[0]
+        connection.execute('UPDATE posts SET likesCount = ? WHERE postId = ?', (likesCount, postId))
+        return isLiked, likesCount
 
 
 def getCommentsByPostId(postId):
@@ -733,9 +741,10 @@ def getCommentsByPostId(postId):
             postComments.userId,
             postComments.commentText,
             postComments.createdAt,
-            users.nickname
+            COALESCE(remoteAccounts.displayNickname, users.nickname) AS nickname
         FROM postComments
         INNER JOIN users ON postComments.userId = users.userId
+        LEFT JOIN remoteAccounts ON remoteAccounts.localUserId = users.userId
         WHERE postComments.postId = ?
         ORDER BY postComments.createdAt ASC
         """,
@@ -852,90 +861,48 @@ def updatePostLikesCount(postId, likesCount):
     connection.commit()
     connection.close()
 
-def deleteUserDataById(userId):
-    connection = getConnection()
-    cursor = connection.cursor()
+def deleteUserDataById(userId, existingConnection=None):
+    context = openDatabase() if existingConnection is None else nullcontext(existingConnection)
+    with context as connection:
+        # Сначала удаляются личные данные. Чужие комментарии остаются под заглушкой.
+        connection.execute('DELETE FROM postComments WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM postLikes WHERE userId = ?', (userId,))
+        ownedPosts = connection.execute('SELECT postId FROM posts WHERE userId = ?', (userId,)).fetchall()
+        if ownedPosts:
+            deletedAuthor = connection.execute(
+                "SELECT userId FROM users WHERE roleName = 'deleted' LIMIT 1"
+            ).fetchone()
+            if deletedAuthor is None:
+                cursor = connection.execute(
+                    """INSERT INTO users (email, passwordHash, passwordSalt, nickname, roleName, isBlocked)
+                    VALUES (?, '', '', 'Удалённый пользователь', 'deleted', 1)""",
+                    (f'deleted-{uuid.uuid4().hex}@invalid.example',)
+                )
+                deletedAuthorId = cursor.lastrowid
+            else:
+                deletedAuthorId = deletedAuthor['userId']
+            connection.execute(
+                """UPDATE posts SET userId = ?, titleText = 'Работа удалена пользователем',
+                descriptionText = 'Работа удалена пользователем', tagsText = '', likesCount = 0, isDeleted = 1
+                WHERE userId = ?""", (deletedAuthorId, userId)
+            )
+            for postRecord in ownedPosts:
+                connection.execute('DELETE FROM postLikes WHERE postId = ?', (postRecord['postId'],))
+        connection.execute("""UPDATE posts SET likesCount = (
+            SELECT COUNT(*) FROM postLikes WHERE postLikes.postId = posts.postId)""")
+        connection.execute('DELETE FROM projectSteps WHERE projectId IN (SELECT projectId FROM projects WHERE userId = ?)', (userId,))
+        connection.execute('DELETE FROM projects WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM colorMixtures WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM lessonProgress WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM accountCodes WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM accountSessions WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM remoteSessionBindings WHERE localUserId = ?', (userId,))
+        connection.execute('DELETE FROM remoteAccounts WHERE localUserId = ?', (userId,))
+        cursor = connection.execute("DELETE FROM users WHERE userId = ? AND roleName != 'deleted'", (userId,))
+        if cursor.rowcount:
+            connection.execute("INSERT INTO accountEvents (userId, eventName) VALUES (?, 'selfDelete')", (userId,))
+        return cursor.rowcount > 0
 
-    cursor.execute(
-        """
-        DELETE FROM postComments
-        WHERE userId = ?
-        """,
-        (userId,),
-    )
-
-    cursor.execute(
-        """
-        DELETE FROM postComments
-        WHERE postId IN (
-            SELECT postId FROM posts WHERE userId = ?
-        )
-        """,
-        (userId,),
-    )
-
-    cursor.execute(
-        """
-        DELETE FROM postLikes
-        WHERE userId = ?
-        """,
-        (userId,),
-    )
-
-    cursor.execute(
-        """
-        DELETE FROM postLikes
-        WHERE postId IN (
-            SELECT postId FROM posts WHERE userId = ?
-        )
-        """,
-        (userId,),
-    )
-
-    cursor.execute(
-        """
-        DELETE FROM posts
-        WHERE userId = ?
-        """,
-        (userId,),
-    )
-
-    cursor.execute(
-        """
-        DELETE FROM projectSteps
-        WHERE projectId IN (
-            SELECT projectId FROM projects WHERE userId = ?
-        )
-        """,
-        (userId,),
-    )
-
-    cursor.execute(
-        """
-        DELETE FROM projects
-        WHERE userId = ?
-        """,
-        (userId,),
-    )
-
-    cursor.execute(
-        """
-        DELETE FROM colorMixtures
-        WHERE userId = ?
-        """,
-        (userId,),
-    )
-
-    cursor.execute(
-        """
-        DELETE FROM users
-        WHERE userId = ?
-        """,
-        (userId,),
-    )
-
-    connection.commit()
-    connection.close()
 
 def getUserPasswordById(userId):
     connection = getConnection()
@@ -971,3 +938,44 @@ def updateUserPassword(userId, passwordHash, passwordSalt):
 
     connection.commit()
     connection.close()
+
+
+def createProjectWithSteps(userId, projectName, categoryName, deadlineDate, descriptionText, stepDescriptions):
+    with openDatabase() as connection:
+        cursor = connection.execute(
+            """INSERT INTO projects (userId, projectName, categoryName, deadlineDate, descriptionText)
+            VALUES (?, ?, ?, ?, ?)""", (userId, projectName, categoryName, deadlineDate, descriptionText))
+        projectId = cursor.lastrowid
+        connection.executemany('INSERT INTO projectSteps (projectId, stepDescription) VALUES (?, ?)',
+                               [(projectId, description) for description in stepDescriptions])
+        return projectId
+
+
+def getLessonProgress(userId, lessonId):
+    with openDatabase() as connection:
+        record = connection.execute('SELECT stateJson FROM lessonProgress WHERE userId = ? AND lessonId = ?',
+                                    (userId, lessonId)).fetchone()
+        return record['stateJson'] if record else None
+
+
+def saveLessonProgress(userId, lessonId, stateJson):
+    with openDatabase() as connection:
+        connection.execute("""INSERT INTO lessonProgress (userId, lessonId, stateJson) VALUES (?, ?, ?)
+            ON CONFLICT (userId, lessonId) DO UPDATE SET stateJson = excluded.stateJson,
+            updatedAt = CURRENT_TIMESTAMP""", (userId, lessonId, stateJson))
+
+
+def updateProjectById(projectId, userId, projectName, categoryName, deadlineDate, descriptionText):
+    with openDatabase() as connection:
+        cursor = connection.execute("""UPDATE projects SET projectName = ?, categoryName = ?,
+            deadlineDate = ?, descriptionText = ? WHERE projectId = ? AND userId = ?""",
+            (projectName, categoryName, deadlineDate, descriptionText, projectId, userId))
+        return cursor.rowcount > 0
+
+
+def updateProjectStepDescription(projectId, stepId, userId, description):
+    with openDatabase() as connection:
+        cursor = connection.execute("""UPDATE projectSteps SET stepDescription = ?
+            WHERE stepId = ? AND projectId = ? AND projectId IN
+            (SELECT projectId FROM projects WHERE userId = ?)""", (description, stepId, projectId, userId))
+        return cursor.rowcount > 0

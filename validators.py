@@ -12,7 +12,13 @@ def validateEmail(email):
     if len(email) < 5 or len(email) > 100:
         return "Email должен быть от 5 до 100 символов"
 
-    if not re.match(EMAIL_PATTERN, email):
+    if not re.fullmatch(EMAIL_PATTERN, email):
+        return "Введите корректный email"
+
+    localPart, domainName = email.rsplit('@', 1)
+    if (localPart.startswith('.') or localPart.endswith('.') or '..' in localPart
+            or any(not label or label.startswith('-') or label.endswith('-')
+                   for label in domainName.split('.'))):
         return "Введите корректный email"
 
     return None
@@ -54,7 +60,7 @@ def validateNickname(nickname):
     if not nickname:
         return "Введите никнейм"
 
-    if not re.match(NICKNAME_PATTERN, nickname):
+    if not re.fullmatch(NICKNAME_PATTERN, nickname):
         return "Никнейм: 3–20 символов, буквы, цифры, _ или -"
 
     return None
