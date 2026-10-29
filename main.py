@@ -1,8 +1,11 @@
 import flet as ft
 import argparse
+from pathlib import Path
 
 from database import initializeDatabase
-from auth_service import ensureDemoUser
+from account_gateway import ensureDemoUser
+from api_client import ApiError, getApiUrl
+from ui_helpers import serverAction
 from views.splash_view import createSplashView
 from views.onboarding_view import createOnboardingView
 from views.auth_view import createAuthView
@@ -14,6 +17,18 @@ SECONDARY_COLOR = "#4ECDC4"
 
 
 def main(page: ft.Page):
+    try:
+        isAndroid = page.platform == ft.PagePlatform.ANDROID
+    except ValueError:
+        isAndroid = False  # Транспорт ещё не сообщил платформу.
+    try:
+        apiUrl = getApiUrl()
+    except ApiError as error:
+        page.add(ft.Text(str(error)))
+        return
+    if isAndroid and not apiUrl:
+        page.add(ft.Text('Для Android задайте HTTPS-адрес сервера в assets/client_config.json'))
+        return
     initializeDatabase()
     ensureDemoUser()
 
@@ -30,27 +45,30 @@ def main(page: ft.Page):
     page.session.set("PRIMARY_COLOR", PRIMARY_COLOR)
     page.session.set("SECONDARY_COLOR", SECONDARY_COLOR)
 
+    @serverAction(page)
     def route_change(e):
-        page.views.clear()
-
         if page.route == "/" or page.route == "":
-            page.views.append(createSplashView(page))
+            view = createSplashView(page)
         elif page.route == "/onboarding":
-            page.views.append(createOnboardingView(page))
+            view = createOnboardingView(page)
         elif page.route == "/auth":
-            page.views.append(createAuthView(page))
+            view = createAuthView(page)
         elif page.route == "/home":
-            page.views.append(createHomeView(page))
+            view = createHomeView(page)
         else:
             page.go("/")
             return
 
+        page.views[:] = [view]
         page.update()
 
     def view_pop(e):
         if len(page.views) > 1:
-            page.views.pop()
-            page.go(page.views[-1].route)
+            removedView = page.views.pop()
+            if removedView.route.startswith('/workshop/'):
+                page.update()  # Сохраняем вкладку поиска, фильтры и позицию ленты.
+            else:
+                page.go(page.views[-1].route)
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop
@@ -62,9 +80,26 @@ if __name__ == "__main__":
     parser.add_argument("--desktop", action="store_true", help="Открыть отдельное окно")
     parser.add_argument("--port", type=int, default=8550, help="Порт веб-версии")
     options = parser.parse_args()
-    ft.app(
-        target=main,
-        view=ft.AppView.FLET_APP if options.desktop else ft.AppView.WEB_BROWSER,
-        host="127.0.0.1",
-        port=options.port,
-    )
+    if options.desktop:
+        ft.app(target=main, view=ft.AppView.FLET_APP, host="127.0.0.1", port=options.port,
+               assets_dir=str(Path(__file__).resolve().parent / "assets"))
+    else:
+        import socket
+        import threading
+        import time
+        import webbrowser
+        import uvicorn
+        from web_app import createWebApp
+
+        def openBrowser():
+            for _ in range(100):
+                try:
+                    with socket.create_connection(('127.0.0.1', options.port), timeout=0.1):
+                        webbrowser.open(f'http://127.0.0.1:{options.port}')
+                        return
+                except OSError:
+                    time.sleep(0.05)
+
+        threading.Thread(target=openBrowser, daemon=True).start()
+        # Не записываем одноразовые адреса скачивания в access-log.
+        uvicorn.run(createWebApp(), host='127.0.0.1', port=options.port, access_log=False)

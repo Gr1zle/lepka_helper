@@ -1,4 +1,8 @@
 import random
+import copy
+import json
+
+from database import getLessonProgress, saveLessonProgress, getUserProfileById
 
 
 LESSON_ITEMS = [
@@ -173,59 +177,104 @@ IDEA_OBJECTS = {
 }
 
 
-def searchLessons(searchText, categoryName):
-    normalizedSearchText = searchText.strip().lower()
+IDEA_PALETTES = {
+    'Тёплая': ['#FF3B30', '#FF9500', '#FFD60A', '#FF2D55', '#8B4513'],
+    'Холодная': ['#007AFF', '#5AC8FA', '#AF52DE', '#34C759', '#FFFFFF'],
+    'Случайная': ['#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#007AFF', '#AF52DE', '#FFFFFF', '#000000'],
+}
 
-    resultItems = []
 
-    for lessonItem in LESSON_ITEMS:
-        matchesCategory = categoryName == "Все" or lessonItem["category"] == categoryName
-
-        searchableText = " ".join(
-            [
-                lessonItem["title"],
-                lessonItem["category"],
-                lessonItem["level"],
-                lessonItem["description"],
-                " ".join(lessonItem["tags"]),
-            ]
-        ).lower()
-
-        matchesSearch = normalizedSearchText == "" or normalizedSearchText in searchableText
-
-        if matchesCategory and matchesSearch:
-            resultItems.append(lessonItem)
-
-    return resultItems
+def searchLessons(searchText, categoryName='Все', levelName='Все', maxTime=None, onlyVideo=False):
+    query = (searchText or '').strip().casefold()
+    if categoryName not in SEARCH_CATEGORIES or levelName not in ['Все', *IDEA_LEVELS]:
+        raise ValueError('Выберите категорию и сложность из списка')
+    if maxTime not in (None, ''):
+        if isinstance(maxTime, bool) or not str(maxTime).strip().isdecimal():
+            raise ValueError('Время должно быть целым числом не меньше нуля')
+        try:
+            maxTime = int(maxTime)
+        except (TypeError, ValueError):
+            raise ValueError('Время должно быть целым числом не меньше нуля') from None
+        if maxTime < 0:
+            raise ValueError('Время должно быть целым числом не меньше нуля')
+    else:
+        maxTime = None
+    result = []
+    for lesson in LESSON_ITEMS:
+        searchable = ' '.join([lesson['title'], lesson['description'], lesson['level'],
+                               lesson['category'], *lesson['tags'], *lesson['materials']]).casefold()
+        if (categoryName != 'Все' and lesson['category'] != categoryName
+                or levelName != 'Все' and lesson['level'] != levelName
+                or maxTime is not None and lesson['timeMinutes'] > maxTime
+                or onlyVideo and not lesson.get('videoUrl')
+                or not all(word in searchable for word in query.split())):
+            continue
+        result.append(copy.deepcopy(lesson))
+    return result
 
 
 def getLessonById(lessonId):
-    for lessonItem in LESSON_ITEMS:
-        if lessonItem["lessonId"] == lessonId:
-            return lessonItem
-
-    return None
+    return next((copy.deepcopy(lesson) for lesson in LESSON_ITEMS if lesson['lessonId'] == lessonId), None)
 
 
-def generateRandomIdea():
-    themeName = random.choice(IDEA_THEMES)
-    levelName = random.choice(IDEA_LEVELS)
+def generateRandomIdea(themeName=None, levelName=None, paletteName='Случайная', colorCount=3):
+    themeName = random.choice(IDEA_THEMES) if not themeName or themeName == 'Случайная' else themeName
+    levelName = random.choice(IDEA_LEVELS) if not levelName or levelName == 'Случайная' else levelName
+    if themeName not in IDEA_THEMES or levelName not in IDEA_LEVELS or paletteName not in IDEA_PALETTES:
+        raise ValueError('Выберите параметры генерации из списка')
+    if type(colorCount) is not int or not 1 <= colorCount <= 5:
+        raise ValueError('Выберите от 1 до 5 цветов')
     objectName = random.choice(IDEA_OBJECTS[themeName])
-    colorSet = random.choice(IDEA_COLOR_SETS)
+    colors = random.sample(IDEA_PALETTES[paletteName], colorCount)
+    estimatedTime = random.choice({'Начинающий': [25, 35, 40], 'Средний': [45, 60, 75],
+                                   'Продвинутый': [90, 120]}[levelName])
+    return {'title': f'Слепить: {objectName}',
+            'description': f'Тема: {themeName}. Сделайте фигурку «{objectName}» уровня «{levelName}».',
+            'theme': themeName, 'level': levelName, 'colors': colors, 'estimatedTime': estimatedTime,
+            'steps': ['Подготовить пластилин, инструменты и референс', 'Слепить основу фигурки',
+                      'Добавить детали и соединить части', 'Проверить результат и оформить работу']}
 
-    estimatedTime = random.choice([25, 35, 45, 60, 90, 120])
 
-    ideaTitle = f"Слепить: {objectName}"
-    ideaDescription = (
-        f"Тема: {themeName}. Сделайте фигурку «{objectName}» "
-        f"в стиле уровня «{levelName}». Используйте 2–3 основных цвета."
-    )
+def getUserLessonState(userId, lessonId):
+    lesson = getLessonById(lessonId)
+    if lesson is None:
+        raise ValueError('Урок не найден')
+    default = {'lastStep': 0, 'completedSteps': [], 'checkedMaterials': [], 'isCompleted': False}
+    raw = getLessonProgress(userId, lessonId)
+    if raw is None:
+        return default
+    try:
+        state = json.loads(raw)
+        return normalizeLessonState(lesson, state)
+    except (ValueError, TypeError, KeyError):
+        return default
 
-    return {
-        "title": ideaTitle,
-        "description": ideaDescription,
-        "theme": themeName,
-        "level": levelName,
-        "colors": colorSet,
-        "estimatedTime": estimatedTime,
-    }
+
+def normalizeLessonState(lesson, state):
+    if not isinstance(state, dict):
+        raise ValueError('Некорректное состояние урока')
+    step = state.get('lastStep')
+    if type(step) is not int or not 0 <= step < len(lesson['steps']):
+        raise ValueError('Некорректный номер шага')
+    result = {'lastStep': step}
+    for key, limit in (('completedSteps', len(lesson['steps'])), ('checkedMaterials', len(lesson['materials']))):
+        values = state.get(key)
+        if not isinstance(values, list) or any(type(value) is not int or not 0 <= value < limit for value in values):
+            raise ValueError('Некорректные отметки урока')
+        result[key] = sorted(set(values))
+    result['isCompleted'] = len(result['completedSteps']) == len(lesson['steps'])
+    return result
+
+
+def saveUserLessonState(userId, lessonId, state):
+    lesson = getLessonById(lessonId)
+    if lesson is None or getUserProfileById(userId) is None:
+        raise ValueError('Урок или пользователь не найден')
+    normalized = normalizeLessonState(lesson, state)
+    saveLessonProgress(userId, lessonId, json.dumps(normalized, ensure_ascii=False))
+    return normalized
+
+
+# Авторские схематичные иллюстрации, не фотографии готовых работ.
+for lesson in LESSON_ITEMS:
+    lesson['previewImage'] = f"lessons/lesson_{lesson['lessonId']}.svg"
