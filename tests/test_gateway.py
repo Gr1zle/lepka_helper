@@ -136,6 +136,30 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
         self.assertIsNone(self.page.session.get('currentUser'))
         self.assertIsNone(gateway.getSessionUser(user['sessionToken']))
 
+    async def test_avatar_is_saved_on_server_and_rendered_in_flet_profile(self):
+        from pathlib import Path
+        from image_fixtures import photo
+        from views.profile_tab import createProfileTab
+        user = self.login()
+        view = ft.View('/profile', controls=[createProfileTab(self.page, user['nickname'], user['email'])])
+        self.page.views[:] = [view]
+        self.page.update()
+        source = photo()
+        path = self.root / source['name']
+        path.write_bytes(source['data'])
+        find(view, ft.OutlinedButton, text='Выбрать аватар').on_click(None)
+        picker = next(c for c in self.page.overlay if isinstance(c, ft.FilePicker))
+        picker.on_result(SimpleNamespace(files=[SimpleNamespace(name=path.name, path=str(path), size=path.stat().st_size, id=1)],control=picker))
+        value = gateway.getUserProfile(user['userId'], user['sessionToken'])['avatarImage']
+        self.assertTrue(value)
+        self.assertEqual(find(view, ft.CircleAvatar).content.src_base64, value)
+        # Серверный аватар не записывается к случайному совпавшему локальному ID.
+        self.assertIsNone(database.getUserProfileById(user['userId'])['avatarImage'])
+        find(view, ft.ElevatedButton, text='Сохранить профиль').on_click(None)
+        self.assertEqual(gateway.getUserProfile(user['userId'], user['sessionToken'])['avatarImage'], value)
+        find(view, ft.OutlinedButton, text='Убрать аватар').on_click(None)
+        self.assertEqual(gateway.getUserProfile(user['userId'], user['sessionToken'])['avatarImage'], '')
+
     async def test_server_unavailable_never_falls_back_to_local_password(self):
         self.assertTrue(auth_service.loginUser('local@example.com', 'LocalPass123')[0])
         self.assertFalse(gateway.loginUser('local@example.com', 'LocalPass123')[0])

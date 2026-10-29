@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import database as db
 import project_service as projects
+from image_fixtures import photo
 
 
 class ProjectTests(unittest.TestCase):
@@ -141,6 +142,7 @@ class ProjectTests(unittest.TestCase):
 
     def test_owner_can_change_steps_and_progress(self):
         secondStep = projects.saveProjectStep(self.project, 'Слепить уши', self.owner)[2]
+        self.assertTrue(projects.saveProjectStepPhoto(self.project, self.step, self.owner, photo())[0])
         self.assertEqual(projects.changeProjectStepStatus(self.project, self.step, True, self.owner), 50)
         self.assertEqual(db.getProjectById(self.project, self.owner)['progressPercent'], 50)
         self.assertEqual(projects.removeProjectStep(self.project, secondStep, self.owner), 100)

@@ -2,7 +2,7 @@
 from io import BytesIO
 import warnings
 
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageDraw, ImageOps, UnidentifiedImageError
 
 MAX_PHOTO_BYTES = 10 * 1024 * 1024
 MAX_PHOTO_PIXELS = 20_000_000
@@ -39,3 +39,16 @@ def preparePhoto(name, data):
         raise ValueError('Не удалось прочитать фотографию') from None
     cleanName = name.replace('\\', '/').rsplit('/', 1)[-1].rsplit('.', 1)[0][:100] or 'photo'
     return {'name': cleanName + '.jpg', 'data': output.getvalue()}
+
+
+def prepareAvatar(name, data):
+    photo = preparePhoto(name, data)
+    with Image.open(BytesIO(photo['data'])) as source:
+        # Квадрат из центра, затем круглая маска без EXIF и GPS.
+        image = ImageOps.fit(source, (512, 512), method=Image.Resampling.LANCZOS).convert('RGBA')
+        mask = Image.new('L', (512, 512), 0)
+        ImageDraw.Draw(mask).ellipse((0, 0, 511, 511), fill=255)
+        image.putalpha(mask)
+        output = BytesIO()
+        image.save(output, format='PNG')
+        return output.getvalue()

@@ -15,6 +15,7 @@ from color_export import createRecipePng
 import database
 import lesson_service as lessons
 import project_service as projects
+from image_fixtures import photo
 from download_service import createDownload
 from web_app import createWebApp
 
@@ -185,6 +186,8 @@ class StoredToolsTests(unittest.TestCase):
         self.assertTrue(success, message)
         steps = projects.getProjectSteps(project, self.owner)
         self.assertEqual([item['stepDescription'] for item in steps], lesson['steps'])
+        for item in steps:
+            projects.saveProjectStepPhoto(project, item['stepId'], self.owner, photo())
         self.assertEqual(projects.changeProjectStepStatus(project, steps[0]['stepId'], True, self.owner), 16.7)
         for item in steps[1:]:
             projects.changeProjectStepStatus(project, item['stepId'], True, self.owner)

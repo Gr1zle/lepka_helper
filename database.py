@@ -150,6 +150,7 @@ def initializeDatabase():
         "avatarPath",
         "avatarPath TEXT DEFAULT ''",
     )
+    addColumnIfNotExists(cursor, 'users', 'avatarImage', 'avatarImage BLOB')
 
     cursor.execute(
         """
@@ -194,6 +195,8 @@ def initializeDatabase():
         )
         """
     )
+
+    addColumnIfNotExists(cursor, 'projectSteps', 'photoImage', 'photoImage BLOB')
 
     cursor.execute(
         """
@@ -481,7 +484,8 @@ def getUserProfileById(userId):
             themeMode,
             languageCode,
             notificationsEnabled,
-            avatarPath
+            avatarPath,
+            avatarImage
         FROM users
         WHERE userId = ?
         """,
@@ -526,7 +530,7 @@ def getProjectStepsByProjectId(projectId, userId):
     try:
         return connection.execute(
             """SELECT s.stepId, s.projectId, s.stepDescription,
-                      s.isCompleted, s.createdAt
+                      s.isCompleted, s.createdAt, (length(s.photoImage) > 0) AS hasPhoto
             FROM projectSteps AS s
             JOIN projects AS p ON p.projectId = s.projectId
             WHERE p.projectId = ? AND p.userId = ?
@@ -538,14 +542,17 @@ def getProjectStepsByProjectId(projectId, userId):
 
 
 def updateProjectStepStatus(projectId, stepId, isCompleted, userId):
+    if type(isCompleted) is not bool:
+        return False
     connection = getConnection()
     try:
         with connection:
             cursor = connection.execute(
                 """UPDATE projectSteps SET isCompleted = ?
                 WHERE stepId = ? AND projectId = ?
-                AND projectId IN (SELECT projectId FROM projects WHERE userId = ?)""",
-                (1 if isCompleted else 0, stepId, projectId, userId),
+                AND projectId IN (SELECT projectId FROM projects WHERE userId = ?)
+                AND (? = 0 OR length(photoImage) > 0 OR isCompleted = 1)""",
+                (1 if isCompleted else 0, stepId, projectId, userId, int(isCompleted)),
             )
         return cursor.rowcount > 0
     finally:
@@ -1024,4 +1031,28 @@ def updatePostComment(commentId, userId, commentText):
             AND EXISTS (SELECT 1 FROM users WHERE userId = ? AND isBlocked = 0)
             AND EXISTS (SELECT 1 FROM posts WHERE posts.postId = postComments.postId AND isDeleted = 0)""",
             (commentText, commentId, userId, userId))
+        return cursor.rowcount > 0
+
+
+def setUserAvatar(userId, imageData):
+    with openDatabase() as connection:
+        cursor = connection.execute("""UPDATE users SET avatarImage = ?, avatarPath = ''
+            WHERE userId = ? AND isBlocked = 0""", (imageData, userId))
+        return cursor.rowcount > 0
+
+
+def getProjectStepPhoto(projectId, stepId, userId):
+    with openDatabase() as connection:
+        row = connection.execute("""SELECT s.photoImage FROM projectSteps AS s
+            JOIN projects AS p ON p.projectId = s.projectId
+            WHERE s.projectId = ? AND s.stepId = ? AND p.userId = ?""", (projectId, stepId, userId)).fetchone()
+        return bytes(row['photoImage']) if row and row['photoImage'] else None
+
+
+def setProjectStepPhoto(projectId, stepId, userId, imageData):
+    with openDatabase() as connection:
+        cursor = connection.execute("""UPDATE projectSteps SET photoImage = ?
+            WHERE projectId = ? AND stepId = ?
+            AND projectId IN (SELECT projectId FROM projects WHERE userId = ?)
+            AND (? IS NOT NULL OR isCompleted = 0)""", (imageData, projectId, stepId, userId, imageData))
         return cursor.rowcount > 0

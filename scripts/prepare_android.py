@@ -14,7 +14,7 @@ MODULES = (
     'account_gateway', 'account_security', 'api_client', 'app_paths', 'app_state',
     'auth_service', 'color_export', 'color_service', 'database', 'date_field',
     'download_service', 'lesson_service', 'mail_service', 'password_service',
-    'photo_service', 'photo_upload', 'post_service', 'profile_service',
+    'photo_service', 'photo_upload', 'photo_picker', 'post_service', 'profile_service',
     'project_service', 'remote_account_cache', 'ui_helpers', 'validators',
 )
 VIEWS = ('auth_view', 'home_view', 'community_tab', 'profile_tab', 'splash_view', 'onboarding_view')

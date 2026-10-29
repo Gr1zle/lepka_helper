@@ -9,6 +9,7 @@ import time
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -189,6 +190,21 @@ def createApp(dataDirectory=None):
     @application.put('/profile')
     def saveProfile(body: ProfileInput, user=Depends(currentUser)):
         return resultResponse(profiles.saveUserProfile(user['userId'], **body.model_dump()))
+
+    @application.put('/profile/avatar')
+    async def avatar(request: Request, user=Depends(currentUser)):
+        # Клиент отправляет уже уменьшенный PNG; владелец берётся только из токена.
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 2 * 1024 * 1024:
+                raise HTTPException(413, 'Аватар после обработки должен быть не больше 2 МБ')
+            body.extend(chunk)
+        result = await run_in_threadpool(profiles.saveUserAvatar, user['userId'], bytes(body))
+        return resultResponse(result)
+
+    @application.delete('/profile/avatar')
+    def deleteAvatar(user=Depends(currentUser)):
+        return resultResponse(profiles.removeUserAvatar(user['userId']))
 
     @application.put('/profile/settings')
     def settings(body: SettingsInput, user=Depends(currentUser)):

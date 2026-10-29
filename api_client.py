@@ -36,13 +36,17 @@ def getApiUrl():
     return address.rstrip('/')
 
 
-def apiRequest(method, path, payload=None, sessionToken=None):
+def apiRequest(method, path, payload=None, sessionToken=None, imageData=None):
     baseUrl = getApiUrl()
     if not baseUrl:
         raise ApiError('Адрес сервера не задан')
     headers = {'Authorization': f'Bearer {sessionToken}'} if sessionToken else {}
+    body = {'json': payload}
+    if imageData is not None:
+        headers['Content-Type'] = 'image/png'
+        body = {'data': imageData}
     try:
-        response = requests.request(method, baseUrl + path, json=payload, headers=headers,
+        response = requests.request(method, baseUrl + path, **body, headers=headers,
                                     timeout=(5, 20), allow_redirects=False)
     except requests.RequestException as error:
         raise ApiError('Сервер недоступен. Повторите позже') from error

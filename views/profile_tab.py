@@ -3,14 +3,15 @@ import flet as ft
 from api_client import getApiUrl
 
 from account_gateway import (deleteUserAccount, requestEmailChange, confirmEmailChange,
-                             getUserProfile, saveUserProfile, saveUserSettings, changeUserPassword)
+                             getUserProfile, saveUserProfile, saveUserSettings, changeUserPassword, saveUserAvatar, removeUserAvatar)
+from photo_picker import createPhotoPicker
 from post_service import getCommunityPosts
 from views.community_tab import createMyWorksButton
 from project_service import getUserProjects
 from profile_service import (
     AGE_CATEGORIES, FAVORITE_COLOR_OPTIONS, LANGUAGE_OPTIONS, THEME_OPTIONS,
 )
-from ui_helpers import authenticatedAction, getCurrentUser, logoutPage, serverAction, showMessage as showPageMessage
+from ui_helpers import authenticatedAction, getCurrentUser, logoutPage, serverAction, isWebClient, showMessage as showPageMessage
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -82,7 +83,8 @@ def createProfileTab(page, nickname, email):
             "avatarPath": "",
         }
 
-    selectedAvatarPath = profileData.get("avatarPath", "") or ""
+    legacyAvatarPath = profileData.get("avatarPath", "") or ""
+    avatarImage = profileData.get("avatarImage", "") or ""
 
     userPostsCount = 0
     userLikesCount = 0
@@ -207,8 +209,8 @@ def createProfileTab(page, nickname, email):
 
     headerAvatarControl = ft.CircleAvatar(
         radius=42,
-        foreground_image_src=selectedAvatarPath if selectedAvatarPath else None,
-        content=None if selectedAvatarPath else ft.Text(
+        foreground_image_src=None,
+        content=ft.Text(
             profileData["nickname"][:1].upper(),
             size=30,
             weight=ft.FontWeight.BOLD,
@@ -219,8 +221,8 @@ def createProfileTab(page, nickname, email):
 
     editAvatarControl = ft.CircleAvatar(
         radius=42,
-        foreground_image_src=selectedAvatarPath if selectedAvatarPath else None,
-        content=None if selectedAvatarPath else ft.Text(
+        foreground_image_src=None,
+        content=ft.Text(
             profileData["nickname"][:1].upper(),
             size=30,
             weight=ft.FontWeight.BOLD,
@@ -229,56 +231,37 @@ def createProfileTab(page, nickname, email):
         color=ft.Colors.WHITE,
     )
 
-    avatarHintText = ft.Text(
-        "Аватар выбран" if selectedAvatarPath else "Аватар не выбран",
-        size=12,
-        color=ft.Colors.GREY_600,
-    )
-
-    avatarPicker = ft.FilePicker()
+    avatarHintText = ft.Text('Фото сохраняется сразу. Обрезка до круга — по центру, 512 × 512.', size=12)
 
     def refreshAvatar():
-        avatarLetter = nicknameField.value[:1].upper() if nicknameField.value else "?"
+        letter = nicknameField.value[:1].upper() if nicknameField.value else '?'
+        legacy = legacyAvatarPath if not isWebClient(page) and not getApiUrl() else None
+        for control in (headerAvatarControl, editAvatarControl):
+            control.foreground_image_src = legacy if not avatarImage else None
+            control.content = (ft.Image(src_base64=avatarImage, width=84, height=84, fit=ft.ImageFit.CONTAIN)
+                               if avatarImage else (None if legacy else ft.Text(letter, size=30)))
 
-        for avatarControl in [headerAvatarControl, editAvatarControl]:
-            avatarControl.foreground_image_src = selectedAvatarPath if selectedAvatarPath else None
-            avatarControl.content = None if selectedAvatarPath else ft.Text(
-                avatarLetter,
-                size=30,
-                weight=ft.FontWeight.BOLD,
-            )
-        avatarHintText.value = "Аватар выбран" if selectedAvatarPath else "Аватар не выбран"
+    def avatarSelected(photo):
+        nonlocal avatarImage, legacyAvatarPath
+        success, message, updated = saveUserAvatar(currentUser['userId'], photo, currentUser.get('sessionToken'))
+        if success:
+            avatarImage = updated['avatarImage']
+            legacyAvatarPath = ''
+            refreshAvatar()
+        return success, message
+
+    @authenticatedAction(page, currentUser)
+    def handleRemoveAvatar(event):
+        nonlocal avatarImage, legacyAvatarPath
+        success, message, _ = removeUserAvatar(currentUser['userId'], currentUser.get('sessionToken'))
+        if success:
+            avatarImage, legacyAvatarPath = '', ''
+            refreshAvatar()
+        showMessage(message, not success)
         page.update()
 
-    def handleAvatarPicked(event):
-        nonlocal selectedAvatarPath
-
-        if event.files is None or len(event.files) == 0:
-            return
-
-        selectedFile = event.files[0]
-        selectedAvatarPath = selectedFile.path or selectedFile.name or ""
-        refreshAvatar()
-
-    def handlePickAvatar(event):
-        if getApiUrl():
-            showMessage("Загрузка аватара на сервер пока недоступна", True)
-            return
-        avatarPicker.pick_files(
-            allow_multiple=False,
-            allowed_extensions=["jpg", "jpeg", "png", "webp"],
-            dialog_title="Выберите аватар",
-        )
-
-    def handleRemoveAvatar(event):
-        nonlocal selectedAvatarPath
-        selectedAvatarPath = ""
-        refreshAvatar()
-
-    avatarPicker.on_result = handleAvatarPicked
-    # Повторное открытие вкладки не должно накапливать выборщики файлов.
-    page.overlay[:] = [control for control in page.overlay if not isinstance(control, ft.FilePicker)]
-    page.overlay.append(avatarPicker)
+    avatarPickerControl = createPhotoPicker(page, currentUser, avatarSelected, 'Выбрать аватар')
+    refreshAvatar()
 
     def showMessage(messageText, isError=False):
         showPageMessage(page, messageText, isError)
@@ -305,7 +288,7 @@ def createProfileTab(page, nickname, email):
             bioField.value,
             ageDropdown.value,
             selectedFavoriteColors,
-            selectedAvatarPath,
+            '' if getApiUrl() else legacyAvatarPath,
             sessionToken=currentUser.get("sessionToken"),
         )
 
@@ -545,22 +528,9 @@ def createProfileTab(page, nickname, email):
                                         expand=True,
                                         controls=[
                                             avatarHintText,
-                                            ft.Row(
-                                                controls=[
-                                                    ft.OutlinedButton(
-                                                        text="Выбрать фото",
-                                                        icon=ft.Icons.PHOTO_CAMERA,
-                                                        on_click=handlePickAvatar,
-                                                    ),
-                                                    ft.OutlinedButton(
-                                                        text="Убрать",
-                                                        icon=ft.Icons.DELETE_OUTLINE,
-                                                        on_click=handleRemoveAvatar,
-                                                    ),
-                                                ],
-                                                wrap=True,
-                                                spacing=8,
-                                            ),
+                                            avatarPickerControl,
+                                            ft.OutlinedButton('Убрать аватар', icon=ft.Icons.DELETE_OUTLINE,
+                                                              on_click=handleRemoveAvatar),
                                         ],
                                         spacing=8,
                                     ),

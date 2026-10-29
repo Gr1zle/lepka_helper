@@ -3,6 +3,7 @@ from validators import validatePassword
 import json
 import sqlite3
 import time
+import base64
 
 from account_security import revokeUserSessions
 from database import openDatabase
@@ -12,7 +13,9 @@ from database import (
     getUserProfileById,
     updateUserProfile,
     updateUserSettings,
+    setUserAvatar,
 )
+from photo_service import prepareAvatar
 from validators import validateNickname
 
 
@@ -80,7 +83,25 @@ def getUserProfile(userId):
         "languageCode": userRecord["languageCode"] or "ru",
         "notificationsEnabled": bool(userRecord["notificationsEnabled"]),
         "avatarPath": userRecord["avatarPath"] or "",
+        "avatarImage": base64.b64encode(userRecord['avatarImage']).decode('ascii')
+                       if isinstance(userRecord['avatarImage'], bytes) else '',
     }
+
+
+def saveUserAvatar(userId, imageData):
+    try:
+        normalized = prepareAvatar('avatar.png', imageData)
+    except ValueError as error:
+        return False, str(error), None
+    if not setUserAvatar(userId, normalized):
+        return False, 'Аккаунт недоступен', None
+    return True, 'Аватар сохранён', getUserProfile(userId)
+
+
+def removeUserAvatar(userId):
+    if not setUserAvatar(userId, None):
+        return False, 'Аккаунт недоступен', None
+    return True, 'Аватар удалён', getUserProfile(userId)
 
 
 def saveUserProfile(userId, nickname, bioText, ageCategory, favoriteColors, avatarPath=""):

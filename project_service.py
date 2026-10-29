@@ -14,7 +14,9 @@ from database import (
     getProjectsByUserId,
     updateProjectProgress,
     updateProjectStepStatus,
+    getProjectStepPhoto, setProjectStepPhoto,
 )
+from photo_service import preparePhoto
 
 
 # userId в операциях передаётся из текущей сессии пользователя,
@@ -137,6 +139,7 @@ def getProjectSteps(projectId, userId):
                 "projectId": stepRecord["projectId"],
                 "stepDescription": stepRecord["stepDescription"],
                 "isCompleted": bool(stepRecord["isCompleted"]),
+                "hasPhoto": bool(stepRecord['hasPhoto']),
                 "createdAt": stepRecord["createdAt"],
             }
         )
@@ -219,11 +222,32 @@ def saveProjectStep(projectId, stepDescription, userId):
 
 
 def changeProjectStepStatus(projectId, stepId, isCompleted, userId):
+    step = next((item for item in getProjectSteps(projectId, userId) if item['stepId'] == stepId), None)
+    if step and isCompleted is True and not step['hasPhoto'] and not step['isCompleted']:
+        raise ValueError('Перед завершением этапа добавьте фото результата')
     if not updateProjectStepStatus(projectId, stepId, isCompleted, userId):
         return None
     progressPercent = refreshProjectProgress(projectId, userId)
 
     return progressPercent
+
+
+def saveProjectStepPhoto(projectId, stepId, userId, photo):
+    if not isinstance(photo, dict):
+        return False, 'Выберите фотографию'
+    try:
+        data = preparePhoto(photo.get('name'), photo.get('data'))['data']
+    except ValueError as error:
+        return False, str(error)
+    if not setProjectStepPhoto(projectId, stepId, userId, data):
+        return False, 'Этап не найден или недоступен'
+    return True, 'Фото этапа сохранено'
+
+
+def removeProjectStepPhoto(projectId, stepId, userId):
+    if not setProjectStepPhoto(projectId, stepId, userId, None):
+        return False, 'Этап недоступен или уже завершён. Сначала снимите отметку выполнения'
+    return True, 'Фото этапа удалено'
 
 
 def removeProjectStep(projectId, stepId, userId):

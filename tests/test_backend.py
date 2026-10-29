@@ -67,6 +67,52 @@ class BackendTests(unittest.TestCase):
         otherToken = self.login('other@example.com')
         self.assertEqual(self.client.get('/profile', headers=self.headers(otherToken)).json()['data']['nickname'], 'other')
 
+    def test_avatar_upload_is_authenticated_and_owner_is_from_token(self):
+        import base64
+        from io import BytesIO
+        from PIL import Image
+        from image_fixtures import photo
+        from photo_service import prepareAvatar
+        source = photo()
+        image = prepareAvatar(source['name'], source['data'])
+        self.assertEqual(self.client.put('/profile/avatar', content=image).status_code, 401)
+        token = self.login()
+        response = self.client.put('/profile/avatar?userId=' + str(self.otherId),
+                                   headers=self.headers(token), content=image)
+        self.assertEqual(response.status_code, 200)
+        value = response.json()['data']['avatarImage']
+        with Image.open(BytesIO(base64.b64decode(value))) as saved:
+            self.assertEqual(saved.size, (512, 512))
+        other = self.login('other@example.com')
+        self.assertEqual(self.client.get('/profile', headers=self.headers(other)).json()['data']['avatarImage'], '')
+        self.assertEqual(self.client.get('/profile', headers=self.headers(token)).json()['data']['avatarImage'], value)
+
+    def test_invalid_and_oversized_avatar_do_not_change_existing_image(self):
+        from image_fixtures import photo
+        from photo_service import prepareAvatar
+        source = photo()
+        token = self.login()
+        headers = self.headers(token)
+        response = self.client.put('/profile/avatar', headers=headers,
+                                   content=prepareAvatar(source['name'], source['data']))
+        old = response.json()['data']['avatarImage']
+        self.assertEqual(self.client.put('/profile/avatar', headers=headers, content=b'bad').status_code, 400)
+        self.assertEqual(self.client.put('/profile/avatar', headers=headers, content=b'x' * (2 * 1024 * 1024 + 1)).status_code, 413)
+        self.assertEqual(self.client.get('/profile', headers=headers).json()['data']['avatarImage'], old)
+
+    def test_avatar_delete_keeps_other_profile_fields_and_requires_active_session(self):
+        from image_fixtures import photo
+        from photo_service import prepareAvatar
+        source = photo()
+        token = self.login()
+        headers = self.headers(token)
+        self.client.put('/profile/avatar', headers=headers, content=prepareAvatar(source['name'], source['data']))
+        self.assertEqual(self.client.delete('/profile/avatar').status_code, 401)
+        self.assertEqual(self.client.delete('/profile/avatar', headers=headers).json()['data']['avatarImage'], '')
+        self.assertEqual(self.client.get('/profile', headers=headers).json()['data']['nickname'], 'owner')
+        self.client.post('/auth/logout', headers=headers)
+        self.assertEqual(self.client.put('/profile/avatar', headers=headers, content=prepareAvatar(source['name'], source['data'])).status_code, 401)
+
     def test_settings_saved_and_role_escalation_rejected(self):
         token = self.login()
         body = {'themeMode': 'dark', 'languageCode': 'ru', 'notificationsEnabled': False}

@@ -36,6 +36,9 @@ def photo():
 
 class CommunityTests(unittest.TestCase):
     def setUp(self):
+        modePatch = patch('account_gateway.getApiUrl', return_value='')
+        modePatch.start()
+        self.addCleanup(modePatch.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.pathPatch = patch.object(db, 'DATABASE_PATH', Path(self.temp.name) / 'test.db')
@@ -239,6 +242,10 @@ class PhotoTests(unittest.TestCase):
 
 class CommunityUiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        for target in ('account_gateway.getApiUrl', 'views.profile_tab.getApiUrl'):
+            modePatch = patch(target, return_value='')
+            modePatch.start()
+            self.addCleanup(modePatch.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         patcher = patch.object(db, 'DATABASE_PATH', Path(self.temp.name) / 'ui.db')

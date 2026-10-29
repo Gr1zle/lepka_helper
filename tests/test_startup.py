@@ -24,6 +24,7 @@ from main import main
 from views.auth_view import createAuthView
 from views.home_view import createHomeView, createProjectsTab
 import project_service as projects
+from image_fixtures import photo
 from views.onboarding_view import createOnboardingView
 from views.splash_view import createSplashView
 
@@ -59,9 +60,11 @@ def find(root, cls, **attrs):
 
 class StartupTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        modePatch = patch('account_gateway.getApiUrl', return_value='')
-        modePatch.start()
-        self.addCleanup(modePatch.stop)
+        for target in ('account_gateway.getApiUrl', 'main.getApiUrl',
+                       'views.auth_view.getApiUrl', 'views.profile_tab.getApiUrl'):
+            modePatch = patch(target, return_value='')
+            modePatch.start()
+            self.addCleanup(modePatch.stop)
         self.temp = tempfile.TemporaryDirectory()
         folder = Path(self.temp.name)
         self.db_patch = patch.object(database, 'DATABASE_PATH', folder/'test.db')
@@ -123,6 +126,8 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         find(view, ft.TextField, label='Новый этап').value = 'Слепить основу'
         find(view, ft.IconButton, icon=ft.Icons.ADD_CIRCLE).on_click(None)
         self.assertEqual(len(projects.getProjectSteps(projectId, userId)), 1)
+        step = projects.getProjectSteps(projectId, userId)[0]
+        projects.saveProjectStepPhoto(projectId, step['stepId'], userId, photo())
         checkbox = find(view, ft.Checkbox)
         checkbox.value = True
         checkbox.on_change(SimpleNamespace(control=checkbox))

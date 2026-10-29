@@ -11,6 +11,7 @@ import profile_service as localProfiles
 from api_client import ApiError, apiRequest, getApiUrl
 from database import deleteUserDataById
 from remote_account_cache import cacheRemoteUser, forgetRemoteSession, requireCachedUser
+from photo_service import prepareAvatar
 
 
 def pairRequest(method, path, payload, sessionToken=None):
@@ -109,6 +110,31 @@ def getUserProfile(userId, sessionToken=None):
     requireCachedUser(userId, sessionToken)
     data = apiRequest('GET', '/profile', sessionToken=sessionToken)['data']
     return cacheRemoteUser(data, sessionToken)
+
+
+def saveUserAvatar(userId, photo, sessionToken=None):
+    if not isinstance(photo, dict):
+        return False, 'Выберите фотографию', None
+    try:
+        image = prepareAvatar(photo.get('name'), photo.get('data'))
+    except ValueError as error:
+        return False, str(error), None
+    if not getApiUrl():
+        return localProfiles.saveUserAvatar(userId, image)
+    try:
+        requireCachedUser(userId, sessionToken)
+        response = apiRequest('PUT', '/profile/avatar', sessionToken=sessionToken, imageData=image)
+        return True, response.get('message', 'Аватар сохранён'), cacheRemoteUser(response['data'], sessionToken)
+    except ApiError as error:
+        if error.statusCode == 401:
+            raise
+        return False, str(error), None
+
+
+def removeUserAvatar(userId, sessionToken=None):
+    if not getApiUrl():
+        return localProfiles.removeUserAvatar(userId)
+    return profileRequest(userId, 'DELETE', '/profile/avatar', None, sessionToken)
 
 
 def profileRequest(userId, method, path, payload, sessionToken):

@@ -22,11 +22,13 @@ from lesson_service import (SEARCH_CATEGORIES, IDEA_THEMES, IDEA_LEVELS, IDEA_PA
 from color_export import createRecipePng
 from download_service import createDownload
 from date_field import createDeadlineField
+from photo_picker import createPhotoPicker
 from views.community_tab import createHomeTab, createPostCard
 
 from project_service import (
     PROJECT_CATEGORIES, changeProjectStepStatus, getUserProjects,
-    removeProject, removeProjectStep, saveProject, saveProjectStep, editProject, editProjectStep
+    removeProject, removeProjectStep, saveProject, saveProjectStep, editProject, editProjectStep,
+    getProjectStepPhoto, saveProjectStepPhoto, removeProjectStepPhoto,
 )
 from views.profile_tab import createProfileTab
 
@@ -1544,12 +1546,14 @@ def createProjectsTab(page, currentUser):
                 for stepItem in projectItem["stepItems"]:
                     @authenticatedAction(page, currentUser)
                     def handleStepChange(event, currentProjectId=projectItem["projectId"], currentStepId=stepItem["stepId"]):
-                        progress = changeProjectStepStatus(
-                            currentProjectId,
-                            currentStepId,
-                            event.control.value,
-                            currentUser["userId"],
-                        )
+                        try:
+                            progress = changeProjectStepStatus(currentProjectId, currentStepId,
+                                                               event.control.value, currentUser['userId'])
+                        except ValueError as error:
+                            showMessage(str(error), True)
+                            refreshProjectList()
+                            page.update()
+                            return
                         if progress is None:
                             showMessage("Этап не найден или недоступен", True)
                         refreshProjectList()
@@ -1605,6 +1609,34 @@ def createProjectsTab(page, currentUser):
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         )
                     )
+
+                    def photoSelected(photo, projectId=projectItem['projectId'], stepId=stepItem['stepId']):
+                        success, message = saveProjectStepPhoto(projectId, stepId, currentUser['userId'], photo)
+                        if success:
+                            refreshProjectList()
+                        return success, message
+
+                    @authenticatedAction(page, currentUser)
+                    def deletePhoto(event, projectId=projectItem['projectId'], stepId=stepItem['stepId']):
+                        success, message = removeProjectStepPhoto(projectId, stepId, currentUser['userId'])
+                        if success:
+                            refreshProjectList()
+                        showMessage(message, not success)
+                        page.update()
+
+                    if stepItem['hasPhoto']:
+                        data = getProjectStepPhoto(projectItem['projectId'], stepItem['stepId'], currentUser['userId'])
+                        if data:
+                            stepControls.append(ft.Image(src_base64=base64.b64encode(data).decode(),
+                                                         height=150, fit=ft.ImageFit.CONTAIN))
+                        stepControls.append(ft.TextButton('Убрать фото этапа', on_click=deletePhoto))
+                    else:
+                        hint = ('Старый завершённый этап: добавьте фото' if stepItem['isCompleted']
+                                else 'Добавьте фото перед завершением этапа')
+                        stepControls.append(ft.Text(hint, size=12))
+                    stepControls.append(createPhotoPicker(page, currentUser, photoSelected,
+                        'Заменить фото этапа' if stepItem['hasPhoto'] else 'Добавить фото этапа'))
+                    stepControls.append(ft.Divider())
 
             @authenticatedAction(page, currentUser)
             def handleAddStep(event, currentProjectId=projectItem["projectId"], fieldControl=newStepField):
