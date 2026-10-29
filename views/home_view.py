@@ -24,6 +24,8 @@ from download_service import createDownload
 from date_field import createDeadlineField
 from photo_picker import createPhotoPicker
 from views.community_tab import createHomeTab, createPostCard
+from views.project_sharing import createProjectSharing
+from post_service import getCommunityPosts
 
 from project_service import (
     PROJECT_CATEGORIES, changeProjectStepStatus, getUserProjects,
@@ -52,7 +54,7 @@ def createSearchTab(page, currentUser):
     lessonState = {"value": None}
 
     searchField = ft.TextField(
-        label="Поиск уроков",
+        label="Поиск уроков и работ",
         hint_text="Например: котик, еда, дракон",
         prefix_icon=ft.Icons.SEARCH,
         border_radius=12,
@@ -421,21 +423,23 @@ def createSearchTab(page, currentUser):
         lessonItems = searchLessons(searchField.value or '', categoryDropdown.value, levelDropdown.value,
                                     None if timeDropdown.value == 'Любое' else timeDropdown.value, videoCheckbox.value)
 
-        if len(lessonItems) == 0:
-            resultColumn.controls.append(
-                ft.Container(
-                    padding=16,
-                    border_radius=12,
-                    bgcolor="#F5F5F5",
-                    content=ft.Text(
-                        "Ничего не найдено. Попробуйте изменить запрос или категорию.",
-                        color=ft.Colors.GREY_700,
-                    ),
-                )
-            )
-        else:
-            for lessonItem in lessonItems:
-                resultColumn.controls.append(createLessonCard(lessonItem))
+        for lessonItem in lessonItems:
+            resultColumn.controls.append(createLessonCard(lessonItem))
+
+        # Настройки сложности, времени и видео относятся к урокам.
+        # Работы показываем отдельно, когда эти фильтры не ограничивают поиск.
+        queryText = (searchField.value or '').strip().casefold()
+        if (levelDropdown.value == 'Все' and timeDropdown.value == 'Любое' and not videoCheckbox.value
+                and (not queryText or len(queryText) >= 2)):
+            works = [item for item in getCommunityPosts() if not item['isDeleted']
+                and (categoryDropdown.value == 'Все' or item['categoryName'] == categoryDropdown.value)
+                and (not queryText or queryText in ' '.join(str(item[key]) for key in
+                    ('titleText', 'descriptionText', 'tagsText', 'nickname')).casefold())]
+            if works:
+                resultColumn.controls.append(ft.Text('Работы сообщества', size=18, weight=ft.FontWeight.BOLD))
+                resultColumn.controls.extend(createPostCard(page, item, currentUser, refreshSearchResults) for item in works)
+        if not resultColumn.controls:
+            resultColumn.controls.append(ft.Text('Ничего не найдено. Попробуйте изменить запрос или фильтры.'))
 
     def handleSearchChange(event):
         refreshSearchResults()
@@ -1741,6 +1745,7 @@ def createProjectsTab(page, currentUser):
                                     size=12,
                                     color=ft.Colors.GREY_600,
                                 ),
+                                createProjectSharing(page, currentUser, projectItem, refreshProjectList),
                                 stepsBlock,
                             ],
                             spacing=8,

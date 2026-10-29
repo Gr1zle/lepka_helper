@@ -198,6 +198,12 @@ def initializeDatabase():
 
     addColumnIfNotExists(cursor, 'projectSteps', 'photoImage', 'photoImage BLOB')
 
+    # Копия рецепта: удаление смеси из палитры не меняет материалы проекта.
+    cursor.execute("""CREATE TABLE IF NOT EXISTS projectMixtures (
+        projectMixtureId INTEGER PRIMARY KEY AUTOINCREMENT, projectId INTEGER NOT NULL,
+        mixtureJson TEXT NOT NULL, FOREIGN KEY (projectId) REFERENCES projects(projectId)
+    )""")
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS posts (
@@ -215,6 +221,7 @@ def initializeDatabase():
     )
 
     addColumnIfNotExists(cursor, 'posts', 'isDeleted', 'isDeleted INTEGER NOT NULL DEFAULT 0')
+    addColumnIfNotExists(cursor, 'posts', 'projectDetailsJson', "projectDetailsJson TEXT NOT NULL DEFAULT ''")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS postPhotos (
         photoId INTEGER PRIMARY KEY AUTOINCREMENT, postId INTEGER NOT NULL,
@@ -450,6 +457,8 @@ def deleteProjectById(projectId, userId):
         # Одна транзакция: либо удаляются и этапы, и проект, либо ничего.
         # Работает и с существующей базой без изменения её схемы.
         with connection:
+            connection.execute('''DELETE FROM projectMixtures WHERE projectId IN
+                (SELECT projectId FROM projects WHERE projectId = ? AND userId = ?)''', (projectId, userId))
             connection.execute(
                 """DELETE FROM projectSteps
                 WHERE projectId IN (
@@ -896,7 +905,8 @@ def deleteUserDataById(userId, existingConnection=None):
                 deletedAuthorId = deletedAuthor['userId']
             connection.execute(
                 """UPDATE posts SET userId = ?, titleText = 'Работа удалена пользователем',
-                descriptionText = 'Работа удалена пользователем', tagsText = '', likesCount = 0, isDeleted = 1
+                descriptionText = 'Работа удалена пользователем', tagsText = '', likesCount = 0,
+                isDeleted = 1, projectDetailsJson = ''
                 WHERE userId = ?""", (deletedAuthorId, userId)
             )
             for postRecord in ownedPosts:
@@ -904,6 +914,7 @@ def deleteUserDataById(userId, existingConnection=None):
                 connection.execute('DELETE FROM postPhotos WHERE postId = ?', (postRecord['postId'],))
         connection.execute("""UPDATE posts SET likesCount = (
             SELECT COUNT(*) FROM postLikes WHERE postLikes.postId = posts.postId)""")
+        connection.execute('DELETE FROM projectMixtures WHERE projectId IN (SELECT projectId FROM projects WHERE userId = ?)', (userId,))
         connection.execute('DELETE FROM projectSteps WHERE projectId IN (SELECT projectId FROM projects WHERE userId = ?)', (userId,))
         connection.execute('DELETE FROM projects WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM colorMixtures WHERE userId = ?', (userId,))
@@ -995,11 +1006,14 @@ def updateProjectStepDescription(projectId, stepId, userId, description):
         return cursor.rowcount > 0
 
 
-def createPostWithPhotos(userId, titleText, descriptionText, categoryName, tagsText, photos):
-    with openDatabase() as connection:
-        cursor = connection.execute("""INSERT INTO posts (userId, titleText, descriptionText, categoryName, tagsText)
-            SELECT userId, ?, ?, ?, ? FROM users WHERE userId = ? AND isBlocked = 0""",
-            (titleText, descriptionText, categoryName, tagsText, userId))
+def createPostWithPhotos(userId, titleText, descriptionText, categoryName, tagsText, photos,
+                         projectDetailsJson='', existingConnection=None):
+    context = openDatabase() if existingConnection is None else nullcontext(existingConnection)
+    with context as connection:
+        cursor = connection.execute("""INSERT INTO posts
+            (userId, titleText, descriptionText, categoryName, tagsText, projectDetailsJson)
+            SELECT userId, ?, ?, ?, ?, ? FROM users WHERE userId = ? AND isBlocked = 0""",
+            (titleText, descriptionText, categoryName, tagsText, projectDetailsJson, userId))
         if not cursor.rowcount:
             return None
         postId = cursor.lastrowid

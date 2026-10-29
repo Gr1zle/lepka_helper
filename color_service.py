@@ -165,8 +165,9 @@ def calculateRecipe(selectedColors, totalWeight):
             for item, grams in zip(colors, gramUnits)]
 
 
-def saveColorMixture(userId, mixtureName, resultHex, totalWeight, recipeItems):
-    name = (mixtureName or '').strip()
+def normalizeMixture(mixtureName, resultHex, totalWeight, recipeItems):
+    """Одна проверка для палитры, смеси проекта и опубликованного рецепта."""
+    name = mixtureName.strip() if isinstance(mixtureName, str) else ''
     if not 3 <= len(name) <= 80:
         raise ValueError("Название смеси должно содержать от 3 до 80 символов")
     if not isinstance(recipeItems, list):
@@ -187,7 +188,13 @@ def saveColorMixture(userId, mixtureName, resultHex, totalWeight, recipeItems):
             raise ValueError("Некорректная масса компонентов") from None
         if not math.isfinite(grams) or not math.isclose(grams, expected['grams'], abs_tol=0.005):
             raise ValueError("Масса компонентов не соответствует рецепту")
-    return createColorMixture(userId, name, mixed, weight, json.dumps(recipe, ensure_ascii=False))
+    return {'mixtureName': name, 'resultHex': mixed, 'totalWeight': weight, 'recipeItems': recipe}
+
+
+def saveColorMixture(userId, mixtureName, resultHex, totalWeight, recipeItems):
+    mixture = normalizeMixture(mixtureName, resultHex, totalWeight, recipeItems)
+    return createColorMixture(userId, mixture['mixtureName'], mixture['resultHex'],
+                              mixture['totalWeight'], json.dumps(mixture['recipeItems'], ensure_ascii=False))
 
 
 def deleteColorMixture(userId, mixtureId):

@@ -12,6 +12,7 @@ from post_service import (POST_CATEGORIES, getCommunityPosts, getUserPosts, getP
                           checkPostLikedByUser, removePost, removePostComment, editPostComment,
                           savePost, savePostComment, togglePostLike)
 from ui_helpers import authenticatedAction, isWebClient, showMessage
+from views.project_sharing import createPublishedProject
 
 PRIMARY_COLOR = '#FF6B6B'
 SECONDARY_COLOR = '#4ECDC4'
@@ -139,6 +140,8 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
                 ft.Text(postItem['descriptionText'])]
     if postItem['tagsText']:
         controls.append(ft.Text('Теги: ' + postItem['tagsText'], size=12))
+    if not deleted:
+        controls.append(createPublishedProject(page, postId, currentUser))
     if not deleted:
         liked = currentUser and checkPostLikedByUser(postId, currentUser['userId'])
         actions = [ft.TextButton(f"{'❤️' if liked else '🤍'} {postItem['likesCount']}",
