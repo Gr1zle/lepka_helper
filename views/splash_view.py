@@ -1,9 +1,10 @@
 import asyncio
 import flet as ft
 from app_state import getAppState
+from ui_helpers import getCurrentUser, showMessage
+from api_client import ApiError
+from app_info import APP_TITLE, APP_VERSION
 
-APP_TITLE = "Lepka Helper"
-APP_VERSION = "Версия 1.0.2"
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
 
@@ -17,7 +18,12 @@ def createSplashView(page):
         if page.route != "/":
             return
 
-        currentUser = page.session.get("currentUser")
+        try:
+            currentUser = getCurrentUser(page)
+        except ApiError as error:
+            page.go('/auth')
+            showMessage(page, str(error), True)
+            return
         if currentUser is not None:
             page.go("/home")
             return
@@ -93,7 +99,7 @@ def createSplashView(page):
                                 alignment=ft.alignment.bottom_center,
                                 padding=ft.padding.only(bottom=22),
                                 content=ft.Text(
-                                    APP_VERSION,
+                                    'Версия ' + APP_VERSION,
                                     size=12,
                                     color=ft.Colors.GREY_600,
                                     text_align=ft.TextAlign.CENTER,

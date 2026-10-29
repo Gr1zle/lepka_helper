@@ -9,3 +9,7 @@ app_state.json
 exports/
 build/
 dist/
+.env
+.env.*
+!.env.example
+server-data/

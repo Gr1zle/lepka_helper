@@ -1,6 +1,9 @@
+from ui_helpers import authenticatedAction, getCurrentUser, isWebClient, serverAction, confirmAction, createLoadError, showMessage as showPageMessage
+from api_client import ApiError
 import base64
 import colorsys
 import math
+from urllib.parse import urlsplit
 import struct
 import threading
 import zlib
@@ -10,25 +13,27 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from auth_service import deleteUserAccount
 from color_service import (
     BASE_COLORS, calculateMixedColor, calculateRecipe,
     findClosestRecipeForTargetColor, getUserColorMixtures,
-    saveColorMixture, validateHexColor, deleteColorMixture
+    saveColorMixture, validateHexColor, deleteColorMixture, normalizeWeight, normalizeSelectedColors, normalizeProportion
 )
-from lesson_service import SEARCH_CATEGORIES, generateRandomIdea, getLessonById, searchLessons
-from post_service import (
-    POST_CATEGORIES, getCommunityPosts, getPostComments, checkPostLikedByUser,
-    removePost, removePostComment, savePost, savePostComment, togglePostLike
-)
+from lesson_service import (SEARCH_CATEGORIES, IDEA_THEMES, IDEA_LEVELS, IDEA_PALETTES,
+                            generateRandomIdea, getLessonById, searchLessons, getUserLessonState, saveUserLessonState)
+from color_export import createRecipePng
+from download_service import createDownload
+from date_field import createDeadlineField
+from photo_picker import createPhotoPicker
+from views.community_tab import createHomeTab, createPostCard
+from views.project_sharing import createProjectSharing
+from community_gateway import CommunityClient
+
 from project_service import (
     PROJECT_CATEGORIES, changeProjectStepStatus, getUserProjects,
-    removeProject, removeProjectStep, saveProject, saveProjectStep
+    removeProject, removeProjectStep, saveProject, saveProjectStep, editProject, editProjectStep,
+    getProjectStepPhoto, saveProjectStepPhoto, removeProjectStepPhoto,
 )
-from profile_service import (
-    AGE_CATEGORIES, FAVORITE_COLOR_OPTIONS, LANGUAGE_OPTIONS,
-    THEME_OPTIONS, getUserProfile, saveUserProfile, saveUserSettings, changeUserPassword
-)
+from views.profile_tab import createProfileTab
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -40,549 +45,6 @@ DARK_TEXT_COLOR = "#222222"
 def getPageBackgroundColor(page):
     return "#121212" if page.theme_mode == ft.ThemeMode.DARK else "#FFFFFF"
 
-def createInfoCard(iconName, titleText, descriptionText):
-    return ft.Card(
-        elevation=2,
-        content=ft.Container(
-            padding=16,
-            border_radius=12,
-            content=ft.Row(
-                controls=[
-                    ft.Container(
-                        width=52,
-                        height=52,
-                        border_radius=26,
-                        bgcolor="#FFF0F0",
-                        alignment=ft.alignment.center,
-                        content=ft.Icon(
-                            name=iconName,
-                            size=28,
-                            color=PRIMARY_COLOR,
-                        ),
-                    ),
-                    ft.Container(
-                        expand=True,
-                        content=ft.Column(
-                            controls=[
-                                ft.Text(
-                                    titleText,
-                                    size=17,
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-                                ft.Text(
-                                    descriptionText,
-                                    size=13,
-                                    color=ft.Colors.GREY_700,
-                                ),
-                            ],
-                            spacing=4,
-                        ),
-                    ),
-                ],
-                spacing=14,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-        ),
-    )
-
-def createPostCard(page, postItem, currentUser, refreshCallback):
-    canDelete = currentUser is not None and postItem["userId"] == currentUser["userId"]
-
-    commentsColumn = ft.Column(spacing=6)
-
-    commentField = ft.TextField(
-        label="Комментарий",
-        hint_text="Напишите комментарий...",
-        multiline=True,
-        min_lines=1,
-        max_lines=3,
-        border_radius=12,
-    )
-
-    def showMessage(messageText, isError=False):
-        snackBar = ft.SnackBar(
-            content=ft.Text(messageText),
-            bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
-        )
-        page.open(snackBar)
-
-    def refreshComments():
-        commentsColumn.controls.clear()
-
-        commentItems = getPostComments(postItem["postId"])
-
-        if len(commentItems) == 0:
-            commentsColumn.controls.append(
-                ft.Text(
-                    "Комментариев пока нет.",
-                    size=12,
-                    color=ft.Colors.GREY_600,
-                )
-            )
-            return
-
-        for commentItem in commentItems:
-            canDeleteComment = (
-                currentUser is not None
-                and commentItem["userId"] == currentUser["userId"]
-            )
-
-            commentControls = [
-                ft.CircleAvatar(
-                    radius=14,
-                    content=ft.Text(
-                        commentItem["nickname"][:1].upper(),
-                        size=11,
-                    ),
-                    bgcolor=SECONDARY_COLOR,
-                    color=ft.Colors.WHITE,
-                ),
-                ft.Column(
-                    expand=True,
-                    spacing=2,
-                    controls=[
-                        ft.Text(
-                            commentItem["nickname"],
-                            size=12,
-                            weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK,
-                        ),
-                        ft.Text(
-                            commentItem["commentText"],
-                            size=12,
-                            color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.GREY_700,
-                        ),
-                    ],
-                ),
-            ]
-
-            if canDeleteComment:
-                def handleDeleteComment(
-                    event,
-                    currentCommentId=commentItem["commentId"],
-                ):
-                    removePostComment(
-                        currentCommentId,
-                        currentUser["userId"],
-                    )
-                    refreshComments()
-                    showMessage("Комментарий удалён")
-                    page.update()
-
-                commentControls.append(
-                    ft.IconButton(
-                        icon=ft.Icons.DELETE,
-                        icon_size=18,
-                        icon_color=ft.Colors.RED_300,
-                        on_click=handleDeleteComment,
-                    )
-                )
-
-                commentBackgroundColor = "#2A2A2A" if page.theme_mode == ft.ThemeMode.DARK else "#F7F7F7"
-
-                commentsColumn.controls.append(
-                    ft.Container(
-                        padding=8,
-                        border_radius=12,
-                        bgcolor=commentBackgroundColor,
-                        content=ft.Row(
-                            controls=commentControls,
-                            spacing=8,
-                            vertical_alignment=ft.CrossAxisAlignment.START,
-                        ),
-                    )
-                )
-
-    def handleLike(event):
-        if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
-            return
-
-        isLiked, likesCount = togglePostLike(
-            postItem["postId"],
-            currentUser["userId"],
-        )
-
-        postItem["likesCount"] = likesCount
-
-        refreshCallback()
-
-        if isLiked:
-            showMessage("Лайк добавлен")
-        else:
-            showMessage("Лайк снят")
-
-        page.update()
-
-    def handleDelete(event):
-        removePost(postItem["postId"], currentUser["userId"])
-        refreshCallback()
-        showMessage("Публикация удалена")
-        page.update()
-
-    def handleAddComment(event):
-        if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
-            return
-
-        successStatus, messageText, commentId = savePostComment(
-            postItem["postId"],
-            currentUser["userId"],
-            commentField.value,
-        )
-
-        if not successStatus:
-            showMessage(messageText, True)
-            return
-
-        commentField.value = ""
-        refreshComments()
-        showMessage(messageText)
-        page.update()
-
-    controls = [
-        ft.Row(
-            controls=[
-                ft.CircleAvatar(
-                    content=ft.Text(postItem["nickname"][:1].upper()),
-                    bgcolor=SECONDARY_COLOR,
-                    color=ft.Colors.WHITE,
-                ),
-                ft.Column(
-                    expand=True,
-                    controls=[
-                        ft.Text(
-                            postItem["titleText"],
-                            size=17,
-                            weight=ft.FontWeight.BOLD,
-                        ),
-                        ft.Text(
-                            f"Автор: {postItem['nickname']} · {postItem['categoryName']}",
-                            size=12,
-                            color=ft.Colors.GREY_600,
-                        ),
-                    ],
-                    spacing=2,
-                ),
-            ],
-            spacing=10,
-        ),
-        ft.Container(
-            height=150,
-            border_radius=18,
-            bgcolor="#F5F5F5",
-            alignment=ft.alignment.center,
-            content=ft.Icon(
-                name=ft.Icons.IMAGE,
-                size=64,
-                color=ft.Colors.GREY_500,
-            ),
-        ),
-        ft.Text(
-            postItem["descriptionText"],
-            size=14,
-            color=ft.Colors.GREY_700,
-        ),
-    ]
-
-    if postItem["tagsText"]:
-        controls.append(
-            ft.Text(
-                f"Теги: {postItem['tagsText']}",
-                size=12,
-                color=ft.Colors.GREY_600,
-            )
-        )
-
-    isPostLiked = False
-
-    if currentUser is not None:
-        isPostLiked = checkPostLikedByUser(
-            postItem["postId"],
-            currentUser["userId"],
-        )
-
-    likeButtonText = f"❤️ {postItem['likesCount']}" if isPostLiked else f"🤍 {postItem['likesCount']}"
-
-    actionControls = [
-        ft.TextButton(
-            text=likeButtonText,
-            on_click=handleLike,
-        ),
-    ]
-
-    if canDelete:
-        actionControls.append(
-            ft.TextButton(
-                text="Удалить",
-                on_click=handleDelete,
-            )
-        )
-
-    controls.append(
-        ft.Row(
-            controls=actionControls,
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-        )
-    )
-
-    refreshComments()
-
-    controls.extend(
-        [
-            ft.Divider(),
-            ft.Text(
-                "Комментарии",
-                size=14,
-                weight=ft.FontWeight.BOLD,
-            ),
-            commentsColumn,
-            ft.Row(
-                controls=[
-                    ft.Container(
-                        expand=True,
-                        content=commentField,
-                    ),
-                    ft.IconButton(
-                        icon=ft.Icons.SEND,
-                        icon_color=PRIMARY_COLOR,
-                        on_click=handleAddComment,
-                    ),
-                ],
-                spacing=8,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-        ]
-    )
-
-    return ft.Card(
-        elevation=2,
-        content=ft.Container(
-            padding=14,
-            content=ft.Column(
-                controls=controls,
-                spacing=10,
-            ),
-        ),
-    )
-
-def createHomeTab(page, currentUser, nickname):
-    postListColumn = ft.Column(spacing=10)
-
-    postTitleField = ft.TextField(
-        label="Название работы",
-        hint_text="Например: Милый котик",
-        prefix_icon=ft.Icons.EDIT,
-        border_radius=12,
-    )
-
-    postDescriptionField = ft.TextField(
-        label="Описание",
-        hint_text="Расскажите, что вы слепили",
-        multiline=True,
-        min_lines=3,
-        max_lines=5,
-        border_radius=12,
-    )
-
-    postCategoryDropdown = ft.Dropdown(
-        label="Категория",
-        value=POST_CATEGORIES[0],
-        border_radius=12,
-        options=[
-            ft.dropdown.Option(categoryName)
-            for categoryName in POST_CATEGORIES
-        ],
-    )
-
-    postTagsField = ft.TextField(
-        label="Теги через запятую",
-        hint_text="котик, животные, кавай",
-        prefix_icon=ft.Icons.TAG,
-        border_radius=12,
-    )
-
-    def showMessage(messageText, isError=False):
-        snackBar = ft.SnackBar(
-            content=ft.Text(messageText),
-            bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
-        )
-        page.open(snackBar)
-
-    def clearPostForm():
-        postTitleField.value = ""
-        postDescriptionField.value = ""
-        postCategoryDropdown.value = POST_CATEGORIES[0]
-        postTagsField.value = ""
-
-    def refreshPosts():
-        postListColumn.controls.clear()
-
-        postItems = getCommunityPosts()
-
-        if len(postItems) == 0:
-            postListColumn.controls.append(
-                ft.Container(
-                    padding=16,
-                    border_radius=12,
-                    bgcolor="#F5F5F5",
-                    content=ft.Text(
-                        "Публикаций пока нет. Добавьте первую работу.",
-                        color=ft.Colors.GREY_700,
-                    ),
-                )
-            )
-            return
-
-        for postItem in postItems:
-            postListColumn.controls.append(
-                createPostCard(page, postItem, currentUser, refreshPosts)
-            )
-
-    def handleCreatePost(event):
-        if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
-            return
-
-        successStatus, messageText, postId = savePost(
-            currentUser["userId"],
-            postTitleField.value,
-            postDescriptionField.value,
-            postCategoryDropdown.value,
-            postTagsField.value,
-        )
-
-        if not successStatus:
-            showMessage(messageText, True)
-            return
-
-        clearPostForm()
-        refreshPosts()
-        showMessage(messageText)
-        page.update()
-
-    refreshPosts()
-
-    return ft.ListView(
-        expand=True,
-        spacing=12,
-        padding=ft.padding.only(left=16, right=16, top=16, bottom=16),
-        controls=[
-            ft.Row(
-                controls=[
-                    ft.CircleAvatar(
-                        content=ft.Text(nickname[:1].upper()),
-                        bgcolor=SECONDARY_COLOR,
-                        color=ft.Colors.WHITE,
-                    ),
-                    ft.Column(
-                        controls=[
-                            ft.Text(
-                                f"Привет, {nickname}!",
-                                size=22,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            ft.Text(
-                                "Что будем лепить сегодня?",
-                                size=14,
-                                color=ft.Colors.GREY_600,
-                            ),
-                        ],
-                        spacing=2,
-                    ),
-                ],
-                spacing=12,
-            ),
-            ft.Container(
-                padding=18,
-                border_radius=18,
-                bgcolor=PRIMARY_COLOR,
-                content=ft.Column(
-                    controls=[
-                        ft.Text(
-                            "Челлендж недели",
-                            size=13,
-                            color=ft.Colors.WHITE,
-                            weight=ft.FontWeight.BOLD,
-                        ),
-                        ft.Text(
-                            "Слепи милого котика",
-                            size=22,
-                            color=ft.Colors.WHITE,
-                            weight=ft.FontWeight.BOLD,
-                        ),
-                        ft.Text(
-                            "Опубликуй работу в сообщество и собери лайки.",
-                            size=14,
-                            color=ft.Colors.WHITE,
-                        ),
-                    ],
-                    spacing=6,
-                ),
-            ),
-            ft.Text(
-                "Опубликовать работу",
-                size=18,
-                weight=ft.FontWeight.BOLD,
-            ),
-            ft.Card(
-                elevation=2,
-                content=ft.Container(
-                    padding=16,
-                    content=ft.Column(
-                        controls=[
-                            postTitleField,
-                            postDescriptionField,
-                            postCategoryDropdown,
-                            postTagsField,
-                            ft.Container(
-                                height=120,
-                                border_radius=18,
-                                bgcolor="#F5F5F5",
-                                alignment=ft.alignment.center,
-                                content=ft.Column(
-                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                    alignment=ft.MainAxisAlignment.CENTER,
-                                    controls=[
-                                        ft.Icon(
-                                            name=ft.Icons.IMAGE,
-                                            size=42,
-                                            color=ft.Colors.GREY_500,
-                                        ),
-                                        ft.Text(
-                                            "Фото работы добавим позже",
-                                            size=13,
-                                            color=ft.Colors.GREY_600,
-                                        ),
-                                    ],
-                                ),
-                            ),
-                            ft.ElevatedButton(
-                                text="Опубликовать",
-                                icon=ft.Icons.PUBLISH,
-                                height=48,
-                                style=ft.ButtonStyle(
-                                    bgcolor=SECONDARY_COLOR,
-                                    color=ft.Colors.WHITE,
-                                    shape=ft.RoundedRectangleBorder(radius=12),
-                                ),
-                                on_click=handleCreatePost,
-                            ),
-                        ],
-                        spacing=12,
-                    ),
-                ),
-            ),
-            ft.Text(
-                "Лента сообщества",
-                size=18,
-                weight=ft.FontWeight.BOLD,
-            ),
-            postListColumn,
-        ],
-    )
-
-
 def createSearchTab(page, currentUser):
     resultColumn = ft.Column(spacing=10)
     ideaContainer = ft.Container()
@@ -590,9 +52,10 @@ def createSearchTab(page, currentUser):
 
     selectedLessonId = {"value": None}
     selectedStepIndex = {"value": 0}
+    lessonState = {"value": None}
 
     searchField = ft.TextField(
-        label="Поиск уроков, моделей и работ",
+        label="Поиск уроков и работ",
         hint_text="Например: котик, еда, дракон",
         prefix_icon=ft.Icons.SEARCH,
         border_radius=12,
@@ -608,13 +71,27 @@ def createSearchTab(page, currentUser):
         ],
     )
 
-    def showMessage(messageText, isError=False):
-        snackBar = ft.SnackBar(
-            content=ft.Text(messageText),
-            bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
-        )
-        page.open(snackBar)
+    levelDropdown = ft.Dropdown(label='Сложность', value='Все',
+        options=[ft.dropdown.Option(value) for value in ['Все', *IDEA_LEVELS]])
+    timeDropdown = ft.Dropdown(label='Время до (минут)', value='Любое',
+        options=[ft.dropdown.Option(value) for value in ['Любое', '30', '60', '120']])
+    videoCheckbox = ft.Checkbox(label='Только с видео', value=False)
+    ideaThemeDropdown = ft.Dropdown(label='Тематика идеи', value='Случайная',
+        options=[ft.dropdown.Option(value) for value in ['Случайная', *IDEA_THEMES]])
+    ideaLevelDropdown = ft.Dropdown(label='Сложность идеи', value='Случайная',
+        options=[ft.dropdown.Option(value) for value in ['Случайная', *IDEA_LEVELS]])
+    ideaPaletteDropdown = ft.Dropdown(label='Цветовая гамма', value='Случайная',
+        options=[ft.dropdown.Option(value) for value in IDEA_PALETTES])
+    ideaCountDropdown = ft.Dropdown(label='Количество цветов', value='3',
+        options=[ft.dropdown.Option(str(value)) for value in range(1, 6)])
 
+    def lessonAction(callback):
+        return authenticatedAction(page, currentUser)(callback) if currentUser else callback
+
+    def showMessage(messageText, isError=False):
+        showPageMessage(page, messageText, isError)
+
+    @authenticatedAction(page, currentUser)
     def handleCreateProjectFromIdea(ideaData):
         if currentUser is None:
             showMessage("Сначала войдите в аккаунт", True)
@@ -635,6 +112,7 @@ def createSearchTab(page, currentUser):
             ideaData["theme"],
             "",
             descriptionText,
+            stepDescriptions=ideaData["steps"],
         )
 
         if not successStatus:
@@ -643,6 +121,7 @@ def createSearchTab(page, currentUser):
 
         showMessage("Идея добавлена в проекты")
 
+    @authenticatedAction(page, currentUser)
     def handleCreateProjectFromLesson(lessonItem):
         if currentUser is None:
             showMessage("Сначала войдите в аккаунт", True)
@@ -661,6 +140,7 @@ def createSearchTab(page, currentUser):
             lessonItem["category"],
             "",
             descriptionText,
+            stepDescriptions=lessonItem["steps"],
         )
 
         if not successStatus:
@@ -669,9 +149,12 @@ def createSearchTab(page, currentUser):
 
         showMessage("Урок добавлен в проекты")
 
+    @lessonAction
     def showLessonDetail(lessonId):
         selectedLessonId["value"] = lessonId
-        selectedStepIndex["value"] = 0
+        lessonState['value'] = getUserLessonState(currentUser['userId'], lessonId) if currentUser else {
+            'lastStep': 0, 'completedSteps': [], 'checkedMaterials': [], 'isCompleted': False}
+        selectedStepIndex['value'] = lessonState['value']['lastStep']
         refreshMainContent()
         page.update()
 
@@ -685,23 +168,58 @@ def createSearchTab(page, currentUser):
         steps = lessonItem["steps"]
         currentStepIndex = selectedStepIndex["value"]
         currentStepText = steps[currentStepIndex]
-        progressValue = (currentStepIndex + 1) / len(steps)
+        state = lessonState['value']
+        progressValue = len(state['completedSteps']) / len(steps)
 
         materialsText = ", ".join(lessonItem["materials"])
 
-        def handlePreviousStep(event):
-            if selectedStepIndex["value"] > 0:
-                selectedStepIndex["value"] -= 1
-                refreshMainContent()
-                page.update()
+        def persistState():
+            state['lastStep'] = selectedStepIndex['value']
+            if currentUser:
+                lessonState['value'] = saveUserLessonState(currentUser['userId'], lessonItem['lessonId'], state)
 
+        @lessonAction
+        def handlePreviousStep(event):
+            selectedStepIndex['value'] = max(0, selectedStepIndex['value'] - 1)
+            persistState()
+            refreshMainContent()
+            page.update()
+
+        @lessonAction
         def handleNextStep(event):
-            if selectedStepIndex["value"] < len(steps) - 1:
-                selectedStepIndex["value"] += 1
-                refreshMainContent()
+            if currentUser and currentStepIndex not in state['completedSteps']:
+                state['completedSteps'].append(currentStepIndex)
+            selectedStepIndex['value'] = min(len(steps) - 1, currentStepIndex + 1)
+            persistState()
+            refreshMainContent()
+            if currentStepIndex == len(steps) - 1:
+                completed = lessonState['value']['isCompleted'] if currentUser else False
+                showMessage('Урок завершён' if completed else 'Для сохранения завершения отметьте все шаги после входа', not completed)
+            page.update()
+
+        @lessonAction
+        def handleStepChecked(event):
+            values = state['completedSteps']
+            if event.control.value and currentStepIndex not in values:
+                values.append(currentStepIndex)
+            elif not event.control.value and currentStepIndex in values:
+                values.remove(currentStepIndex)
+            persistState()
+            refreshMainContent()
+            page.update()
+
+        def materialControl(index, material):
+            @lessonAction
+            def change(event):
+                checked = state['checkedMaterials']
+                if event.control.value and index not in checked:
+                    checked.append(index)
+                elif not event.control.value and index in checked:
+                    checked.remove(index)
+                persistState()
                 page.update()
-            else:
-                showMessage("Урок завершён")
+            return ft.Checkbox(label=material, value=index in state['checkedMaterials'],
+                               disabled=currentUser is None, on_change=change)
 
         return ft.Column(
             spacing=14,
@@ -748,11 +266,8 @@ def createSearchTab(page, currentUser):
                                     size=18,
                                     weight=ft.FontWeight.BOLD,
                                 ),
-                                ft.Text(
-                                    materialsText,
-                                    size=14,
-                                    color=ft.Colors.GREY_700,
-                                ),
+                                *[materialControl(index, material) for index, material in enumerate(lessonItem['materials'])],
+                                ft.Text('Прогресс сохраняется после входа' if currentUser is None else 'Отметки сохраняются автоматически', size=12),
                             ],
                         ),
                     ),
@@ -779,17 +294,17 @@ def createSearchTab(page, currentUser):
                                     border_radius=18,
                                     bgcolor="#F5F5F5",
                                     alignment=ft.alignment.center,
-                                    content=ft.Icon(
-                                        name=ft.Icons.IMAGE,
-                                        size=64,
-                                        color=ft.Colors.GREY_500,
-                                    ),
+                                    content=ft.Image(src=lessonItem['previewImage'], fit=ft.ImageFit.CONTAIN),
                                 ),
+                                ft.Text('Схематичная иллюстрация итоговой фигурки', size=12),
                                 ft.Text(
                                     currentStepText,
                                     size=16,
-                                    color=DARK_TEXT_COLOR,
+                                    color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else DARK_TEXT_COLOR,
                                 ),
+                                ft.Checkbox(label='Шаг выполнен', value=currentStepIndex in state['completedSteps'],
+                                    disabled=currentUser is None, on_change=handleStepChecked),
+                                ft.Text('Урок завершён' if state['isCompleted'] else f"Выполнено шагов: {len(state['completedSteps'])} из {len(steps)}"),
                                 ft.Row(
                                     controls=[
                                         ft.ElevatedButton(
@@ -848,11 +363,7 @@ def createSearchTab(page, currentUser):
                                     border_radius=16,
                                     bgcolor="#FFF0F0",
                                     alignment=ft.alignment.center,
-                                    content=ft.Icon(
-                                        name=ft.Icons.SCHOOL,
-                                        color=PRIMARY_COLOR,
-                                        size=28,
-                                    ),
+                                    content=ft.Image(src=lessonItem['previewImage'], fit=ft.ImageFit.CONTAIN),
                                 ),
                                 ft.Column(
                                     expand=True,
@@ -911,31 +422,30 @@ def createSearchTab(page, currentUser):
     def refreshSearchResults():
         resultColumn.controls.clear()
 
-        lessonItems = searchLessons(searchField.value or "", categoryDropdown.value)
+        lessonItems = searchLessons(searchField.value or '', categoryDropdown.value, levelDropdown.value,
+                                    None if timeDropdown.value == 'Любое' else timeDropdown.value, videoCheckbox.value)
 
-        if len(lessonItems) == 0:
-            resultColumn.controls.append(
-                ft.Container(
-                    padding=16,
-                    border_radius=12,
-                    bgcolor="#F5F5F5",
-                    content=ft.Text(
-                        "Ничего не найдено. Попробуйте изменить запрос или категорию.",
-                        color=ft.Colors.GREY_700,
-                    ),
-                )
-            )
-        else:
-            for lessonItem in lessonItems:
-                resultColumn.controls.append(createLessonCard(lessonItem))
+        for lessonItem in lessonItems:
+            resultColumn.controls.append(createLessonCard(lessonItem))
 
+        works = CommunityClient(currentUser).getPosts(search={
+            'queryText': searchField.value or '', 'categoryName': categoryDropdown.value, 'levelName': levelDropdown.value,
+            'maxTime': None if timeDropdown.value == 'Любое' else timeDropdown.value, 'onlyVideo': videoCheckbox.value})
+        if works:
+            resultColumn.controls.append(ft.Text('Работы сообщества', size=18, weight=ft.FontWeight.BOLD))
+            resultColumn.controls.extend(createPostCard(page, item, currentUser, refreshSearchResults) for item in works)
+        if not resultColumn.controls:
+            resultColumn.controls.append(ft.Text('Ничего не найдено. Попробуйте изменить запрос или фильтры.'))
+
+    @serverAction(page)
     def handleSearchChange(event):
         refreshSearchResults()
         refreshMainContent()
         page.update()
 
     def handleGenerateIdea(event):
-        ideaData = generateRandomIdea()
+        ideaData = generateRandomIdea(ideaThemeDropdown.value, ideaLevelDropdown.value,
+                                      ideaPaletteDropdown.value, int(ideaCountDropdown.value))
 
         colorControls = []
 
@@ -1023,11 +533,18 @@ def createSearchTab(page, currentUser):
                 ),
                 searchField,
                 categoryDropdown,
+                levelDropdown,
+                timeDropdown,
+                videoCheckbox,
                 ft.Text(
                     "Генератор идей",
                     size=18,
                     weight=ft.FontWeight.BOLD,
                 ),
+                ideaThemeDropdown,
+                ideaLevelDropdown,
+                ideaPaletteDropdown,
+                ideaCountDropdown,
                 ft.ElevatedButton(
                     text="Сгенерировать идею",
                     icon=ft.Icons.AUTO_AWESOME,
@@ -1051,6 +568,9 @@ def createSearchTab(page, currentUser):
 
     searchField.on_change = handleSearchChange
     categoryDropdown.on_change = handleSearchChange
+    levelDropdown.on_change = handleSearchChange
+    timeDropdown.on_change = handleSearchChange
+    videoCheckbox.on_change = handleSearchChange
 
     refreshSearchResults()
     refreshMainContent()
@@ -1073,22 +593,19 @@ def createColorsTab(page, currentUser):
     selectedColorsColumn = ft.Column(spacing=8)
 
     def showMessage(messageText, isError=False):
-        snackBar = ft.SnackBar(
-            content=ft.Text(messageText),
-            bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
-        )
-        page.open(snackBar)
+        showPageMessage(page, messageText, isError)
 
     def getTextColorForBackground(hexColor):
         return ft.Colors.BLACK if hexColor.upper() in ["#FFFFFF", "#F5DEB3", "#FFD60A"] else ft.Colors.WHITE
 
     def getTotalWeight():
         try:
-            totalWeight = float((totalWeightField.value or "100").replace(",", "."))
-        except ValueError:
-            totalWeight = 100
-
-        return totalWeight if totalWeight > 0 else 100
+            weight = normalizeWeight((totalWeightField.value or '').strip())
+            totalWeightField.error_text = None
+            return weight
+        except ValueError as error:
+            totalWeightField.error_text = str(error)
+            raise
 
     def normalizeAndRedistribute(changedColor=None, newValue=None):
         if not selectedColors:
@@ -1099,7 +616,7 @@ def createColorsTab(page, currentUser):
             return
 
         if changedColor is not None and newValue is not None:
-            fixedValue = max(0.0, min(100.0, float(newValue)))
+            fixedValue = normalizeProportion(newValue)
             changedColor["proportion"] = fixedValue
 
             otherColors = [color for color in selectedColors if color is not changedColor]
@@ -1124,12 +641,9 @@ def createColorsTab(page, currentUser):
                 for color in selectedColors:
                     color["proportion"] = color["proportion"] / totalValue * 100.0
 
-        roundedTotal = 0
-        for color in selectedColors[:-1]:
-            color["proportion"] = round(color["proportion"], 1)
-            roundedTotal += color["proportion"]
-
-        selectedColors[-1]["proportion"] = round(max(0.0, 100.0 - roundedTotal), 1)
+        normalized = normalizeSelectedColors(selectedColors)
+        for item, result in zip(selectedColors, normalized):
+            item['proportion'] = result['proportion']
 
     resultColorText = ft.Text("#FFFFFF", size=32, weight=ft.FontWeight.BOLD)
     resultColorBox = ft.Container(
@@ -1160,6 +674,7 @@ def createColorsTab(page, currentUser):
 
     mixtureNameField = ft.TextField(
         label="Название смеси",
+        max_length=80,
         value="Моя новая смесь",
         border_radius=12,
     )
@@ -1229,10 +744,22 @@ def createColorsTab(page, currentUser):
             return
 
         for mixture in mixtures:
+            @authenticatedAction(page, currentUser)
             def handleDeleteMixture(event, currentMixtureId=mixture["mixtureId"]):
                 deleteColorMixture(currentUser["userId"], currentMixtureId)
                 refreshSavedMixtures()
                 showMessage("Смесь удалена")
+
+            @authenticatedAction(page, currentUser)
+            def handleOpenMixture(event, item=dict(mixture)):
+                if item['recipeError']:
+                    showMessage('Сохранённый рецепт повреждён. Исходные данные не изменены', True)
+                    return
+                selectedColors[:] = [{**color, 'proportion': color['percent']} for color in item['recipeItems']]
+                totalWeightField.value = str(item['totalWeight'])
+                mixtureNameField.value = item['mixtureName']
+                refreshRecipe()
+                page.update()
 
             savedMixturesColumn.controls.append(
                 ft.Card(
@@ -1252,14 +779,16 @@ def createColorsTab(page, currentUser):
                                     controls=[
                                         ft.Text(mixture["mixtureName"], weight=ft.FontWeight.BOLD),
                                         ft.Text(
-                                            f"{mixture['resultHex']} • {mixture['totalWeight']} г",
+                                            "Рецепт повреждён" if mixture["recipeError"] else f"{mixture['resultHex']} • {mixture['totalWeight']} г",
                                             size=12,
                                             color=ft.Colors.GREY_600,
                                         ),
                                     ],
                                 ),
+                                ft.IconButton(icon=ft.Icons.OPEN_IN_NEW, tooltip='Открыть рецепт', on_click=handleOpenMixture),
                                 ft.IconButton(
                                     icon=ft.Icons.DELETE,
+                                    tooltip="Удалить смесь",
                                     icon_color=ft.Colors.RED_400,
                                     on_click=handleDeleteMixture,
                                 ),
@@ -1277,9 +806,12 @@ def createColorsTab(page, currentUser):
 
         normalizeAndRedistribute()
 
-        totalWeight = getTotalWeight()
+        try:
+            totalWeight = getTotalWeight()
+        except ValueError:
+            totalWeight = None
         resultHex = calculateMixedColor(selectedColors) if selectedColors else "#FFFFFF"
-        recipeItems = calculateRecipe(selectedColors, totalWeight) if selectedColors else []
+        recipeItems = calculateRecipe(selectedColors, totalWeight) if selectedColors and totalWeight is not None else []
 
         resultColorBox.bgcolor = resultHex
         resultColorText.value = resultHex
@@ -1304,16 +836,24 @@ def createColorsTab(page, currentUser):
         else:
             for colorItem in selectedColors:
                 def handleSliderChange(event, currentColor=colorItem):
-                    normalizeAndRedistribute(currentColor, float(event.control.value))
+                    try:
+                        normalizeAndRedistribute(currentColor, float(event.control.value))
+                    except (ValueError, TypeError):
+                        showMessage("Введите долю от 0 до 100", True)
+                        return
                     refreshRecipe()
                     page.update()
 
                 def handlePercentSubmit(event, currentColor=colorItem):
                     try:
-                        value = float((event.control.value or "0").replace(",", "."))
-                    except ValueError:
-                        showMessage("Введите число процента", True)
+                        value = normalizeProportion(event.control.value or '0')
+                    except ValueError as error:
+                        event.control.error_text = str(error)
+                        event.control.value = str(currentColor['proportion'])
+                        page.update()
+                        showMessage(str(error), True)
                         return
+                    event.control.error_text = None
 
                     normalizeAndRedistribute(currentColor, value)
                     refreshRecipe()
@@ -1415,12 +955,15 @@ def createColorsTab(page, currentUser):
             showMessage("Максимум 5 цветов", True)
             return
 
+        newProportion = 100.0 / (len(selectedColors) + 1)
+        for item in selectedColors:
+            item["proportion"] *= (100.0 - newProportion) / 100.0
         selectedColors.append(
             {
                 "colorId": colorItem["colorId"],
                 "name": colorItem["name"],
                 "hex": colorItem["hex"],
-                "proportion": 0.0,
+                "proportion": newProportion,
             }
         )
 
@@ -1486,14 +1029,20 @@ def createColorsTab(page, currentUser):
             pass
 
     def handleFindRecipe(event):
-        targetHex = normalizeTargetHexText(targetHexField.value)
-
-        if not validateHexColor(targetHex):
-            showMessage("Введите цвет в формате HEX, например #8A4F3A", True)
-            return
-
         recipeSearchState["token"] += 1
         currentToken = recipeSearchState["token"]
+        targetHex = normalizeTargetHexText(targetHexField.value)
+
+        try:
+            if not validateHexColor(targetHex):
+                raise ValueError("Введите цвет в формате HEX, например #8A4F3A")
+            totalWeight = getTotalWeight()
+        except ValueError as error:
+            targetResultText.value = str(error)
+            targetRecipeText.value = "—"
+            showMessage(str(error), True)
+            safePageUpdate()
+            return
 
         targetHexField.value = targetHex
         updateTargetSelectedPreview(targetHex)
@@ -1501,8 +1050,6 @@ def createColorsTab(page, currentUser):
         targetRecipeText.color = ft.Colors.BLACK
         targetResultText.value = "Подбираю рецепт..."
         safePageUpdate()
-
-        totalWeight = getTotalWeight()
 
         def runRecipeSearch():
             try:
@@ -1527,6 +1074,7 @@ def createColorsTab(page, currentUser):
         targetHexField.value = colorItem["hex"]
         handleFindRecipe(event)
 
+    @authenticatedAction(page, currentUser)
     def handleSaveMixture(event):
         if not currentUser:
             showMessage("Войдите в аккаунт", True)
@@ -1543,50 +1091,63 @@ def createColorsTab(page, currentUser):
 
         normalizeAndRedistribute()
 
-        resultHex = calculateMixedColor(selectedColors)
-        recipeItems = calculateRecipe(selectedColors, getTotalWeight())
-
-        saveColorMixture(
-            currentUser["userId"],
-            mixtureName,
-            resultHex,
-            getTotalWeight(),
-            recipeItems,
-        )
+        try:
+            weight = getTotalWeight()
+            resultHex = calculateMixedColor(selectedColors)
+            recipeItems = calculateRecipe(selectedColors, weight)
+            saveColorMixture(currentUser['userId'], mixtureName, resultHex, weight, recipeItems)
+        except ValueError as error:
+            showMessage(str(error), True)
+            return
 
         refreshSavedMixtures()
         showMessage("Смесь сохранена")
 
+    def colorAction(callback):
+        return authenticatedAction(page, currentUser)(callback) if currentUser else callback
+
+    @colorAction
     def handleExportRecipe(event):
-        if len(selectedColors) < 2:
-            showMessage("Для экспорта выберите минимум 2 цвета", True)
+        try:
+            png = createRecipePng(mixtureNameField.value, selectedColors, getTotalWeight())
+        except ValueError as error:
+            showMessage(str(error), True)
             return
-
-        totalWeight = getTotalWeight()
-        resultHex = calculateMixedColor(selectedColors)
-        recipeItems = calculateRecipe(selectedColors, totalWeight)
-
-        recipeLines = [
-            "Рецепт смеси Lepka Helper",
-            f"Название: {mixtureNameField.value.strip() or 'Моя смесь'}",
-            f"Итоговый цвет: {resultHex}",
-            f"Общий вес: {totalWeight} г",
-            "",
-            "Состав:",
-        ]
-
-        for recipeItem in recipeItems:
-            recipeLines.append(
-                f"- {recipeItem['name']}: {recipeItem['percent']}% / {recipeItem['grams']} г"
-            )
-
-        exportDirectory = Path("exports")
-        exportDirectory.mkdir(exist_ok=True)
-
-        exportPath = exportDirectory / f"recipe_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        exportPath.write_text("\n".join(recipeLines), encoding="utf-8")
-
-        showMessage(f"Рецепт экспортирован: {exportPath}")
+        if isWebClient(page):
+            try:
+                ticket = createDownload(png)
+                address = urlsplit(page.url)
+                scheme = {'ws': 'http', 'wss': 'https'}.get(address.scheme, address.scheme)
+                if scheme not in ('http', 'https') or not address.netloc:
+                    raise ValueError('Не удалось определить адрес скачивания')
+                page.launch_url(f'{scheme}://{address.netloc}/downloads/{ticket}', web_window_name='_self')
+            except ValueError as error:
+                showMessage(str(error), True)
+                return
+            showMessage('PNG-рецепт передан браузеру для скачивания')
+        else:
+            @colorAction
+            def savePicked(result):
+                if not result.path:
+                    return
+                path = Path(result.path)
+                if path.suffix.lower() != '.png':
+                    path = path.with_suffix('.png')
+                try:
+                    with path.open('xb') as output:
+                        output.write(png)
+                except FileExistsError:
+                    showMessage('Файл уже существует. Выберите другое имя', True)
+                    return
+                except OSError:
+                    showMessage('Не удалось сохранить файл в выбранную папку', True)
+                    return
+                showMessage('PNG-рецепт сохранён')
+            picker = ft.FilePicker(on_result=savePicked)
+            page.overlay[:] = [control for control in page.overlay if not isinstance(control, ft.FilePicker)]
+            page.overlay.append(picker)
+            page.update()
+            picker.save_file(file_name='lepka-recipe.png', file_type=ft.FilePickerFileType.CUSTOM, allowed_extensions=['png'])
 
     def createPaletteButton(colorItem, onTap):
         return ft.GestureDetector(
@@ -1808,7 +1369,7 @@ def createColorsTab(page, currentUser):
                         style=ft.ButtonStyle(bgcolor=PRIMARY_COLOR, color=ft.Colors.WHITE),
                     ),
                     ft.OutlinedButton(
-                        "Экспорт TXT",
+                        "Экспорт PNG",
                         icon=ft.Icons.FILE_DOWNLOAD,
                         on_click=handleExportRecipe,
                     ),
@@ -1875,12 +1436,7 @@ def createProjectsTab(page, currentUser):
         value=PROJECT_CATEGORIES[0],
     )
 
-    deadlineField = ft.TextField(
-        label="Дедлайн",
-        hint_text="ДД.ММ.ГГГГ, можно оставить пустым",
-        prefix_icon=ft.Icons.DATE_RANGE,
-        border_radius=12,
-    )
+    deadlineField = createDeadlineField(page)
 
     descriptionField = ft.TextField(
         label="Описание / заметки",
@@ -1892,11 +1448,7 @@ def createProjectsTab(page, currentUser):
     )
 
     def showMessage(messageText, isError=False):
-        snackBar = ft.SnackBar(
-            content=ft.Text(messageText),
-            bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
-        )
-        page.open(snackBar)
+        showPageMessage(page, messageText, isError)
 
     def clearProjectForm():
         projectNameField.value = ""
@@ -1943,11 +1495,41 @@ def createProjectsTab(page, currentUser):
             if not descriptionText:
                 descriptionText = "Описание не добавлено"
 
+            @authenticatedAction(page, currentUser)
             def handleDeleteProject(event, currentProjectId=projectItem["projectId"]):
-                deleted = removeProject(currentProjectId, currentUser["userId"])
-                showMessage("Проект удалён" if deleted else "Проект не найден или недоступен", not deleted)
-                refreshProjectList()
-                page.update()
+                @authenticatedAction(page, currentUser)
+                def delete():
+                    deleted = removeProject(currentProjectId, currentUser["userId"])
+                    showMessage("Проект удалён" if deleted else "Проект не найден или недоступен", not deleted)
+                    refreshProjectList()
+                    page.update()
+                confirmAction(page, 'Удалить личный проект?',
+                    'Будут удалены его этапы, фото и смеси проекта. Опубликованный мастер-класс сохранится.', delete)
+
+            @authenticatedAction(page, currentUser)
+            def handleEditProject(event, currentProject=projectItem):
+                nameField = ft.TextField(label='Название проекта', value=currentProject['projectName'])
+                categoryField = ft.Dropdown(label='Категория', value=currentProject['categoryName'],
+                    options=[ft.dropdown.Option(value) for value in PROJECT_CATEGORIES])
+                dateField = createDeadlineField(page, currentProject['deadlineDate'])
+                notesField = ft.TextField(label='Описание / заметки', value=currentProject['descriptionText'], multiline=True)
+
+                @authenticatedAction(page, currentUser)
+                def save(event):
+                    success, message = editProject(currentProject['projectId'], currentUser['userId'],
+                        nameField.value, categoryField.value, dateField.value, notesField.value)
+                    if success:
+                        page.close(dialog)
+                        refreshProjectList()
+                    showMessage(message, not success)
+                    page.update()
+
+                dialog = ft.AlertDialog(modal=True, title=ft.Text('Редактирование проекта'),
+                    content=ft.Column(tight=True, scroll=ft.ScrollMode.AUTO,
+                                      controls=[nameField, categoryField, dateField, notesField]),
+                    actions=[ft.TextButton(text='Отмена', on_click=lambda event: page.close(dialog)),
+                             ft.ElevatedButton(text='Сохранить изменения', on_click=save)])
+                page.open(dialog)
 
             newStepField = ft.TextField(
                 label="Новый этап",
@@ -1967,23 +1549,49 @@ def createProjectsTab(page, currentUser):
                 )
             else:
                 for stepItem in projectItem["stepItems"]:
+                    @authenticatedAction(page, currentUser)
                     def handleStepChange(event, currentProjectId=projectItem["projectId"], currentStepId=stepItem["stepId"]):
-                        progress = changeProjectStepStatus(
-                            currentProjectId,
-                            currentStepId,
-                            event.control.value,
-                            currentUser["userId"],
-                        )
+                        try:
+                            progress = changeProjectStepStatus(currentProjectId, currentStepId,
+                                                               event.control.value, currentUser['userId'])
+                        except ValueError as error:
+                            showMessage(str(error), True)
+                            refreshProjectList()
+                            page.update()
+                            return
                         if progress is None:
                             showMessage("Этап не найден или недоступен", True)
                         refreshProjectList()
                         page.update()
 
+                    @authenticatedAction(page, currentUser)
                     def handleDeleteStep(event, currentProjectId=projectItem["projectId"], currentStepId=stepItem["stepId"]):
-                        progress = removeProjectStep(currentProjectId, currentStepId, currentUser["userId"])
-                        showMessage("Этап удалён" if progress is not None else "Этап не найден или недоступен", progress is None)
-                        refreshProjectList()
-                        page.update()
+                        @authenticatedAction(page, currentUser)
+                        def delete():
+                            progress = removeProjectStep(currentProjectId, currentStepId, currentUser["userId"])
+                            showMessage("Этап удалён" if progress is not None else "Этап не найден или недоступен", progress is None)
+                            refreshProjectList()
+                            page.update()
+                        confirmAction(page, 'Удалить этап?', 'Будут удалены этап и его фото. Прогресс проекта пересчитается.', delete)
+
+                    @authenticatedAction(page, currentUser)
+                    def handleEditStep(event, currentProjectId=projectItem['projectId'], currentStep=dict(stepItem)):
+                        textField = ft.TextField(label='Описание этапа', value=currentStep['stepDescription'], multiline=True)
+
+                        @authenticatedAction(page, currentUser)
+                        def save(event):
+                            success, message = editProjectStep(currentProjectId, currentStep['stepId'],
+                                                              currentUser['userId'], textField.value)
+                            if success:
+                                page.close(dialog)
+                                refreshProjectList()
+                            showMessage(message, not success)
+                            page.update()
+
+                        dialog = ft.AlertDialog(modal=True, title=ft.Text('Редактирование этапа'), content=textField,
+                            actions=[ft.TextButton(text='Отмена', on_click=lambda event: page.close(dialog)),
+                                     ft.ElevatedButton(text='Сохранить этап', on_click=save)])
+                        page.open(dialog)
 
                     stepControls.append(
                         ft.Row(
@@ -1997,6 +1605,7 @@ def createProjectsTab(page, currentUser):
                                     expand=True,
                                     size=13,
                                 ),
+                                ft.IconButton(icon=ft.Icons.EDIT_OUTLINED, tooltip="Изменить этап", on_click=handleEditStep),
                                 ft.IconButton(
                                     icon=ft.Icons.DELETE_OUTLINE,
                                     icon_size=18,
@@ -2009,6 +1618,35 @@ def createProjectsTab(page, currentUser):
                         )
                     )
 
+                    def photoSelected(photo, projectId=projectItem['projectId'], stepId=stepItem['stepId']):
+                        success, message = saveProjectStepPhoto(projectId, stepId, currentUser['userId'], photo)
+                        if success:
+                            refreshProjectList()
+                        return success, message
+
+                    @authenticatedAction(page, currentUser)
+                    def deletePhoto(event, projectId=projectItem['projectId'], stepId=stepItem['stepId']):
+                        success, message = removeProjectStepPhoto(projectId, stepId, currentUser['userId'])
+                        if success:
+                            refreshProjectList()
+                        showMessage(message, not success)
+                        page.update()
+
+                    if stepItem['hasPhoto']:
+                        data = getProjectStepPhoto(projectItem['projectId'], stepItem['stepId'], currentUser['userId'])
+                        if data:
+                            stepControls.append(ft.Image(src_base64=base64.b64encode(data).decode(),
+                                                         height=150, fit=ft.ImageFit.CONTAIN))
+                        stepControls.append(ft.TextButton('Убрать фото этапа', on_click=deletePhoto))
+                    else:
+                        hint = ('Старый завершённый этап: добавьте фото' if stepItem['isCompleted']
+                                else 'Добавьте фото перед завершением этапа')
+                        stepControls.append(ft.Text(hint, size=12))
+                    stepControls.append(createPhotoPicker(page, currentUser, photoSelected,
+                        'Заменить фото этапа' if stepItem['hasPhoto'] else 'Добавить фото этапа'))
+                    stepControls.append(ft.Divider())
+
+            @authenticatedAction(page, currentUser)
             def handleAddStep(event, currentProjectId=projectItem["projectId"], fieldControl=newStepField):
                 successStatus, messageText, stepId = saveProjectStep(
                     currentProjectId,
@@ -2086,6 +1724,7 @@ def createProjectsTab(page, currentUser):
                                             ],
                                             spacing=2,
                                         ),
+                                        ft.IconButton(icon=ft.Icons.EDIT, tooltip="Изменить проект", on_click=handleEditProject),
                                         ft.IconButton(
                                             icon=ft.Icons.DELETE,
                                             icon_color=ft.Colors.RED_400,
@@ -2110,6 +1749,7 @@ def createProjectsTab(page, currentUser):
                                     size=12,
                                     color=ft.Colors.GREY_600,
                                 ),
+                                createProjectSharing(page, currentUser, projectItem, refreshProjectList),
                                 stepsBlock,
                             ],
                             spacing=8,
@@ -2118,6 +1758,7 @@ def createProjectsTab(page, currentUser):
                 )
             )
 
+    @authenticatedAction(page, currentUser)
     def handleCreateProject(event):
         if currentUser is None:
             showMessage("Сначала войдите в аккаунт", True)
@@ -2192,657 +1833,13 @@ def createProjectsTab(page, currentUser):
         ],
     )
 
-def createProfileTab(page, nickname, email):
-    currentUser = page.session.get("currentUser")
-
-    if currentUser is None:
-        profileData = None
-    else:
-        profileData = getUserProfile(currentUser["userId"])
-
-    if profileData is None:
-        profileData = {
-            "nickname": nickname,
-            "email": email,
-            "bioText": "",
-            "ageCategory": AGE_CATEGORIES[2],
-            "favoriteColors": [],
-            "themeMode": "light",
-            "languageCode": "ru",
-            "notificationsEnabled": True,
-            "avatarPath": "",
-        }
-
-    selectedAvatarPath = profileData.get("avatarPath", "") or ""
-
-    userPostsCount = 0
-    userLikesCount = 0
-    userProjectsCount = 0
-
-    if currentUser is not None:
-        userProjectItems = getUserProjects(currentUser["userId"])
-        userProjectsCount = len(userProjectItems)
-
-        for postItem in getCommunityPosts():
-            if postItem["userId"] == currentUser["userId"]:
-                userPostsCount += 1
-                userLikesCount += postItem["likesCount"]
-
-    nicknameField = ft.TextField(
-        label="Никнейм",
-        value=profileData["nickname"],
-        prefix_icon=ft.Icons.PERSON,
-        border_radius=12,
-    )
-
-    bioField = ft.TextField(
-        label="О себе",
-        value=profileData["bioText"],
-        hint_text="Например: люблю лепить животных и персонажей",
-        multiline=True,
-        min_lines=3,
-        max_lines=5,
-        border_radius=12,
-    )
-
-    ageDropdown = ft.Dropdown(
-        label="Возрастная категория",
-        value=profileData["ageCategory"],
-        border_radius=12,
-        options=[
-            ft.dropdown.Option(ageCategory)
-            for ageCategory in AGE_CATEGORIES
-        ],
-    )
-
-    currentThemeMode = profileData.get("themeMode", "light")
-    currentLanguageCode = profileData.get("languageCode", "ru")
-    currentNotificationsEnabled = profileData.get("notificationsEnabled", True)
-
-    themeDropdown = ft.Dropdown(
-        label="Тема приложения",
-        value=currentThemeMode,
-        border_radius=12,
-        options=[
-            ft.dropdown.Option(
-                key=themeItem["value"],
-                text=themeItem["name"],
-            )
-            for themeItem in THEME_OPTIONS
-        ],
-    )
-
-    languageDropdown = ft.Dropdown(
-        label="Язык приложения",
-        value=currentLanguageCode,
-        border_radius=12,
-        options=[
-            ft.dropdown.Option(
-                key=languageItem["value"],
-                text=languageItem["name"],
-            )
-            for languageItem in LANGUAGE_OPTIONS
-        ],
-    )
-
-    notificationsSwitch = ft.Switch(
-        label="Уведомления",
-        value=currentNotificationsEnabled,
-    )
-
-    currentPasswordField = ft.TextField(
-        label="Текущий пароль",
-        password=True,
-        can_reveal_password=True,
-        prefix_icon=ft.Icons.LOCK,
-        border_radius=12,
-    )
-
-    newPasswordField = ft.TextField(
-        label="Новый пароль",
-        password=True,
-        can_reveal_password=True,
-        prefix_icon=ft.Icons.LOCK_RESET,
-        border_radius=12,
-    )
-
-    repeatPasswordField = ft.TextField(
-        label="Повторите новый пароль",
-        password=True,
-        can_reveal_password=True,
-        prefix_icon=ft.Icons.LOCK_RESET,
-        border_radius=12,
-    )
-
-    deletePasswordField = ft.TextField(
-        label="Пароль для удаления аккаунта",
-        password=True,
-        can_reveal_password=True,
-        prefix_icon=ft.Icons.LOCK,
-        border_radius=12,
-    )
-
-    favoriteColorCheckboxes = []
-
-    profileNameText = ft.Text(
-        profileData["nickname"],
-        size=22,
-        weight=ft.FontWeight.BOLD,
-    )
-
-    profileEmailText = ft.Text(
-        profileData["email"],
-        size=14,
-        color=ft.Colors.GREY_600,
-    )
-
-    headerAvatarControl = ft.CircleAvatar(
-        radius=42,
-        foreground_image_src=selectedAvatarPath if selectedAvatarPath else None,
-        content=None if selectedAvatarPath else ft.Text(
-            profileData["nickname"][:1].upper(),
-            size=30,
-            weight=ft.FontWeight.BOLD,
-        ),
-        bgcolor=SECONDARY_COLOR,
-        color=ft.Colors.WHITE,
-    )
-
-    editAvatarControl = ft.CircleAvatar(
-        radius=42,
-        foreground_image_src=selectedAvatarPath if selectedAvatarPath else None,
-        content=None if selectedAvatarPath else ft.Text(
-            profileData["nickname"][:1].upper(),
-            size=30,
-            weight=ft.FontWeight.BOLD,
-        ),
-        bgcolor=SECONDARY_COLOR,
-        color=ft.Colors.WHITE,
-    )
-
-    avatarHintText = ft.Text(
-        "Аватар выбран" if selectedAvatarPath else "Аватар не выбран",
-        size=12,
-        color=ft.Colors.GREY_600,
-    )
-
-    avatarPicker = ft.FilePicker()
-
-    def refreshAvatar():
-        avatarLetter = nicknameField.value[:1].upper() if nicknameField.value else "?"
-
-        for avatarControl in [headerAvatarControl, editAvatarControl]:
-            avatarControl.foreground_image_src = selectedAvatarPath if selectedAvatarPath else None
-            avatarControl.content = None if selectedAvatarPath else ft.Text(
-                avatarLetter,
-                size=30,
-                weight=ft.FontWeight.BOLD,
-            )
-        avatarHintText.value = "Аватар выбран" if selectedAvatarPath else "Аватар не выбран"
-        page.update()
-
-    def handleAvatarPicked(event):
-        nonlocal selectedAvatarPath
-
-        if event.files is None or len(event.files) == 0:
-            return
-
-        selectedFile = event.files[0]
-        selectedAvatarPath = selectedFile.path or selectedFile.name or ""
-        refreshAvatar()
-
-    def handlePickAvatar(event):
-        avatarPicker.pick_files(
-            allow_multiple=False,
-            allowed_extensions=["jpg", "jpeg", "png", "webp"],
-            dialog_title="Выберите аватар",
-        )
-
-    def handleRemoveAvatar(event):
-        nonlocal selectedAvatarPath
-        selectedAvatarPath = ""
-        refreshAvatar()
-
-    avatarPicker.on_result = handleAvatarPicked
-    # Повторное открытие вкладки не должно накапливать выборщики файлов.
-    page.overlay[:] = [control for control in page.overlay if not isinstance(control, ft.FilePicker)]
-    page.overlay.append(avatarPicker)
-
-    def showMessage(messageText, isError=False):
-        snackBar = ft.SnackBar(
-            content=ft.Text(messageText),
-            bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400,
-        )
-        page.open(snackBar)
-
-    def handleLogout(event):
-        page.session.clear()
-        page.go("/auth")
-
-    def handleSaveProfile(event):
-        if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
-            return
-
-        selectedFavoriteColors = []
-
-        for checkboxControl in favoriteColorCheckboxes:
-            if checkboxControl.value:
-                selectedFavoriteColors.append(checkboxControl.label)
-
-        successStatus, messageText, updatedProfile = saveUserProfile(
-            currentUser["userId"],
-            nicknameField.value,
-            bioField.value,
-            ageDropdown.value,
-            selectedFavoriteColors,
-            selectedAvatarPath,
-        )
-
-        if not successStatus:
-            showMessage(messageText, True)
-            return
-
-        page.session.set(
-            "currentUser",
-            {
-                "userId": currentUser["userId"],
-                "email": updatedProfile["email"],
-                "nickname": updatedProfile["nickname"],
-                "roleName": updatedProfile["roleName"],
-            },
-        )
-
-        profileNameText.value = updatedProfile["nickname"]
-        profileEmailText.value = updatedProfile["email"]
-        refreshAvatar()
-        showMessage(messageText)
-
-    def handleChangePassword(event):
-        if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
-            return
-
-        successStatus, messageText = changeUserPassword(
-            currentUser["userId"],
-            currentPasswordField.value,
-            newPasswordField.value,
-            repeatPasswordField.value,
-        )
-
-        if not successStatus:
-            showMessage(messageText, True)
-            return
-
-        currentPasswordField.value = ""
-        newPasswordField.value = ""
-        repeatPasswordField.value = ""
-        page.session.clear()
-        showMessage(messageText)
-        page.go("/auth")
-
-    def handleSaveSettings(event):
-        if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
-            return
-
-        successStatus, messageText, updatedProfile = saveUserSettings(
-            currentUser["userId"],
-            themeDropdown.value,
-            languageDropdown.value,
-            notificationsSwitch.value,
-        )
-
-        if not successStatus:
-            showMessage(messageText, True)
-            return
-
-        if updatedProfile["themeMode"] == "dark":
-            page.theme_mode = ft.ThemeMode.DARK
-        else:
-            page.theme_mode = ft.ThemeMode.LIGHT
-
-        showMessage(messageText)
-        page.go("/home")
-
-    def handleDeleteAccount(event):
-        if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
-            return
-
-        if not deletePasswordField.value:
-            showMessage("Введите пароль для подтверждения", True)
-            return
-
-        def closeDialog(event):
-            page.close(confirmDialog)
-
-        def confirmDelete(event):
-            successStatus, messageText = deleteUserAccount(
-                currentUser["email"],
-                deletePasswordField.value,
-            )
-
-            page.close(confirmDialog)
-
-            if not successStatus:
-                showMessage(messageText, True)
-                return
-
-            page.session.clear()
-            showMessage(messageText)
-            page.go("/auth")
-
-        confirmDialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Удаление аккаунта"),
-            content=ft.Text(
-                "Все ваши данные, публикации, проекты, комментарии и цветовые смеси "
-                "будут безвозвратно удалены. Продолжить?"
-            ),
-            actions=[
-                ft.TextButton(
-                    text="Отмена",
-                    on_click=closeDialog,
-                ),
-                ft.TextButton(
-                    text="Удалить",
-                    on_click=confirmDelete,
-                    style=ft.ButtonStyle(color=ft.Colors.RED_400),
-                ),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-
-        page.open(confirmDialog)
-
-    colorWrapControls = []
-
-    for colorName in FAVORITE_COLOR_OPTIONS:
-        checkboxControl = ft.Checkbox(
-            label=colorName,
-            value=colorName in profileData["favoriteColors"],
-        )
-
-        favoriteColorCheckboxes.append(checkboxControl)
-        colorWrapControls.append(checkboxControl)
-
-    def createStatItem(countText, labelText, itemColor, backgroundColor):
-        return ft.Container(
-            expand=True,
-            padding=12,
-            border_radius=12,
-            bgcolor=backgroundColor,
-            content=ft.Column(
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                controls=[
-                    ft.Text(
-                        str(countText),
-                        size=24,
-                        weight=ft.FontWeight.BOLD,
-                        color=itemColor,
-                    ),
-                    ft.Text(
-                        labelText,
-                        size=12,
-                    ),
-                ],
-            ),
-        )
-
-    return ft.ListView(
-        expand=True,
-        spacing=14,
-        padding=ft.padding.only(left=16, right=16, top=16, bottom=16),
-        controls=[
-            ft.Card(
-                elevation=2,
-                content=ft.Container(
-                    padding=16,
-                    content=ft.Row(
-                        controls=[
-                            headerAvatarControl,
-                            ft.Column(
-                                expand=True,
-                                controls=[
-                                    profileNameText,
-                                    profileEmailText,
-                                    ft.Text(
-                                        "Личный профиль и настройки аккаунта",
-                                        size=13,
-                                        color=ft.Colors.GREY_600,
-                                    ),
-                                ],
-                                spacing=4,
-                            ),
-                        ],
-                        spacing=14,
-                    ),
-                ),
-            ),
-
-            ft.Card(
-                elevation=2,
-                content=ft.Container(
-                    padding=16,
-                    content=ft.Column(
-                        controls=[
-                            ft.Text(
-                                "Редактирование профиля",
-                                size=18,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            ft.Row(
-                                controls=[
-                                    editAvatarControl,
-                                    ft.Column(
-                                        expand=True,
-                                        controls=[
-                                            avatarHintText,
-                                            ft.Row(
-                                                controls=[
-                                                    ft.OutlinedButton(
-                                                        text="Выбрать фото",
-                                                        icon=ft.Icons.PHOTO_CAMERA,
-                                                        on_click=handlePickAvatar,
-                                                    ),
-                                                    ft.OutlinedButton(
-                                                        text="Убрать",
-                                                        icon=ft.Icons.DELETE_OUTLINE,
-                                                        on_click=handleRemoveAvatar,
-                                                    ),
-                                                ],
-                                                wrap=True,
-                                                spacing=8,
-                                            ),
-                                        ],
-                                        spacing=8,
-                                    ),
-                                ],
-                                spacing=14,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            ),
-                            nicknameField,
-                            bioField,
-                            ageDropdown,
-                            ft.Text(
-                                "Любимые цвета, максимум 5",
-                                size=13,
-                                color=ft.Colors.GREY_600,
-                            ),
-                            ft.Row(
-                                wrap=True,
-                                controls=colorWrapControls,
-                                spacing=4,
-                                run_spacing=0,
-                            ),
-                            ft.ElevatedButton(
-                                text="Сохранить профиль",
-                                icon=ft.Icons.SAVE,
-                                height=48,
-                                style=ft.ButtonStyle(
-                                    bgcolor=SECONDARY_COLOR,
-                                    color=ft.Colors.WHITE,
-                                    shape=ft.RoundedRectangleBorder(radius=12),
-                                ),
-                                on_click=handleSaveProfile,
-                            ),
-                        ],
-                        spacing=12,
-                    ),
-                ),
-            ),
-
-            ft.Card(
-                elevation=2,
-                content=ft.Container(
-                    padding=16,
-                    content=ft.Column(
-                        controls=[
-                            ft.Text(
-                                "Безопасность",
-                                size=18,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            ft.Text(
-                                "Для смены пароля укажите текущий пароль, новый пароль и подтверждение.",
-                                size=13,
-                                color=ft.Colors.GREY_600,
-                            ),
-                            currentPasswordField,
-                            newPasswordField,
-                            repeatPasswordField,
-                            ft.ElevatedButton(
-                                text="Изменить пароль",
-                                icon=ft.Icons.LOCK_RESET,
-                                height=48,
-                                style=ft.ButtonStyle(
-                                    bgcolor=PRIMARY_COLOR,
-                                    color=ft.Colors.WHITE,
-                                    shape=ft.RoundedRectangleBorder(radius=12),
-                                ),
-                                on_click=handleChangePassword,
-                            ),
-                        ],
-                        spacing=12,
-                    ),
-                ),
-            ),
-
-            ft.Card(
-                elevation=2,
-                content=ft.Container(
-                    padding=16,
-                    content=ft.Column(
-                        controls=[
-                            ft.Text(
-                                "Статистика",
-                                size=18,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            ft.Row(
-                                controls=[
-                                    createStatItem(userPostsCount, "Работ", PRIMARY_COLOR, "#FFF0F0"),
-                                    createStatItem(userLikesCount, "Лайков", SECONDARY_COLOR, "#EFFFFD"),
-                                    createStatItem(userProjectsCount, "Проектов", ft.Colors.DEEP_PURPLE_400, "#F4F1FF"),
-                                ],
-                                spacing=8,
-                            ),
-                        ],
-                        spacing=12,
-                    ),
-                ),
-            ),
-
-            ft.Card(
-                elevation=2,
-                content=ft.Container(
-                    padding=16,
-                    content=ft.Column(
-                        controls=[
-                            ft.Text(
-                                "Настройки приложения",
-                                size=18,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            themeDropdown,
-                            languageDropdown,
-                            notificationsSwitch,
-                            ft.ElevatedButton(
-                                text="Сохранить настройки",
-                                icon=ft.Icons.SAVE,
-                                height=48,
-                                style=ft.ButtonStyle(
-                                    bgcolor=SECONDARY_COLOR,
-                                    color=ft.Colors.WHITE,
-                                    shape=ft.RoundedRectangleBorder(radius=12),
-                                ),
-                                on_click=handleSaveSettings,
-                            ),
-                            ft.Divider(),
-                            createInfoCard(
-                                ft.Icons.FAVORITE,
-                                "Избранное",
-                                "Сохранённые уроки, модели и цветовые смеси.",
-                            ),
-                            ft.ElevatedButton(
-                                text="Выйти из аккаунта",
-                                icon=ft.Icons.LOGOUT,
-                                height=48,
-                                style=ft.ButtonStyle(
-                                    bgcolor=PRIMARY_COLOR,
-                                    color=ft.Colors.WHITE,
-                                    shape=ft.RoundedRectangleBorder(radius=12),
-                                ),
-                                on_click=handleLogout,
-                            ),
-                        ],
-                        spacing=12,
-                    ),
-                ),
-            ),
-
-            ft.Card(
-                elevation=2,
-                content=ft.Container(
-                    padding=16,
-                    content=ft.Column(
-                        controls=[
-                            ft.Text(
-                                "Опасная зона",
-                                size=18,
-                                weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.RED_400,
-                            ),
-                            ft.Text(
-                                "Удаление аккаунта находится в самом низу профиля. "
-                                "Это действие нельзя отменить.",
-                                size=13,
-                                color=ft.Colors.GREY_600,
-                            ),
-                            deletePasswordField,
-                            ft.ElevatedButton(
-                                text="Удалить аккаунт",
-                                icon=ft.Icons.DELETE_FOREVER,
-                                height=48,
-                                style=ft.ButtonStyle(
-                                    bgcolor=ft.Colors.RED_400,
-                                    color=ft.Colors.WHITE,
-                                    shape=ft.RoundedRectangleBorder(radius=12),
-                                ),
-                                on_click=handleDeleteAccount,
-                            ),
-                        ],
-                        spacing=12,
-                    ),
-                ),
-            ),
-        ],
-    )
-
-
 def createHomeView(page: ft.Page):
-    currentUser = page.session.get("currentUser")
+    try:
+        currentUser = getCurrentUser(page)
+    except ApiError:
+        # Только оболочка и сообщение об ошибке. Действия по-прежнему требуют
+        # проверки настоящей сессии; локального входа вместо API здесь нет.
+        currentUser = page.session.get('currentUser')
 
     if currentUser:
         nickname = currentUser["nickname"]
@@ -2853,20 +1850,30 @@ def createHomeView(page: ft.Page):
 
     content_area = ft.Container(expand=True)
 
-    def update_tab(e):
-        idx = e.control.selected_index
-        if idx == 0:
-            content_area.content = createHomeTab(page, currentUser, nickname)
-        elif idx == 1:
-            content_area.content = createSearchTab(page, currentUser)
-        elif idx == 2:
-            content_area.content = createColorsTab(page, currentUser)
-        elif idx == 3:
-            content_area.content = createProjectsTab(page, currentUser)
-        elif idx == 4:
-            content_area.content = createProfileTab(page, nickname, email)
-
+    @serverAction(page)
+    def loadTab(index):
+        try:
+            if currentUser is not None:
+                sessionUser = getCurrentUser(page)
+                if sessionUser is None:
+                    page.go('/auth')
+                    return
+                if sessionUser['sessionToken'] != currentUser['sessionToken']:
+                    return
+            factories = [lambda: createHomeTab(page, currentUser, nickname),
+                         lambda: createSearchTab(page, currentUser), lambda: createColorsTab(page, currentUser),
+                         lambda: createProjectsTab(page, currentUser), lambda: createProfileTab(page, nickname, email)]
+            if not 0 <= index < len(factories):
+                return
+            content_area.content = factories[index]()
+        except ApiError as error:
+            if error.statusCode == 401:
+                raise
+            content_area.content = createLoadError(page, error, lambda: loadTab(index))
         page.update()
+
+    def update_tab(event):
+        loadTab(event.control.selected_index)
 
     nav_bar = ft.NavigationBar(
         selected_index=0,
@@ -2881,7 +1888,7 @@ def createHomeView(page: ft.Page):
     )
 
     # Загружаем первый таб
-    content_area.content = createHomeTab(page, currentUser, nickname)
+    loadTab(0)
 
     return ft.View(
         "/home",
