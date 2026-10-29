@@ -260,6 +260,8 @@ class SharingUiTests(SharingFixture, unittest.IsolatedAsyncioTestCase):
         dialog = self.dialog()
         self.assertFalse(find(dialog, ft.TextField, label='Описание для сообщества').value)
         find(dialog, ft.TextField, label='Описание для сообщества').value = 'Открытое описание котика'
+        find(dialog, ft.TextField, label='Время выполнения (минут)').value = '35'
+        find(dialog, ft.TextField, label='Материалы — по одному на строку').value = 'Серый пластилин'
         for label in ('Серый котик', 'Слепить основу'):
             checkbox = find(dialog, ft.Checkbox, label=label)
             checkbox.value = True
@@ -270,6 +272,8 @@ class SharingUiTests(SharingFixture, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(sharing.getPublishedProject(postId)['steps']), 2)
         self.page.session.set('currentUser', self.reader)
         view = self.mount(createHomeTab(self.page, self.reader, self.reader['nickname']))
+        find(view, ft.OutlinedButton, text='Открыть мастер-класс').on_click(None)
+        view = self.page.views[-1]
         find(view, ft.OutlinedButton, text='Сохранить рецепт в мою палитру').on_click(None)
         self.assertEqual(colors.getUserColorMixtures(self.other)[0]['recipeItems'], self.recipe)
         view = self.mount(createColorsTab(self.page, self.reader))
@@ -309,7 +313,8 @@ class SharingUiTests(SharingFixture, unittest.IsolatedAsyncioTestCase):
         from views.community_tab import createHomeTab
         postId = self.publish()[2]
         guest = self.mount(createHomeTab(self.page, None, 'Гость'))
-        self.assertTrue(find(guest, ft.OutlinedButton, text='Сохранить рецепт в мою палитру').disabled)
+        find(guest, ft.OutlinedButton, text='Открыть мастер-класс').on_click(None)
+        self.assertTrue(find(self.page.views[-1], ft.OutlinedButton, text='Сохранить рецепт в мою палитру').disabled)
         view = self.mount(createProjectsTab(self.page, self.user))
         find(view, ft.ElevatedButton, text='Опубликовать в сообщество').on_click(None)
         dialog = self.dialog()

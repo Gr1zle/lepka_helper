@@ -25,7 +25,7 @@ from date_field import createDeadlineField
 from photo_picker import createPhotoPicker
 from views.community_tab import createHomeTab, createPostCard
 from views.project_sharing import createProjectSharing
-from post_service import getCommunityPosts
+from workshop_service import searchCommunityWorks
 
 from project_service import (
     PROJECT_CATEGORIES, changeProjectStepStatus, getUserProjects,
@@ -70,7 +70,7 @@ def createSearchTab(page, currentUser):
         ],
     )
 
-    levelDropdown = ft.Dropdown(label='Сложность урока', value='Все',
+    levelDropdown = ft.Dropdown(label='Сложность', value='Все',
         options=[ft.dropdown.Option(value) for value in ['Все', *IDEA_LEVELS]])
     timeDropdown = ft.Dropdown(label='Время до (минут)', value='Любое',
         options=[ft.dropdown.Option(value) for value in ['Любое', '30', '60', '120']])
@@ -426,18 +426,11 @@ def createSearchTab(page, currentUser):
         for lessonItem in lessonItems:
             resultColumn.controls.append(createLessonCard(lessonItem))
 
-        # Настройки сложности, времени и видео относятся к урокам.
-        # Работы показываем отдельно, когда эти фильтры не ограничивают поиск.
-        queryText = (searchField.value or '').strip().casefold()
-        if (levelDropdown.value == 'Все' and timeDropdown.value == 'Любое' and not videoCheckbox.value
-                and (not queryText or len(queryText) >= 2)):
-            works = [item for item in getCommunityPosts() if not item['isDeleted']
-                and (categoryDropdown.value == 'Все' or item['categoryName'] == categoryDropdown.value)
-                and (not queryText or queryText in ' '.join(str(item[key]) for key in
-                    ('titleText', 'descriptionText', 'tagsText', 'nickname')).casefold())]
-            if works:
-                resultColumn.controls.append(ft.Text('Работы сообщества', size=18, weight=ft.FontWeight.BOLD))
-                resultColumn.controls.extend(createPostCard(page, item, currentUser, refreshSearchResults) for item in works)
+        works = searchCommunityWorks(searchField.value, categoryDropdown.value, levelDropdown.value,
+                                     None if timeDropdown.value == 'Любое' else timeDropdown.value, videoCheckbox.value)
+        if works:
+            resultColumn.controls.append(ft.Text('Работы сообщества', size=18, weight=ft.FontWeight.BOLD))
+            resultColumn.controls.extend(createPostCard(page, item, currentUser, refreshSearchResults) for item in works)
         if not resultColumn.controls:
             resultColumn.controls.append(ft.Text('Ничего не найдено. Попробуйте изменить запрос или фильтры.'))
 

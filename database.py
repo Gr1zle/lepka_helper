@@ -228,6 +228,12 @@ def initializeDatabase():
         position INTEGER NOT NULL, imageData BLOB NOT NULL,
         FOREIGN KEY (postId) REFERENCES posts(postId), UNIQUE(postId, position)
     )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS workshopProgress (
+        userId INTEGER NOT NULL, postId INTEGER NOT NULL, stateJson TEXT NOT NULL,
+        PRIMARY KEY (userId, postId),
+        FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE,
+        FOREIGN KEY (postId) REFERENCES posts(postId) ON DELETE CASCADE
+    )""")
     cursor.execute("""CREATE TABLE IF NOT EXISTS commentEvents (
         userId INTEGER NOT NULL, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (userId) REFERENCES users(userId)
@@ -889,6 +895,8 @@ def deleteUserDataById(userId, existingConnection=None):
         connection.execute('DELETE FROM postComments WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM commentEvents WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM postLikes WHERE userId = ?', (userId,))
+        connection.execute('''DELETE FROM workshopProgress WHERE userId = ? OR postId IN
+            (SELECT postId FROM posts WHERE userId = ?)''', (userId, userId))
         ownedPosts = connection.execute('SELECT postId FROM posts WHERE userId = ?', (userId,)).fetchall()
         if ownedPosts:
             deletedAuthor = connection.execute(
@@ -965,8 +973,10 @@ def updateUserPassword(userId, passwordHash, passwordSalt):
     connection.close()
 
 
-def createProjectWithSteps(userId, projectName, categoryName, deadlineDate, descriptionText, stepDescriptions):
-    with openDatabase() as connection:
+def createProjectWithSteps(userId, projectName, categoryName, deadlineDate, descriptionText, stepDescriptions,
+                           existingConnection=None):
+    context = openDatabase() if existingConnection is None else nullcontext(existingConnection)
+    with context as connection:
         cursor = connection.execute(
             """INSERT INTO projects (userId, projectName, categoryName, deadlineDate, descriptionText)
             VALUES (?, ?, ?, ?, ?)""", (userId, projectName, categoryName, deadlineDate, descriptionText))

@@ -6,9 +6,10 @@ import flet as ft
 from color_service import getUserColorMixtures
 from project_service import getProjectSteps, getProjectStepPhoto
 from project_sharing import (getProjectMixtures, addProjectMixture, removeProjectMixture,
-                             publishProject, getPublishedProject, copyPublishedMixture)
+                             publishProject, getPublishedProject)
 from post_service import POST_CATEGORIES
 from ui_helpers import authenticatedAction, showMessage
+from lesson_service import IDEA_LEVELS
 
 
 def createMixtureRecipe(mixture):
@@ -25,20 +26,15 @@ def createPublishedProject(page, postId, currentUser):
     details = getPublishedProject(postId)
     if not details:
         return ft.Container()
-    controls = [ft.Text('Как сделана работа', weight=ft.FontWeight.BOLD)]
-    for index, step in enumerate(details['steps']):
-        caption = 'Результат' if index == 0 else f'Этап {index}'
-        controls.append(ft.Text(f"{caption}: {step['description']}"))
-    if details['mixtures']:
-        controls.append(ft.Text('Использованные смеси', weight=ft.FontWeight.BOLD))
-    for index, mixture in enumerate(details['mixtures']):
-        @authenticatedAction(page, currentUser)
-        def save(event, mixtureIndex=index):
-            success, message, _ = copyPublishedMixture(postId, mixtureIndex, currentUser['userId'])
-            showMessage(page, message, not success)
-        controls.extend([createMixtureRecipe(mixture), ft.OutlinedButton('Сохранить рецепт в мою палитру',
-            icon=ft.Icons.PALETTE, disabled=currentUser is None, on_click=save)])
-    return ft.Column(controls=controls, spacing=8)
+    def openDetail(event):
+        from views.workshop_view import openWorkshop
+        openWorkshop(page, postId, currentUser)
+    if currentUser:
+        openDetail = authenticatedAction(page, currentUser)(openDetail)
+    info = details.get('workshopInfo')
+    caption = f"{info['level']} · {info['timeMinutes']} мин · " if info else ''
+    return ft.Column(controls=[ft.Text(caption + f"Шагов: {len(details['steps'])}", size=12),
+        ft.OutlinedButton('Открыть мастер-класс', icon=ft.Icons.MENU_BOOK, height=48, on_click=openDetail)])
 
 
 def createProjectSharing(page, currentUser, projectItem, refreshCallback):
@@ -85,8 +81,9 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
 
     @authenticatedAction(page, currentUser)
     def openPublication(event):
-        steps = [step for step in getProjectSteps(projectId, userId) if step['hasPhoto']]
-        if not steps:
+        steps = getProjectSteps(projectId, userId)
+        photoSteps = [step for step in steps if step['hasPhoto']]
+        if not photoSteps:
             showMessage(page, 'Добавьте фото результата к этапу проекта перед публикацией', True)
             return
         title = ft.TextField(label='Название работы', value=projectItem['projectName'], max_length=100)
@@ -94,8 +91,15 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
         category = ft.Dropdown(label='Категория работы', value=projectItem['categoryName'],
             options=[ft.dropdown.Option(item) for item in POST_CATEGORIES])
         tags = ft.TextField(label='Теги через запятую')
-        result = ft.Dropdown(label='Итоговое фото', value=str(steps[-1]['stepId']),
-            options=[ft.dropdown.Option(str(step['stepId']), step['stepDescription']) for step in steps])
+        level = ft.Dropdown(label='Сложность мастер-класса', value=IDEA_LEVELS[0],
+                            options=[ft.dropdown.Option(item) for item in IDEA_LEVELS])
+        minutes = ft.TextField(label='Время выполнения (минут)', keyboard_type=ft.KeyboardType.NUMBER)
+        materials = ft.TextField(label='Материалы — по одному на строку', multiline=True, min_lines=2, max_lines=4,
+                                 hint_text='Серый пластилин\nБелый пластилин', max_length=3630)
+        tools = ft.TextField(label='Инструменты — по одному на строку', multiline=True, min_lines=2, max_lines=4,
+                            hint_text='Стек\nДоска для лепки', max_length=3630)
+        result = ft.Dropdown(label='Итоговое фото', value=str(photoSteps[-1]['stepId']),
+            options=[ft.dropdown.Option(str(step['stepId']), step['stepDescription']) for step in photoSteps])
         photoChoices = []
         photoControls = []
 
@@ -110,7 +114,7 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
             imageData = getProjectStepPhoto(projectId, step['stepId'], userId)
             photoControls.append(ft.Row(controls=[
                 ft.Image(src_base64=base64.b64encode(imageData).decode(), width=64, height=64,
-                         fit=ft.ImageFit.CONTAIN) if imageData else ft.Text('Фото удалено'),
+                         fit=ft.ImageFit.CONTAIN) if imageData else ft.Text('Фото не добавлено'),
                 ft.Container(content=check, expand=True)]))
         mixtureChoices = [ft.Checkbox(label=item['mixtureName'], value=False, data=item['projectMixtureId'],
                                       on_change=selectionChanged)
@@ -122,7 +126,10 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
             success, message, _ = publishProject(projectId, userId, title.value, description.value,
                 category.value, tags.value, resultId,
                 [check.data for check in photoChoices if check.value and check.data != resultId],
-                [check.data for check in mixtureChoices if check.value])
+                [check.data for check in mixtureChoices if check.value], workshopInfo={
+                    'level': level.value, 'timeMinutes': minutes.value,
+                    'materials': [entry.strip() for entry in (materials.value or '').splitlines() if entry.strip()],
+                    'tools': [entry.strip() for entry in (tools.value or '').splitlines() if entry.strip()]})
             if success:
                 page.close(dialog)
                 refreshCallback()
@@ -133,8 +140,9 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
             content=ft.Column(width=340, height=450, tight=True, scroll=ft.ScrollMode.AUTO, spacing=10, controls=[
                 ft.Text('Выбранные фото, подписи этапов и рецепты будут видны в сообществе. '
                         'Личные заметки и дедлайн останутся в проекте.'),
-                title, description, category, tags, result,
-                ft.Text('Дополнительные фото этапов (всего до 10)'), *photoControls,
+                title, description, category, level, minutes, materials, tools, tags, result,
+                ft.Text('Шаги мастер-класса в порядке проекта. Итоговый этап включается автоматически. '
+                        'Можно выбрать текстовые шаги без фото; фотографий всего до 10.'), *photoControls,
                 ft.Text('Поделиться рецептами смесей'), *mixtureChoices,
                 ft.Text('Сообщество пока общее только в пределах одной локальной базы.', size=12)]),
             actions=[ft.TextButton('Отмена', on_click=lambda event: page.close(dialog)),

@@ -363,7 +363,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
     async def test_catalog_filters_and_video_filter_are_real(self):
         from views.home_view import createSearchTab
         view = self.openToolsTab(createSearchTab)
-        level = find(view, ft.Dropdown, label='Сложность урока')
+        level = find(view, ft.Dropdown, label='Сложность')
         level.value = 'Начинающий'
         level.on_change(None)
         duration = find(view, ft.Dropdown, label='Время до (минут)')

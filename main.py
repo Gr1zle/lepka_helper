@@ -64,8 +64,11 @@ def main(page: ft.Page):
 
     def view_pop(e):
         if len(page.views) > 1:
-            page.views.pop()
-            page.go(page.views[-1].route)
+            removedView = page.views.pop()
+            if removedView.route.startswith('/workshop/'):
+                page.update()  # Сохраняем вкладку поиска, фильтры и позицию ленты.
+            else:
+                page.go(page.views[-1].route)
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop

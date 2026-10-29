@@ -8,6 +8,7 @@ import json
 from color_service import normalizeMixture
 from database import openDatabase, createPostWithPhotos
 from post_service import (POST_CATEGORIES, validatePostTitle, validatePostDescription, normalizeTags)
+from lesson_service import IDEA_LEVELS
 
 MAX_PROJECT_MIXTURES = 10
 
@@ -76,8 +77,27 @@ def validateSelectedIds(selectedIds, maximumCount):
         raise ValueError('Проверьте выбранные фотографии и смеси')
 
 
+def normalizeWorkshopInfo(workshopInfo):
+    if not isinstance(workshopInfo, dict) or workshopInfo.get('level') not in IDEA_LEVELS:
+        raise ValueError('Выберите сложность мастер-класса из списка')
+    minutes = workshopInfo.get('timeMinutes')
+    if isinstance(minutes, bool) or not str(minutes).strip().isdecimal():
+        raise ValueError('Укажите время целым числом от 1 до 1440 минут')
+    minutes = int(minutes)
+    if not 1 <= minutes <= 1440:
+        raise ValueError('Укажите время целым числом от 1 до 1440 минут')
+    normalized = {'level': workshopInfo['level'], 'timeMinutes': minutes}
+    for key, minimum in (('materials', 1), ('tools', 0)):
+        entries = workshopInfo.get(key)
+        if (not isinstance(entries, list) or not minimum <= len(entries) <= 30
+                or any(not isinstance(entry, str) or not 1 <= len(entry.strip()) <= 120 for entry in entries)):
+            raise ValueError('Укажите 1–30 материалов и до 30 инструментов, каждый не длиннее 120 символов')
+        normalized[key] = list(dict.fromkeys(entry.strip() for entry in entries))
+    return normalized
+
+
 def publishProject(projectId, userId, titleText, descriptionText, categoryName, tagsText,
-                   resultStepId, otherStepIds, projectMixtureIds):
+                   resultStepId, otherStepIds, projectMixtureIds, workshopInfo=None):
     if not isinstance(titleText, str) or not isinstance(descriptionText, str):
         return False, 'Введите название и описание работы', None
     titleText, descriptionText = titleText.strip(), descriptionText.strip()
@@ -88,9 +108,12 @@ def publishProject(projectId, userId, titleText, descriptionText, categoryName, 
         return False, 'Выберите категорию из списка', None
     try:
         tagsText = normalizeTags(tagsText)
-        validateSelectedIds(otherStepIds, 9)
-        validateSelectedIds([resultStepId, *otherStepIds], 10)
+        maximumSteps = 100 if workshopInfo is not None else 10
+        validateSelectedIds(otherStepIds, maximumSteps - 1)
+        validateSelectedIds([resultStepId, *otherStepIds], maximumSteps)
         validateSelectedIds(projectMixtureIds, MAX_PROJECT_MIXTURES)
+        if workshopInfo is not None:
+            workshopInfo = normalizeWorkshopInfo(workshopInfo)
     except ValueError as error:
         return False, str(error), None
 
@@ -104,13 +127,22 @@ def publishProject(projectId, userId, titleText, descriptionText, categoryName, 
         if project is None:
             return False, 'Проект не найден или недоступен', None
         photos, steps, mixtures = [], [], []
+        selectedSteps = []
         for stepId in [resultStepId, *otherStepIds]:
             step = connection.execute('SELECT stepDescription, photoImage FROM projectSteps WHERE projectId = ? AND stepId = ?',
                                       (projectId, stepId)).fetchone()
-            if step is None or not step['photoImage']:
+            if step is None or (not step['photoImage'] and (workshopInfo is None or stepId == resultStepId)):
                 return False, 'Добавьте фото выбранного этапа или измените выбор', None
-            steps.append({'description': step['stepDescription'], 'photoPosition': len(photos)})
-            photos.append(bytes(step['photoImage']))
+            position = len(photos) if step['photoImage'] else None
+            selectedSteps.append((stepId, {'description': step['stepDescription'], 'photoPosition': position}))
+            if step['photoImage']:
+                photos.append(bytes(step['photoImage']))
+                if len(photos) > 10:
+                    return False, 'В публикации допускается не больше 10 фото', None
+        # Обложка остаётся первой фотографией, шаги читаются в порядке проекта.
+        if workshopInfo is not None:
+            selectedSteps.sort(key=lambda item: item[0])
+        steps = [step for stepId, step in selectedSteps]
         for mixtureId in projectMixtureIds:
             record = connection.execute('SELECT mixtureJson FROM projectMixtures WHERE projectId = ? AND projectMixtureId = ?',
                                         (projectId, mixtureId)).fetchone()
@@ -120,7 +152,10 @@ def publishProject(projectId, userId, titleText, descriptionText, categoryName, 
                 mixtures.append(readMixture(record['mixtureJson']))
             except ValueError as error:
                 return False, str(error), None
-        details = json.dumps({'steps': steps, 'mixtures': mixtures}, ensure_ascii=False)
+        details = {'steps': steps, 'mixtures': mixtures}
+        if workshopInfo is not None:
+            details.update(formatVersion=2, workshopInfo=workshopInfo)
+        details = json.dumps(details, ensure_ascii=False)
         postId = createPostWithPhotos(userId, titleText, descriptionText, categoryName, tagsText, photos,
                                      details, existingConnection=connection)
     return True, 'Проект опубликован в сообществе', postId
@@ -132,16 +167,27 @@ def readPublishedProject(detailsJson):
     try:
         details = json.loads(detailsJson)
         steps, mixtures = details['steps'], details['mixtures']
-        if (not isinstance(steps, list) or not 1 <= len(steps) <= 10
+        isWorkshop = details.get('formatVersion') == 2
+        if (not isinstance(steps, list) or not 1 <= len(steps) <= (100 if isWorkshop else 10)
                 or not isinstance(mixtures, list) or len(mixtures) > MAX_PROJECT_MIXTURES):
             raise ValueError()
         publicSteps = []
+        photoPositions = []
         for index, step in enumerate(steps):
+            position = step['photoPosition']
             if (not isinstance(step['description'], str) or not 3 <= len(step['description']) <= 1000
-                    or type(step['photoPosition']) is not int or step['photoPosition'] != index):
+                    or (position is not None and (type(position) is not int or not 0 <= position < 10))
+                    or (not isWorkshop and (type(position) is not int or position != index))):
                 raise ValueError()
-            publicSteps.append({'description': step['description'], 'photoPosition': index})
-        return {'steps': publicSteps, 'mixtures': [readMixture(json.dumps(mixture)) for mixture in mixtures]}
+            if position is not None:
+                photoPositions.append(position)
+            publicSteps.append({'description': step['description'], 'photoPosition': position})
+        if sorted(photoPositions) != list(range(len(photoPositions))) or not photoPositions:
+            raise ValueError()
+        result = {'steps': publicSteps, 'mixtures': [readMixture(json.dumps(mixture)) for mixture in mixtures]}
+        if isWorkshop:
+            result['workshopInfo'] = normalizeWorkshopInfo(details['workshopInfo'])
+        return result
     except (KeyError, TypeError, ValueError, OverflowError):
         return None
 
