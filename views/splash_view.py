@@ -1,6 +1,8 @@
 import asyncio
 import flet as ft
 from app_state import getAppState
+from ui_helpers import getCurrentUser, showMessage
+from api_client import ApiError
 
 APP_TITLE = "Lepka Helper"
 APP_VERSION = "Версия 1.0.2"
@@ -17,7 +19,12 @@ def createSplashView(page):
         if page.route != "/":
             return
 
-        currentUser = page.session.get("currentUser")
+        try:
+            currentUser = getCurrentUser(page)
+        except ApiError as error:
+            page.go('/auth')
+            showMessage(page, str(error), True)
+            return
         if currentUser is not None:
             page.go("/home")
             return
