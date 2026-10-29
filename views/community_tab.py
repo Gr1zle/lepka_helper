@@ -5,14 +5,13 @@ from urllib.parse import urlsplit
 
 import flet as ft
 
-from database import getPostPhoto
 from photo_service import MAX_PHOTO_BYTES, PHOTO_EXTENSIONS, preparePhoto
 from photo_upload import createPhotoUpload, cancelPhotoUpload, takePhotoUpload
-from post_service import (POST_CATEGORIES, getCommunityPosts, getUserPosts, getPostComments,
-                          checkPostLikedByUser, removePost, removePostComment, editPostComment,
-                          savePost, savePostComment, togglePostLike)
+from post_service import POST_CATEGORIES
 from ui_helpers import authenticatedAction, isWebClient, showMessage
 from views.project_sharing import createPublishedProject
+from community_gateway import CommunityClient, ownsItem
+from ui_helpers import serverAction
 
 PRIMARY_COLOR = '#FF6B6B'
 SECONDARY_COLOR = '#4ECDC4'
@@ -26,7 +25,8 @@ def webAddress(page, path):
     return f'{scheme}://{address.netloc}{path}'
 
 
-def createPhotoViewer(page, photoIds):
+def createPhotoViewer(page, photoIds, client=None):
+    client = client or CommunityClient(None)
     if not photoIds:
         return ft.Text('Фотография не добавлена в старой версии приложения', size=12)
     position = [0]
@@ -35,10 +35,10 @@ def createPhotoViewer(page, photoIds):
 
     def render():
         photoId = photoIds[position[0]]
-        if isWebClient(page):
+        if isWebClient(page) and not client.remote:
             image.src = webAddress(page, f'/post-photos/{photoId}')
         else:
-            data = getPostPhoto(photoId)
+            data = client.getPhoto(photoId)
             image.src_base64 = base64.b64encode(data).decode() if data else ''
         counter.value = f'Фото {position[0] + 1} из {len(photoIds)}'
 
@@ -56,6 +56,7 @@ def createPhotoViewer(page, photoIds):
 
 
 def createPostCard(page, postItem, currentUser, refreshCallback):
+    client = CommunityClient(currentUser)
     postId = postItem['postId']
     deleted = postItem['isDeleted']
     comments = ft.Column(spacing=8)
@@ -63,12 +64,12 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
 
     def refreshComments():
         comments.controls.clear()
-        for item in getPostComments(postId):
+        for item in client.getComments(postId):
             actions = []
-            if currentUser and item['userId'] == currentUser['userId']:
+            if ownsItem(item, currentUser):
                 @authenticatedAction(page, currentUser)
                 def delete(event, commentId=item['commentId']):
-                    success = removePostComment(commentId, currentUser['userId'])
+                    success = client.deleteComment(commentId)
                     refreshComments()
                     showMessage(page, 'Комментарий удалён' if success else 'Комментарий недоступен', not success)
                     page.update()
@@ -80,7 +81,7 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
 
                     @authenticatedAction(page, currentUser)
                     def save(event):
-                        success, message = editPostComment(comment['commentId'], currentUser['userId'], field.value)
+                        success, message = client.editComment(comment['commentId'], field.value)
                         if success:
                             page.close(dialog)
                             refreshComments()
@@ -103,7 +104,7 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
 
     @authenticatedAction(page, currentUser)
     def like(event):
-        _, count = togglePostLike(postId, currentUser['userId'])
+        _, count = client.toggleLike(postId)
         if count is None:
             showMessage(page, 'Публикация недоступна', True)
             return
@@ -114,7 +115,7 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
     def deletePost(event):
         @authenticatedAction(page, currentUser)
         def confirm(event):
-            success = removePost(postId, currentUser['userId'])
+            success = client.deletePost(postId)
             page.close(dialog)
             refreshCallback()
             showMessage(page, 'Публикация удалена' if success else 'Публикация недоступна', not success)
@@ -127,7 +128,7 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
 
     @authenticatedAction(page, currentUser)
     def addComment(event):
-        success, message, _ = savePostComment(postId, currentUser['userId'], commentField.value)
+        success, message, _ = client.saveComment(postId, commentField.value)
         if success:
             commentField.value = ''
             refreshComments()
@@ -136,17 +137,17 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
 
     controls = [ft.Text(postItem['titleText'], size=18, weight=ft.FontWeight.BOLD),
                 ft.Text(f"Автор: {postItem['nickname']} · {postItem['categoryName']}", size=12),
-                createPhotoViewer(page, postItem.get('photoIds', [])) if not deleted else ft.Text('Работа удалена пользователем'),
+                createPhotoViewer(page, postItem.get('photoIds', []), client) if not deleted else ft.Text('Работа удалена пользователем'),
                 ft.Text(postItem['descriptionText'])]
     if postItem['tagsText']:
         controls.append(ft.Text('Теги: ' + postItem['tagsText'], size=12))
     if not deleted:
         controls.append(createPublishedProject(page, postId, currentUser))
     if not deleted:
-        liked = currentUser and checkPostLikedByUser(postId, currentUser['userId'])
+        liked = client.isLiked(postItem)
         actions = [ft.TextButton(f"{'❤️' if liked else '🤍'} {postItem['likesCount']}",
                     tooltip='Поставить или снять лайк', disabled=currentUser is None, on_click=like)]
-        if currentUser and currentUser['userId'] == postItem['userId']:
+        if ownsItem(postItem, currentUser):
             actions.append(ft.TextButton('Удалить', on_click=deletePost))
         controls.append(ft.Row(controls=actions, wrap=True))
     refreshComments()
@@ -159,6 +160,7 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
 
 
 def createHomeTab(page, currentUser, nickname):
+    client = CommunityClient(currentUser)
     posts = ft.Column(spacing=12)
     title = ft.TextField(label='Название работы', max_length=100)
     description = ft.TextField(label='Описание', multiline=True, min_lines=3, max_lines=5, max_length=2000)
@@ -172,11 +174,11 @@ def createHomeTab(page, currentUser, nickname):
     onlyMine = ft.Checkbox(label='Только мои работы', visible=currentUser is not None, value=False)
 
     def feedAction(callback):
-        return authenticatedAction(page, currentUser)(callback) if currentUser else callback
+        return authenticatedAction(page, currentUser)(callback) if currentUser else serverAction(page)(callback)
 
     @feedAction
     def refreshPosts(event=None):
-        items = getUserPosts(currentUser['userId']) if onlyMine.value and currentUser else getCommunityPosts()
+        items = client.getPosts(mine=bool(onlyMine.value and currentUser))
         posts.controls = [createPostCard(page, item, currentUser, refreshPosts) for item in items]
         if not items:
             posts.controls = [ft.Text('Публикаций пока нет.')]
@@ -281,7 +283,7 @@ def createHomeTab(page, currentUser, nickname):
         if pending:
             showMessage(page, 'Дождитесь загрузки всех фотографий', True)
             return
-        success, message, _ = savePost(currentUser['userId'], title.value, description.value,
+        success, message, _ = client.publishPost(title.value, description.value,
                                        category.value, tags.value, photos)
         if success:
             title.value, description.value, tags.value = '', '', ''
@@ -297,7 +299,8 @@ def createHomeTab(page, currentUser, nickname):
     refreshPosts()
     return ft.ListView(expand=True, padding=16, spacing=12, controls=[
         ft.Text(f'Привет, {nickname}!', size=22, weight=ft.FontWeight.BOLD),
-        ft.Text('Работы и обсуждения на этом устройстве. Синхронизация между устройствами ещё не подключена.', size=12),
+        ft.Text('Работы пользователей сервера' if client.remote else
+                'Работы на этом устройстве. Для общего сообщества подключите сервер.', size=12),
         ft.Container(padding=18, border_radius=18, bgcolor=PRIMARY_COLOR, content=ft.Column(controls=[
             ft.Text('Челлендж недели', color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
             ft.Text('Слепи милого котика', size=22, color=ft.Colors.WHITE),
@@ -311,13 +314,14 @@ def createHomeTab(page, currentUser, nickname):
 
 
 def createMyWorksButton(page, currentUser, onChanged=None):
+    client = CommunityClient(currentUser)
     @authenticatedAction(page, currentUser)
     def openWorks(event):
         items = ft.Column(scroll=ft.ScrollMode.AUTO, width=340, height=420)
 
         @authenticatedAction(page, currentUser)
         def refresh():
-            postItems = getUserPosts(currentUser['userId'])
+            postItems = client.getPosts(mine=True)
             items.controls = [createPostCard(page, item, currentUser, refresh)
                               for item in postItems] or [ft.Text('Пока нет ваших работ.')]
             if onChanged:
@@ -328,3 +332,27 @@ def createMyWorksButton(page, currentUser, onChanged=None):
         page.open(dialog)
     return ft.OutlinedButton('Мои работы', icon=ft.Icons.PHOTO_LIBRARY, on_click=openWorks,
                               disabled=currentUser is None)
+
+
+def createLocalWorksButton(page, currentUser):
+    client = CommunityClient(currentUser)
+
+    @authenticatedAction(page, currentUser)
+    def openLocal(event):
+        items = ft.Column(scroll=ft.ScrollMode.AUTO, width=340, height=420)
+        for item in client.getLocalPosts():
+            @authenticatedAction(page, currentUser)
+            def export(event, localId=item['postId']):
+                success, message, _ = client.exportLocalPost(localId)
+                showMessage(page, message, not success)
+            items.controls.append(ft.Card(content=ft.Container(padding=12, content=ft.Column(controls=[
+                ft.Text(item['titleText'], weight=ft.FontWeight.BOLD), ft.Text(item['descriptionText']),
+                ft.Text(f"Фотографий: {len(item['photoIds'])}"),
+                ft.OutlinedButton('Отправить эту работу на сервер', on_click=export)]))))
+        if not items.controls:
+            items.controls.append(ft.Text('Сохранённых местных публикаций этого аккаунта нет.'))
+        dialog = ft.AlertDialog(title=ft.Text('Публикации на этом устройстве'), content=items,
+            actions=[ft.TextButton('Закрыть', on_click=lambda event: page.close(dialog))])
+        page.open(dialog)
+    return ft.OutlinedButton('Публикации на этом устройстве', visible=client.remote and currentUser is not None,
+                              icon=ft.Icons.PHONE_ANDROID, on_click=openLocal)

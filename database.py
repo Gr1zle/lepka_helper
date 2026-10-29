@@ -234,6 +234,19 @@ def initializeDatabase():
         FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE,
         FOREIGN KEY (postId) REFERENCES posts(postId) ON DELETE CASCADE
     )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS communityRequests (
+        userId INTEGER NOT NULL, requestId TEXT NOT NULL, payloadHash TEXT NOT NULL, postId INTEGER NOT NULL,
+        PRIMARY KEY (userId, requestId),
+        FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE,
+        FOREIGN KEY (postId) REFERENCES posts(postId) ON DELETE CASCADE
+    )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS localPostExports (
+        apiUrl TEXT NOT NULL, userId INTEGER NOT NULL, localPostId INTEGER NOT NULL,
+        requestId TEXT NOT NULL, serverPostId INTEGER,
+        PRIMARY KEY (apiUrl, userId, localPostId),
+        FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE,
+        FOREIGN KEY (localPostId) REFERENCES posts(postId) ON DELETE CASCADE
+    )""")
     cursor.execute("""CREATE TABLE IF NOT EXISTS commentEvents (
         userId INTEGER NOT NULL, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (userId) REFERENCES users(userId)

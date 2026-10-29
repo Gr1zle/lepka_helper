@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
+from backend.community import installCommunityRoutes
 
 import account_security as security
 import auth_service as accounts
@@ -93,6 +94,10 @@ def currentUser(credentials: HTTPAuthorizationCredentials | None = Depends(beare
     return user
 
 
+def optionalUser(credentials: HTTPAuthorizationCredentials | None = Depends(bearer)):
+    return currentUser(credentials) if credentials else None
+
+
 def resultResponse(result):
     success, message, *data = result
     if not success:
@@ -116,7 +121,7 @@ def createApp(dataDirectory=None):
         finally:
             database.DATABASE_PATH = previousPath
 
-    application = FastAPI(title='Lepka Helper Accounts', version='1.0', lifespan=lifespan)
+    application = FastAPI(title='Lepka Helper API', version='1.1', lifespan=lifespan)
     attempts = defaultdict(deque)
     attemptsLock = threading.Lock()
 
@@ -138,7 +143,10 @@ def createApp(dataDirectory=None):
                     return JSONResponse({'detail': 'Слишком много запросов. Повторите через минуту'},
                                         status_code=429, headers={'Retry-After': '60'})
                 history.append(now)
-        return await callNext(request)
+        response = await callNext(request)
+        if request.url.path.startswith('/community/'):
+            response.headers['Cache-Control'] = 'no-store'
+        return response
 
     @application.exception_handler(RequestValidationError)
     async def validationError(request, error):
@@ -226,6 +234,7 @@ def createApp(dataDirectory=None):
     def delete(body: DeleteInput, user=Depends(currentUser)):
         return resultResponse(accounts.deleteUserAccount(user['userId'], body.password))
 
+    installCommunityRoutes(application, currentUser, optionalUser)
     return application
 
 

@@ -68,11 +68,11 @@ def saveUserWorkshopState(userId, postId, state):
         return normalized
 
 
-def addWorkshopAsProject(postId, userId):
+def addWorkshopAsProject(postId, userId, workshopData=None):
     with openDatabase() as connection:
         connection.execute('BEGIN IMMEDIATE')
         user = connection.execute('SELECT userId FROM users WHERE userId = ? AND isBlocked = 0', (userId,)).fetchone()
-        workshop = getWorkshop(postId, connection)
+        workshop = workshopData if workshopData is not None else getWorkshop(postId, connection)
         if user is None or workshop is None:
             return False, 'Мастер-класс или аккаунт недоступны', None
         info = f"Мастер-класс: {workshop['title']}\nАвтор: {workshop['nickname']}\n"

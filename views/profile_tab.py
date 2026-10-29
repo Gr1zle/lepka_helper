@@ -5,8 +5,8 @@ from api_client import getApiUrl
 from account_gateway import (deleteUserAccount, requestEmailChange, confirmEmailChange,
                              getUserProfile, saveUserProfile, saveUserSettings, changeUserPassword, saveUserAvatar, removeUserAvatar)
 from photo_picker import createPhotoPicker
-from post_service import getCommunityPosts
-from views.community_tab import createMyWorksButton
+from community_gateway import CommunityClient
+from views.community_tab import createMyWorksButton, createLocalWorksButton
 from project_service import getUserProjects
 from profile_service import (
     AGE_CATEGORIES, FAVORITE_COLOR_OPTIONS, LANGUAGE_OPTIONS, THEME_OPTIONS,
@@ -94,10 +94,9 @@ def createProfileTab(page, nickname, email):
         userProjectItems = getUserProjects(currentUser["userId"])
         userProjectsCount = len(userProjectItems)
 
-        for postItem in getCommunityPosts():
-            if postItem["userId"] == currentUser["userId"]:
-                userPostsCount += 1
-                userLikesCount += postItem["likesCount"]
+        for postItem in CommunityClient(currentUser).getPosts(mine=True):
+            userPostsCount += 1
+            userLikesCount += postItem["likesCount"]
 
     nicknameField = ft.TextField(
         label="Никнейм",
@@ -618,6 +617,7 @@ def createProfileTab(page, nickname, email):
                                 weight=ft.FontWeight.BOLD,
                             ),
                             createMyWorksButton(page, currentUser, refreshPostStats),
+                            createLocalWorksButton(page, currentUser),
                             ft.Row(
                                 controls=[
                                     createStatItem(userPostsCount, "Работ", PRIMARY_COLOR, "#FFF0F0"),

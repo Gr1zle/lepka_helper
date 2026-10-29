@@ -4,6 +4,7 @@
 Личные заметки, дедлайн и идентификаторы проекта в неё не попадают.
 """
 import json
+from contextlib import nullcontext
 
 from color_service import normalizeMixture
 from database import openDatabase, createPostWithPhotos
@@ -96,8 +97,8 @@ def normalizeWorkshopInfo(workshopInfo):
     return normalized
 
 
-def publishProject(projectId, userId, titleText, descriptionText, categoryName, tagsText,
-                   resultStepId, otherStepIds, projectMixtureIds, workshopInfo=None):
+def prepareProjectPublication(projectId, userId, titleText, descriptionText, categoryName, tagsText,
+                               resultStepId, otherStepIds, projectMixtureIds, workshopInfo=None, existingConnection=None):
     if not isinstance(titleText, str) or not isinstance(descriptionText, str):
         return False, 'Введите название и описание работы', None
     titleText, descriptionText = titleText.strip(), descriptionText.strip()
@@ -117,10 +118,12 @@ def publishProject(projectId, userId, titleText, descriptionText, categoryName, 
     except ValueError as error:
         return False, str(error), None
 
-    with openDatabase() as connection:
+    context = openDatabase() if existingConnection is None else nullcontext(existingConnection)
+    with context as connection:
         # Проверки и копирование выполняются в одной транзакции: проект нельзя
         # удалить или изменить между проверкой владельца и сохранением фото.
-        connection.execute('BEGIN IMMEDIATE')
+        if existingConnection is None:
+            connection.execute('BEGIN')
         project = connection.execute('''SELECT pr.projectId FROM projects AS pr
             JOIN users AS usr ON usr.userId = pr.userId
             WHERE pr.projectId = ? AND pr.userId = ? AND usr.isBlocked = 0''', (projectId, userId)).fetchone()
@@ -156,8 +159,20 @@ def publishProject(projectId, userId, titleText, descriptionText, categoryName, 
         if workshopInfo is not None:
             details.update(formatVersion=2, workshopInfo=workshopInfo)
         details = json.dumps(details, ensure_ascii=False)
-        postId = createPostWithPhotos(userId, titleText, descriptionText, categoryName, tagsText, photos,
-                                     details, existingConnection=connection)
+    return True, 'Материалы публикации подготовлены', {
+        'titleText': titleText, 'descriptionText': descriptionText, 'categoryName': categoryName,
+        'tagsText': tagsText, 'photos': photos, 'projectDetailsJson': details}
+
+
+def publishProject(projectId, userId, titleText, descriptionText, categoryName, tagsText,
+                   resultStepId, otherStepIds, projectMixtureIds, workshopInfo=None):
+    with openDatabase() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        success, message, payload = prepareProjectPublication(projectId, userId, titleText, descriptionText,
+            categoryName, tagsText, resultStepId, otherStepIds, projectMixtureIds, workshopInfo, connection)
+        if not success:
+            return False, message, None
+        postId = createPostWithPhotos(userId, **payload, existingConnection=connection)
     return True, 'Проект опубликован в сообществе', postId
 
 
@@ -207,6 +222,17 @@ def copyPublishedMixture(postId, mixtureIndex, userId):
         if user is None or not details or type(mixtureIndex) is not int or not 0 <= mixtureIndex < len(details['mixtures']):
             return False, 'Публикация, рецепт или аккаунт недоступны', None
         mixture = details['mixtures'][mixtureIndex]
+        return saveMixtureCopy(userId, mixture, connection)
+
+
+def saveMixtureCopy(userId, mixture, existingConnection=None):
+    mixture = normalizeMixture(mixture['mixtureName'], mixture['resultHex'], mixture['totalWeight'], mixture['recipeItems'])
+    context = openDatabase() if existingConnection is None else nullcontext(existingConnection)
+    with context as connection:
+        if existingConnection is None:
+            connection.execute('BEGIN IMMEDIATE')
+        if connection.execute('SELECT userId FROM users WHERE userId = ? AND isBlocked = 0', (userId,)).fetchone() is None:
+            return False, 'Аккаунт недоступен', None
         recipeJson = json.dumps(mixture['recipeItems'], ensure_ascii=False)
         existing = connection.execute('''SELECT mixtureId FROM colorMixtures
             WHERE userId = ? AND resultHex = ? AND totalWeight = ? AND recipeJson = ?''',

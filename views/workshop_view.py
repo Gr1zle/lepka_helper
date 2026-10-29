@@ -3,19 +3,18 @@ import base64
 
 import flet as ft
 
-from database import getPostPhoto
-from project_sharing import copyPublishedMixture
-from workshop_service import (getWorkshop, getUserWorkshopState, saveUserWorkshopState, addWorkshopAsProject)
 from ui_helpers import authenticatedAction, showMessage
+from community_gateway import CommunityClient
 
 
 def createWorkshopView(page, postId, currentUser, onBack):
     # Импорт здесь позволяет использовать тот же вывод рецепта, что и в проекте.
     from views.project_sharing import createMixtureRecipe
 
-    workshop = getWorkshop(postId)
+    client = CommunityClient(currentUser)
+    workshop = client.getWorkshop(postId)
     body = ft.Column(spacing=14)
-    state = [getUserWorkshopState(currentUser['userId'], postId) if currentUser and workshop else
+    state = [client.getState(postId) if currentUser and workshop else
              {'lastStep': 0, 'completedSteps': [], 'checkedMaterials': [], 'isCompleted': False}]
 
     def action(callback):
@@ -23,10 +22,10 @@ def createWorkshopView(page, postId, currentUser, onBack):
 
     def persist():
         if currentUser:
-            state[0] = saveUserWorkshopState(currentUser['userId'], postId, state[0])
+            state[0] = client.saveState(postId, state[0])
 
     def updateContent():
-        if getWorkshop(postId) is None:
+        if client.getWorkshop(postId) is None:
             body.controls = [ft.TextButton('← Назад', on_click=onBack), ft.Text('Мастер-класс удалён или недоступен')]
             return
         currentIndex = state[0]['lastStep']
@@ -80,7 +79,7 @@ def createWorkshopView(page, postId, currentUser, onBack):
                                        'Войдите, чтобы сохранять отметки и прогресс', size=12))
 
         photoPosition = step['photoPosition']
-        imageData = getPostPhoto(workshop['photoIds'][photoPosition]) if photoPosition is not None else None
+        imageData = client.getPhoto(workshop['photoIds'][photoPosition]) if photoPosition is not None else None
         image = (ft.Image(src_base64=base64.b64encode(imageData).decode(), height=220, fit=ft.ImageFit.CONTAIN)
                  if imageData else ft.Text('Автор не добавил фотографию этого шага.', size=12))
         completedCount = len(state[0]['completedSteps'])
@@ -113,14 +112,14 @@ def createWorkshopView(page, postId, currentUser, onBack):
         for index, mixture in enumerate(workshop['mixtures']):
             @authenticatedAction(page, currentUser)
             def saveRecipe(event, mixtureIndex=index):
-                success, message, _ = copyPublishedMixture(postId, mixtureIndex, currentUser['userId'])
+                success, message, _ = client.copyRecipe(postId, mixtureIndex)
                 showMessage(page, message, not success)
             body.controls.extend([createMixtureRecipe(mixture), ft.OutlinedButton('Сохранить рецепт в мою палитру',
                 disabled=currentUser is None, on_click=saveRecipe)])
 
         @authenticatedAction(page, currentUser)
         def addProject(event):
-            success, message, _ = addWorkshopAsProject(postId, currentUser['userId'])
+            success, message, _ = client.copyProject(postId)
             showMessage(page, message, not success)
         body.controls.append(ft.ElevatedButton('Добавить как проект', icon=ft.Icons.ADD, height=48,
                                               disabled=currentUser is None, on_click=addProject))
@@ -132,7 +131,7 @@ def createWorkshopView(page, postId, currentUser, onBack):
 
 
 def openWorkshop(page, postId, currentUser):
-    if getWorkshop(postId) is None:
+    if CommunityClient(currentUser).getWorkshop(postId) is None:
         showMessage(page, 'Мастер-класс удалён или недоступен', True)
         return
 

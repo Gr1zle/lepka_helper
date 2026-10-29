@@ -5,11 +5,11 @@ import flet as ft
 
 from color_service import getUserColorMixtures
 from project_service import getProjectSteps, getProjectStepPhoto
-from project_sharing import (getProjectMixtures, addProjectMixture, removeProjectMixture,
-                             publishProject, getPublishedProject)
+from project_sharing import getProjectMixtures, addProjectMixture, removeProjectMixture
 from post_service import POST_CATEGORIES
 from ui_helpers import authenticatedAction, showMessage
 from lesson_service import IDEA_LEVELS
+from community_gateway import CommunityClient
 
 
 def createMixtureRecipe(mixture):
@@ -23,7 +23,7 @@ def createMixtureRecipe(mixture):
 
 
 def createPublishedProject(page, postId, currentUser):
-    details = getPublishedProject(postId)
+    details = CommunityClient(currentUser).getWorkshop(postId)
     if not details:
         return ft.Container()
     def openDetail(event):
@@ -31,13 +31,13 @@ def createPublishedProject(page, postId, currentUser):
         openWorkshop(page, postId, currentUser)
     if currentUser:
         openDetail = authenticatedAction(page, currentUser)(openDetail)
-    info = details.get('workshopInfo')
-    caption = f"{info['level']} · {info['timeMinutes']} мин · " if info else ''
+    caption = f"{details['level']} · {details['timeMinutes']} мин · " if details['level'] else ''
     return ft.Column(controls=[ft.Text(caption + f"Шагов: {len(details['steps'])}", size=12),
         ft.OutlinedButton('Открыть мастер-класс', icon=ft.Icons.MENU_BOOK, height=48, on_click=openDetail)])
 
 
 def createProjectSharing(page, currentUser, projectItem, refreshCallback):
+    client = CommunityClient(currentUser)
     projectId, userId = projectItem['projectId'], currentUser['userId']
     mixtures = getProjectMixtures(projectId, userId)
     controls = [ft.Text('Смеси проекта', weight=ft.FontWeight.BOLD)]
@@ -123,7 +123,7 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
         @authenticatedAction(page, currentUser)
         def publish(event):
             resultId = int(result.value)
-            success, message, _ = publishProject(projectId, userId, title.value, description.value,
+            success, message, _ = client.publishProject(projectId, title.value, description.value,
                 category.value, tags.value, resultId,
                 [check.data for check in photoChoices if check.value and check.data != resultId],
                 [check.data for check in mixtureChoices if check.value], workshopInfo={
@@ -144,7 +144,8 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
                 ft.Text('Шаги мастер-класса в порядке проекта. Итоговый этап включается автоматически. '
                         'Можно выбрать текстовые шаги без фото; фотографий всего до 10.'), *photoControls,
                 ft.Text('Поделиться рецептами смесей'), *mixtureChoices,
-                ft.Text('Сообщество пока общее только в пределах одной локальной базы.', size=12)]),
+                ft.Text('Мастер-класс будет доступен пользователям сервера' if client.remote else
+                        'Сообщество пока общее только в пределах одной локальной базы.', size=12)]),
             actions=[ft.TextButton('Отмена', on_click=lambda event: page.close(dialog)),
                      ft.ElevatedButton('Опубликовать проект', on_click=publish)])
         page.open(dialog)

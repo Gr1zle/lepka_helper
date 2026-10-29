@@ -25,7 +25,7 @@ from date_field import createDeadlineField
 from photo_picker import createPhotoPicker
 from views.community_tab import createHomeTab, createPostCard
 from views.project_sharing import createProjectSharing
-from workshop_service import searchCommunityWorks
+from community_gateway import CommunityClient
 
 from project_service import (
     PROJECT_CATEGORIES, changeProjectStepStatus, getUserProjects,
@@ -426,14 +426,16 @@ def createSearchTab(page, currentUser):
         for lessonItem in lessonItems:
             resultColumn.controls.append(createLessonCard(lessonItem))
 
-        works = searchCommunityWorks(searchField.value, categoryDropdown.value, levelDropdown.value,
-                                     None if timeDropdown.value == 'Любое' else timeDropdown.value, videoCheckbox.value)
+        works = CommunityClient(currentUser).getPosts(search={
+            'queryText': searchField.value or '', 'categoryName': categoryDropdown.value, 'levelName': levelDropdown.value,
+            'maxTime': None if timeDropdown.value == 'Любое' else timeDropdown.value, 'onlyVideo': videoCheckbox.value})
         if works:
             resultColumn.controls.append(ft.Text('Работы сообщества', size=18, weight=ft.FontWeight.BOLD))
             resultColumn.controls.extend(createPostCard(page, item, currentUser, refreshSearchResults) for item in works)
         if not resultColumn.controls:
             resultColumn.controls.append(ft.Text('Ничего не найдено. Попробуйте изменить запрос или фильтры.'))
 
+    @serverAction(page)
     def handleSearchChange(event):
         refreshSearchResults()
         refreshMainContent()

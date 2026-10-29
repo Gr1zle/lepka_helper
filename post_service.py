@@ -72,7 +72,8 @@ def normalizeTags(tagsText):
     return ", ".join(tagItems)
 
 
-def savePost(userId, titleText, descriptionText, categoryName, tagsText, photoFiles=None):
+def savePost(userId, titleText, descriptionText, categoryName, tagsText, photoFiles=None,
+             projectDetailsJson='', existingConnection=None):
     if not isinstance(titleText, str) or not isinstance(descriptionText, str):
         return False, 'Введите название и описание работы', None
     titleText = titleText.strip()
@@ -104,6 +105,17 @@ def savePost(userId, titleText, descriptionText, categoryName, tagsText, photoFi
     except ValueError as error:
         return False, str(error), None
 
+    if projectDetailsJson:
+        import json
+        from project_sharing import readPublishedProject
+        details = readPublishedProject(projectDetailsJson)
+        if details is None or any(step['photoPosition'] is not None and step['photoPosition'] >= len(photos)
+                                  for step in details['steps']):
+            return False, 'Проверьте данные мастер-класса и фотографии шагов', None
+        if 'workshopInfo' in details:
+            details['formatVersion'] = 2
+        projectDetailsJson = json.dumps(details, ensure_ascii=False)
+
     postId = createPostWithPhotos(
         userId,
         titleText,
@@ -111,6 +123,7 @@ def savePost(userId, titleText, descriptionText, categoryName, tagsText, photoFi
         categoryName,
         tagsText,
         photos,
+        projectDetailsJson, existingConnection=existingConnection,
     )
     if postId is None:
         return False, 'Аккаунт недоступен', None
