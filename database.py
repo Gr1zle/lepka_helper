@@ -324,23 +324,12 @@ def getUserByNickname(nickname):
 
 
 def createUser(email, passwordHash, passwordSalt, nickname, emailVerified=True):
-    connection = getConnection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        INSERT INTO users (email, passwordHash, passwordSalt, nickname, emailVerified)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (email, passwordHash, passwordSalt, nickname, int(emailVerified)),
-    )
-
-    userId = cursor.lastrowid
-
-    connection.commit()
-    connection.close()
-
-    return userId
+    # Соединение закрывается и при конфликте email/ника — важно для Windows.
+    with openDatabase() as connection:
+        cursor = connection.execute(
+            '''INSERT INTO users (email, passwordHash, passwordSalt, nickname, emailVerified)
+            VALUES (?, ?, ?, ?, ?)''', (email, passwordHash, passwordSalt, nickname, int(emailVerified)))
+        return cursor.lastrowid
 
 
 def createColorMixture(userId, mixtureName, resultHex, totalWeight, recipeJson):

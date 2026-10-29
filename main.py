@@ -10,8 +10,8 @@ from views.splash_view import createSplashView
 from views.onboarding_view import createOnboardingView
 from views.auth_view import createAuthView
 from views.home_view import createHomeView
+from app_info import APP_TITLE
 
-APP_TITLE = "Lepka Helper"
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
 
@@ -78,8 +78,12 @@ def main(page: ft.Page):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Lepka Helper")
     parser.add_argument("--desktop", action="store_true", help="Открыть отдельное окно")
+    parser.add_argument('--local', action='store_true', help='Запустить на ПК без API, с локальным тестовым входом')
     parser.add_argument("--port", type=int, default=8550, help="Порт веб-версии")
     options = parser.parse_args()
+    if options.local:
+        import os
+        os.environ['LEPKA_FORCE_LOCAL'] = '1'
     if options.desktop:
         ft.app(target=main, view=ft.AppView.FLET_APP, host="127.0.0.1", port=options.port,
                assets_dir=str(Path(__file__).resolve().parent / "assets"))

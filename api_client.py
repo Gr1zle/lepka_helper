@@ -14,6 +14,9 @@ class ApiError(Exception):
 
 
 def getApiUrl():
+    # Явный режим запуска на ПК. Флаг не меняет файл настроек и базу сервера.
+    if os.environ.get('LEPKA_FORCE_LOCAL') == '1':
+        return ''
     address = os.environ.get('LEPKA_API_URL', '').strip()
     if not address:
         configPath = Path(__file__).resolve().parent / 'assets' / 'client_config.json'

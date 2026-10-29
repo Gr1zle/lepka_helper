@@ -16,6 +16,25 @@ def showMessage(page, messageText, isError=False):
                          bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400))
 
 
+def confirmAction(page, titleText, messageText, callback):
+    """callback повторно проверяет сессию в момент подтверждения."""
+    def confirm(event):
+        page.close(dialog)
+        callback()
+    dialog = ft.AlertDialog(modal=True, title=ft.Text(titleText), content=ft.Text(messageText), actions=[
+        ft.TextButton('Отмена', on_click=lambda event: page.close(dialog)),
+        ft.ElevatedButton('Подтвердить удаление', on_click=confirm)])
+    page.open(dialog)
+
+
+def createLoadError(page, error, retry):
+    return ft.Container(padding=24, content=ft.Column(spacing=16, controls=[
+        ft.Icon(ft.Icons.CLOUD_OFF, size=48), ft.Text('Не удалось открыть раздел', size=22),
+        ft.Text(str(error)), ft.Text('Проверьте, запущен ли сервер, и повторите попытку.'),
+        ft.ElevatedButton('Повторить загрузку', height=48, on_click=lambda event: retry()),
+        ft.TextButton('Выйти ко входу', on_click=lambda event: logoutPage(page))]))
+
+
 def serverAction(page):
     """Сетевая ошибка не превращается в выход; 401 завершает сессию."""
     def decorate(callback):

@@ -7,6 +7,8 @@ from api_client import getApiUrl
 from ui_helpers import serverAction, showMessage as showPageMessage
 from account_gateway import getUserProfile
 from validators import validateEmail, validateNickname, validatePassword, validatePasswordConfirmation
+from app_info import APP_TITLE
+from views.about_dialog import showDataInfo
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -18,15 +20,14 @@ def createAuthView(page):
 
     loginEmailField = ft.TextField(label="Email", value="" if remoteMode else "test@email.com", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
     loginPasswordField = ft.TextField(label="Пароль", value="" if remoteMode else "Test123456", prefix_icon=ft.Icons.LOCK, password=True, can_reveal_password=True, border_radius=12)
-    rememberMeSwitch = ft.Switch(label="Запомнить меня (пока недоступно)", value=False, disabled=True)
 
     registerEmailField = ft.TextField(label="Email", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
     registerNicknameField = ft.TextField(label="Никнейм", prefix_icon=ft.Icons.PERSON, border_radius=12)
     registerPasswordField = ft.TextField(label="Пароль", prefix_icon=ft.Icons.LOCK, password=True, can_reveal_password=True, border_radius=12)
     registerPasswordConfirmationField = ft.TextField(label="Подтверждение пароля", prefix_icon=ft.Icons.LOCK_OUTLINE, password=True, can_reveal_password=True, border_radius=12)
-    policyCheckbox = ft.Checkbox(value=False)
+    policyCheckbox = ft.Checkbox(value=False, on_change=lambda event: page.update())
     policyRow = ft.Row(
-        controls=[policyCheckbox, ft.Text("Я согласен с политикой конфиденциальности", size=13, expand=True)],
+        controls=[policyCheckbox, ft.Text("Я согласен с условиями использования и обработки данных", size=13, expand=True)],
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
@@ -123,9 +124,6 @@ def createAuthView(page):
         if email:
             sendCode()
 
-    def handleGoogleStub(event):
-        showMessage("Вход через Google пока не подключён.", True)
-
     def closeDialog(event=None):
         if dialog is not None:
             page.close(dialog)
@@ -202,8 +200,8 @@ def createAuthView(page):
             controls=[
                 loginEmailField,
                 loginPasswordField,
-                rememberMeSwitch,
-                ft.TextButton(text="Заполнить тестовые данные", disabled=remoteMode, tooltip="Демонстрационный аккаунт доступен только в локальном режиме", icon=ft.Icons.BOLT, on_click=lambda e: (setattr(loginEmailField, "value", "test@email.com"), setattr(loginPasswordField, "value", "Test123456"), page.update())),
+                ft.Text('Вход через сервер' if remoteMode else 'Локальный режим: данные на этом компьютере', size=12),
+                ft.TextButton(text="Заполнить тестовые данные", tooltip="На сервере тестовый аккаунт нужно создать отдельно" if remoteMode else "Тестовый аккаунт на этом компьютере", icon=ft.Icons.BOLT, on_click=lambda e: (setattr(loginEmailField, "value", "test@email.com"), setattr(loginPasswordField, "value", "Test123456"), page.update())),
                 ft.ElevatedButton(
                     text="Войти",
                     icon=ft.Icons.LOGIN,
@@ -212,7 +210,6 @@ def createAuthView(page):
                     style=ft.ButtonStyle(bgcolor=PRIMARY_COLOR, color=ft.Colors.WHITE, shape=ft.RoundedRectangleBorder(radius=12)),
                     on_click=handleLogin,
                 ),
-                ft.OutlinedButton(text="Войти через Google", icon=ft.Icons.LOGIN, height=48, width=320, on_click=handleGoogleStub),
                 ft.TextButton(text="Забыли пароль?", on_click=openPasswordRecoveryDialog),
                 ft.TextButton(text="Подтвердить регистрацию", on_click=openRegistrationDialog),
             ],
@@ -232,6 +229,7 @@ def createAuthView(page):
                 registerPasswordField,
                 registerPasswordConfirmationField,
                 policyRow,
+                ft.TextButton('Условия использования и данные', on_click=lambda event: showDataInfo(page)),
                 ft.ElevatedButton(
                     text="Зарегистрироваться",
                     icon=ft.Icons.PERSON_ADD,
@@ -282,7 +280,7 @@ def createAuthView(page):
                             ft.Column(
                                 controls=[
                                     ft.Icon(name=ft.Icons.BRUSH, size=58, color=PRIMARY_COLOR),
-                                    ft.Text("Lepka Helper", size=30, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+                                    ft.Text(APP_TITLE, size=30, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
                                     ft.Text("Помощник для лепки", size=17, color=ft.Colors.GREY_600, text_align=ft.TextAlign.CENTER),
                                 ],
                                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,

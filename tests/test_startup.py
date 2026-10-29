@@ -133,11 +133,15 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         checkbox.on_change(SimpleNamespace(control=checkbox))
         self.assertEqual(projects.getUserProjects(userId)[0]['progressPercent'], 100)
         find(view, ft.IconButton, icon=ft.Icons.DELETE_OUTLINE).on_click(None)
+        dialog = next(c for c in reversed(self.page.overlay) if isinstance(c, ft.AlertDialog) and c.open)
+        find(dialog, ft.ElevatedButton, text='Подтвердить удаление').on_click(None)
         self.assertEqual(projects.getProjectSteps(projectId, userId), [])
         # Удаление проекта проверяем с этапом, а не только с пустой карточкой.
         find(view, ft.TextField, label='Новый этап').value = 'Слепить уши'
         find(view, ft.IconButton, icon=ft.Icons.ADD_CIRCLE).on_click(None)
         find(view, ft.IconButton, icon=ft.Icons.DELETE).on_click(None)
+        dialog = next(c for c in reversed(self.page.overlay) if isinstance(c, ft.AlertDialog) and c.open)
+        find(dialog, ft.ElevatedButton, text='Подтвердить удаление').on_click(None)
         self.assertEqual(projects.getUserProjects(userId), [])
         connection = database.getConnection()
         try:

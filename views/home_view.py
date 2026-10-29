@@ -1,4 +1,5 @@
-from ui_helpers import authenticatedAction, getCurrentUser, isWebClient, serverAction, showMessage as showPageMessage
+from ui_helpers import authenticatedAction, getCurrentUser, isWebClient, serverAction, confirmAction, createLoadError, showMessage as showPageMessage
+from api_client import ApiError
 import base64
 import colorsys
 import math
@@ -216,6 +217,7 @@ def createSearchTab(page, currentUser):
                 elif not event.control.value and index in checked:
                     checked.remove(index)
                 persistState()
+                page.update()
             return ft.Checkbox(label=material, value=index in state['checkedMaterials'],
                                disabled=currentUser is None, on_change=change)
 
@@ -1495,10 +1497,14 @@ def createProjectsTab(page, currentUser):
 
             @authenticatedAction(page, currentUser)
             def handleDeleteProject(event, currentProjectId=projectItem["projectId"]):
-                deleted = removeProject(currentProjectId, currentUser["userId"])
-                showMessage("Проект удалён" if deleted else "Проект не найден или недоступен", not deleted)
-                refreshProjectList()
-                page.update()
+                @authenticatedAction(page, currentUser)
+                def delete():
+                    deleted = removeProject(currentProjectId, currentUser["userId"])
+                    showMessage("Проект удалён" if deleted else "Проект не найден или недоступен", not deleted)
+                    refreshProjectList()
+                    page.update()
+                confirmAction(page, 'Удалить личный проект?',
+                    'Будут удалены его этапы, фото и смеси проекта. Опубликованный мастер-класс сохранится.', delete)
 
             @authenticatedAction(page, currentUser)
             def handleEditProject(event, currentProject=projectItem):
@@ -1560,10 +1566,13 @@ def createProjectsTab(page, currentUser):
 
                     @authenticatedAction(page, currentUser)
                     def handleDeleteStep(event, currentProjectId=projectItem["projectId"], currentStepId=stepItem["stepId"]):
-                        progress = removeProjectStep(currentProjectId, currentStepId, currentUser["userId"])
-                        showMessage("Этап удалён" if progress is not None else "Этап не найден или недоступен", progress is None)
-                        refreshProjectList()
-                        page.update()
+                        @authenticatedAction(page, currentUser)
+                        def delete():
+                            progress = removeProjectStep(currentProjectId, currentStepId, currentUser["userId"])
+                            showMessage("Этап удалён" if progress is not None else "Этап не найден или недоступен", progress is None)
+                            refreshProjectList()
+                            page.update()
+                        confirmAction(page, 'Удалить этап?', 'Будут удалены этап и его фото. Прогресс проекта пересчитается.', delete)
 
                     @authenticatedAction(page, currentUser)
                     def handleEditStep(event, currentProjectId=projectItem['projectId'], currentStep=dict(stepItem)):
@@ -1825,7 +1834,12 @@ def createProjectsTab(page, currentUser):
     )
 
 def createHomeView(page: ft.Page):
-    currentUser = getCurrentUser(page)
+    try:
+        currentUser = getCurrentUser(page)
+    except ApiError:
+        # Только оболочка и сообщение об ошибке. Действия по-прежнему требуют
+        # проверки настоящей сессии; локального входа вместо API здесь нет.
+        currentUser = page.session.get('currentUser')
 
     if currentUser:
         nickname = currentUser["nickname"]
@@ -1837,27 +1851,29 @@ def createHomeView(page: ft.Page):
     content_area = ft.Container(expand=True)
 
     @serverAction(page)
-    def update_tab(e):
-        if currentUser is not None:
-            sessionUser = getCurrentUser(page)
-            if sessionUser is None:
-                page.go('/auth')
+    def loadTab(index):
+        try:
+            if currentUser is not None:
+                sessionUser = getCurrentUser(page)
+                if sessionUser is None:
+                    page.go('/auth')
+                    return
+                if sessionUser['sessionToken'] != currentUser['sessionToken']:
+                    return
+            factories = [lambda: createHomeTab(page, currentUser, nickname),
+                         lambda: createSearchTab(page, currentUser), lambda: createColorsTab(page, currentUser),
+                         lambda: createProjectsTab(page, currentUser), lambda: createProfileTab(page, nickname, email)]
+            if not 0 <= index < len(factories):
                 return
-            if sessionUser['sessionToken'] != currentUser['sessionToken']:
-                return
-        idx = e.control.selected_index
-        if idx == 0:
-            content_area.content = createHomeTab(page, currentUser, nickname)
-        elif idx == 1:
-            content_area.content = createSearchTab(page, currentUser)
-        elif idx == 2:
-            content_area.content = createColorsTab(page, currentUser)
-        elif idx == 3:
-            content_area.content = createProjectsTab(page, currentUser)
-        elif idx == 4:
-            content_area.content = createProfileTab(page, nickname, email)
-
+            content_area.content = factories[index]()
+        except ApiError as error:
+            if error.statusCode == 401:
+                raise
+            content_area.content = createLoadError(page, error, lambda: loadTab(index))
         page.update()
+
+    def update_tab(event):
+        loadTab(event.control.selected_index)
 
     nav_bar = ft.NavigationBar(
         selected_index=0,
@@ -1872,7 +1888,7 @@ def createHomeView(page: ft.Page):
     )
 
     # Загружаем первый таб
-    content_area.content = createHomeTab(page, currentUser, nickname)
+    loadTab(0)
 
     return ft.View(
         "/home",

@@ -7,17 +7,20 @@ import argparse
 import json
 from pathlib import Path
 import shutil
+import sys
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from app_info import APP_VERSION
 MODULES = (
-    'account_gateway', 'account_security', 'api_client', 'app_paths', 'app_state',
+    'account_gateway', 'account_security', 'api_client', 'app_info', 'app_paths', 'app_state',
     'auth_service', 'color_export', 'color_service', 'community_gateway', 'database', 'date_field',
     'download_service', 'lesson_service', 'mail_service', 'password_service',
     'photo_service', 'photo_upload', 'photo_picker', 'post_service', 'profile_service',
     'project_service', 'project_sharing', 'workshop_service', 'remote_account_cache', 'ui_helpers', 'validators',
 )
-VIEWS = ('auth_view', 'home_view', 'community_tab', 'project_sharing', 'workshop_view', 'profile_tab', 'splash_view', 'onboarding_view')
+VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'workshop_view', 'profile_tab', 'splash_view', 'onboarding_view')
 ASSETS = ('fonts/DejaVuSans.ttf', 'fonts/LICENSE-DejaVu.txt',
           *(f'lessons/lesson_{index}.svg' for index in range(1, 7)))
 
@@ -58,9 +61,9 @@ def prepareAndroid(output, apiUrl=None):
     # модулями скачивания/загрузки, хотя HTTP-маршруты запускаются только на ПК.
     (output / 'requirements.txt').write_text(
         'flet==0.28.3\nrequests==2.32.3\nPillow==12.3.0\nstarlette==0.46.2\n', encoding='utf-8')
-    (output / 'pyproject.toml').write_text('''[project]
+    (output / 'pyproject.toml').write_text(('''[project]
 name = "lepka-helper"
-version = "0.4.0"
+version = "APP_VERSION_PLACEHOLDER"
 description = "Помощник по лепке"
 requires-python = ">=3.12"
 
@@ -77,7 +80,7 @@ min_sdk_version = 28
 
 [tool.flet.flutter]
 build_args = ["--target-platform=android-arm64"]
-''', encoding='utf-8')
+''').replace('APP_VERSION_PLACEHOLDER', APP_VERSION), encoding='utf-8')
     return output
 
 

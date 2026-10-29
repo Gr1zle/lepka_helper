@@ -7,6 +7,7 @@ from account_gateway import (deleteUserAccount, requestEmailChange, confirmEmail
 from photo_picker import createPhotoPicker
 from community_gateway import CommunityClient
 from views.community_tab import createMyWorksButton, createLocalWorksButton
+from views.about_dialog import showAbout, showDataInfo
 from project_service import getUserProjects
 from profile_service import (
     AGE_CATEGORIES, FAVORITE_COLOR_OPTIONS, LANGUAGE_OPTIONS, THEME_OPTIONS,
@@ -447,6 +448,7 @@ def createProfileTab(page, nickname, email):
         checkboxControl = ft.Checkbox(
             label=colorName,
             value=colorName in profileData["favoriteColors"],
+            on_change=lambda event: page.update(),
         )
 
         favoriteColorCheckboxes.append(checkboxControl)
@@ -644,8 +646,7 @@ def createProfileTab(page, nickname, email):
                                 weight=ft.FontWeight.BOLD,
                             ),
                             themeDropdown,
-                            languageDropdown,
-                            notificationsSwitch,
+                            ft.Text('Язык интерфейса: русский', size=12),
                             ft.ElevatedButton(
                                 text="Сохранить настройки",
                                 icon=ft.Icons.SAVE,
@@ -658,11 +659,9 @@ def createProfileTab(page, nickname, email):
                                 on_click=handleSaveSettings,
                             ),
                             ft.Divider(),
-                            createInfoCard(
-                                ft.Icons.FAVORITE,
-                                "Избранное",
-                                "Сохранённые уроки, модели и цветовые смеси.",
-                            ),
+                            ft.Text('Сохранённые рецепты находятся на вкладке «Цвета».', size=12),
+                            ft.TextButton('О приложении', on_click=lambda event: showAbout(page)),
+                            ft.TextButton('Условия использования и данные', on_click=lambda event: showDataInfo(page)),
                             ft.ElevatedButton(
                                 text="Выйти из аккаунта",
                                 icon=ft.Icons.LOGOUT,

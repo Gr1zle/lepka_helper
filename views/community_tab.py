@@ -302,9 +302,9 @@ def createHomeTab(page, currentUser, nickname):
         ft.Text('Работы пользователей сервера' if client.remote else
                 'Работы на этом устройстве. Для общего сообщества подключите сервер.', size=12),
         ft.Container(padding=18, border_radius=18, bgcolor=PRIMARY_COLOR, content=ft.Column(controls=[
-            ft.Text('Челлендж недели', color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
+            ft.Text('Идея для практики', color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
             ft.Text('Слепи милого котика', size=22, color=ft.Colors.WHITE),
-            ft.Text('Идея для практики. Конкурсы и автоматический отбор работ ещё не подключены.',
+            ft.Text('Начните с простого урока котика на вкладке «Поиск» или создайте свою идею.',
                     color=ft.Colors.WHITE)])),
         ft.Card(visible=currentUser is not None, content=ft.Container(padding=16, content=ft.Column(controls=[
             ft.Text('Опубликовать работу', size=18, weight=ft.FontWeight.BOLD), title, description, category,
