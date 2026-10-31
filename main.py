@@ -1,5 +1,6 @@
 import flet as ft
 import argparse
+import os
 from pathlib import Path
 
 from database import initializeDatabase
@@ -11,6 +12,8 @@ from views.onboarding_view import createOnboardingView
 from views.auth_view import createAuthView
 from views.home_view import createHomeView
 from app_info import APP_TITLE
+from device_session import restoreDeviceSession
+from account_gateway import getUserProfile
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -26,7 +29,7 @@ def main(page: ft.Page):
     except ApiError as error:
         page.add(ft.Text(str(error)))
         return
-    if isAndroid and not apiUrl:
+    if isAndroid and not apiUrl and os.environ.get('LEPKA_FORCE_LOCAL') != '1':
         page.add(ft.Text('Для Android задайте HTTPS-адрес сервера в assets/client_config.json'))
         return
     initializeDatabase()
@@ -34,12 +37,19 @@ def main(page: ft.Page):
 
     page.title = APP_TITLE
     page.theme_mode = ft.ThemeMode.LIGHT
+    restoredUser = restoreDeviceSession(page)
+    if restoredUser:
+        page.session.set('currentUser', restoredUser)
+        profile = getUserProfile(restoredUser['userId'], restoredUser.get('sessionToken'))
+        if profile and profile.get('themeMode') == 'dark':
+            page.theme_mode = ft.ThemeMode.DARK
+    page.bgcolor = ft.Colors.SURFACE
     page.window.width = 390
     page.window.height = 780
     page.window.resizable = False
     page.padding = 0
-    page.theme = ft.Theme(color_scheme_seed=PRIMARY_COLOR, visual_density=ft.VisualDensity.COMFORTABLE)
-    page.dark_theme = ft.Theme(color_scheme_seed=PRIMARY_COLOR, visual_density=ft.VisualDensity.COMFORTABLE)
+    page.theme = ft.Theme(color_scheme_seed=PRIMARY_COLOR, color_scheme=ft.ColorScheme(surface='#FFFFFF'), visual_density=ft.VisualDensity.COMFORTABLE)
+    page.dark_theme = ft.Theme(color_scheme_seed=PRIMARY_COLOR, color_scheme=ft.ColorScheme(surface='#121212'), visual_density=ft.VisualDensity.COMFORTABLE)
 
     # Глобальные настройки
     page.session.set("PRIMARY_COLOR", PRIMARY_COLOR)

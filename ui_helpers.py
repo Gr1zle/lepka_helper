@@ -4,6 +4,7 @@ import flet as ft
 
 from account_gateway import getSessionUser, logoutUser
 from api_client import ApiError
+from device_session import forgetDeviceSession
 
 
 def isWebClient(page):
@@ -44,6 +45,7 @@ def serverAction(page):
                 return callback(*args, **kwargs)
             except ApiError as error:
                 if error.statusCode == 401:
+                    forgetDeviceSession(page)
                     page.session.clear()
                     page.overlay.clear()
                     page.go('/auth')
@@ -59,6 +61,7 @@ def getCurrentUser(page):
         return None
     verifiedUser = getSessionUser(currentUser.get('sessionToken'))
     if verifiedUser is None or verifiedUser['userId'] != currentUser.get('userId'):
+        forgetDeviceSession(page)
         page.session.clear()
         return None
     page.session.set('currentUser', verifiedUser)
@@ -73,6 +76,7 @@ def logoutPage(page):
     except ApiError:
         errorMessage = 'На устройстве выход выполнен. Сервер недоступен: отзыв токена не подтверждён'
     finally:
+        forgetDeviceSession(page)
         page.session.clear()
         page.overlay.clear()
         page.go('/auth')

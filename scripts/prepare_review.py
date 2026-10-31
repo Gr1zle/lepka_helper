@@ -17,7 +17,7 @@ DOCS = ('ТЗ', 'Plan', 'day1_requirements_audit.md', 'day2_stabilization.md', '
         'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md')
 TESTS = ('accounts', 'android_package', 'backend', 'clay_tools', 'community', 'community_api',
          'community_gateway', 'gateway', 'profile_stage_media', 'project_sharing', 'projects',
-         'startup', 'workshops', 'review_release')
+         'startup', 'workshops', 'review_release', 'device_session')
 SCREENSHOTS = ('day4-community-form.png', 'day4-community-post.png', 'profile-avatar.png',
                'project-step-photo.png', 'project-copied-recipe.png', 'project-publication-recipe.png',
                'workshop-320.png', 'workshop-desktop.png', 'workshop-step-390.png',

@@ -10,6 +10,17 @@ from scripts import prepare_android as android
 
 
 class AndroidPackageTests(unittest.TestCase):
+    def test_local_demo_is_explicit_and_does_not_include_an_api_address(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = android.prepareAndroid(Path(folder) / 'demo', localDemo=True)
+            entrypoint = (output / 'main.py').read_text(encoding='utf-8')
+            self.assertIn('os.environ["LEPKA_FORCE_LOCAL"] = "1"', entrypoint)
+            self.assertLess(entrypoint.index('LEPKA_FORCE_LOCAL'), entrypoint.index('from app_main'))
+            self.assertEqual(json.loads((output / 'assets/client_config.json').read_text()),
+                             {'apiBaseUrl': ''})
+            with self.assertRaises(ValueError):
+                android.prepareAndroid(Path(folder) / 'conflict', 'https://api.example.com', True)
+
     def test_real_client_staging_has_native_entrypoint_and_no_server_or_data(self):
         with tempfile.TemporaryDirectory() as folder:
             output = android.prepareAndroid(Path(folder) / 'client', 'https://api.example.com')

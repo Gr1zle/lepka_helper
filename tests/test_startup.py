@@ -60,13 +60,16 @@ def find(root, cls, **attrs):
 
 class StartupTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        for target in ('account_gateway.getApiUrl', 'main.getApiUrl',
+        for target in ('account_gateway.getApiUrl', 'main.getApiUrl', 'device_session.getApiUrl',
                        'views.auth_view.getApiUrl', 'views.profile_tab.getApiUrl'):
             modePatch = patch(target, return_value='')
             modePatch.start()
             self.addCleanup(modePatch.stop)
         self.temp = tempfile.TemporaryDirectory()
         folder = Path(self.temp.name)
+        devicePatch = patch('device_session.SESSION_FILE', folder/'device_session.json')
+        devicePatch.start()
+        self.addCleanup(devicePatch.stop)
         self.db_patch = patch.object(database, 'DATABASE_PATH', folder/'test.db')
         self.state_patch = patch.object(app_state, 'STATE_FILE', folder/'state.json')
         self.db_patch.start()
@@ -101,6 +104,35 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 nav.selected_index = index
                 nav.on_change(SimpleNamespace(control=nav))
                 self.page.update()
+
+    async def test_profile_theme_switch_updates_the_current_background(self):
+        view = self.mount(createHomeView(self.page))
+        nav = find(view, ft.NavigationBar)
+        nav.selected_index = 4
+        nav.on_change(SimpleNamespace(control=nav))
+        dropdown = find(view, ft.Dropdown, label='Тема приложения')
+        dropdown.value = 'dark'
+        find(view, ft.ElevatedButton, text='Сохранить настройки').on_click(None)
+        self.assertEqual(self.page.theme_mode, ft.ThemeMode.DARK)
+        self.assertEqual(view.bgcolor, ft.Colors.SURFACE)
+        self.assertEqual(view.controls[0].bgcolor, ft.Colors.SURFACE)
+        self.assertEqual(database.getUserByEmail('test@email.com')['themeMode'], 'dark')
+
+    async def test_android_login_is_restored_after_restart_and_logout_forgets_it(self):
+        import device_session
+        self.page._set_attr('platform', 'android')
+        view = self.mount(createAuthView(self.page))
+        find(view, ft.ElevatedButton, text='Войти').on_click(None)
+        self.assertIsNotNone(device_session.restoreDeviceSession(self.page))
+        from profile_service import saveUserSettings
+        saveUserSettings(self.user['userId'], 'dark', 'ru', False)
+        self.page.session.clear()
+        with patch.object(self.page, 'run_task'), patch.dict(os.environ, {'LEPKA_FORCE_LOCAL': '1'}):
+            main(self.page)
+        self.assertEqual(self.page.session.get('currentUser')['userId'], self.user['userId'])
+        self.assertEqual(self.page.theme_mode, ft.ThemeMode.DARK)
+        logoutPage(self.page)
+        self.assertIsNone(device_session.restoreDeviceSession(self.page))
 
     async def test_project_form_rejects_bad_deadline_and_accepts_empty(self):
         view = self.mount(ft.View('/projects', controls=[createProjectsTab(self.page, self.user)]))
@@ -274,6 +306,16 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 demo.assert_not_called()
             self.assertTrue(any(isinstance(control, ft.Text) and 'HTTPS' in (control.value or '')
                                 for control in walk(self.page)))
+
+    async def test_android_explicit_local_demo_starts_without_api(self):
+        self.page._set_attr('platform', 'android')
+        with patch.dict(os.environ, {'LEPKA_FORCE_LOCAL': '1'}), patch('main.getApiUrl', return_value=''):
+            with patch('main.initializeDatabase') as initialize, patch('main.ensureDemoUser') as demo:
+                main(self.page)
+                initialize.assert_called_once()
+                demo.assert_called_once()
+        self.assertFalse(any(isinstance(control, ft.Text) and 'задайте HTTPS' in (control.value or '')
+                             for control in walk(self.page)))
 
     def openToolsTab(self, factory):
         return self.mount(ft.View('/tools', controls=[factory(self.page, self.user)]))

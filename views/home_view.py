@@ -1893,10 +1893,11 @@ def createHomeView(page: ft.Page):
     return ft.View(
         "/home",
         padding=0,
+        bgcolor=ft.Colors.SURFACE,
         controls=[
             ft.Container(
                 expand=True,
-                bgcolor=getPageBackgroundColor(page),
+                bgcolor=ft.Colors.SURFACE,
                 content=ft.Column([
                     ft.Container(expand=True, content=content_area),
                     nav_bar

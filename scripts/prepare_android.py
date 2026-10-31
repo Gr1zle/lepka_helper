@@ -16,7 +16,7 @@ from app_info import APP_VERSION
 MODULES = (
     'account_gateway', 'account_security', 'api_client', 'app_info', 'app_paths', 'app_state',
     'auth_service', 'color_export', 'color_service', 'community_gateway', 'database', 'date_field',
-    'download_service', 'lesson_service', 'mail_service', 'password_service',
+    'download_service', 'device_session', 'lesson_service', 'mail_service', 'password_service',
     'photo_service', 'photo_upload', 'photo_picker', 'post_service', 'profile_service',
     'project_service', 'project_sharing', 'workshop_service', 'remote_account_cache', 'ui_helpers', 'validators',
 )
@@ -25,16 +25,20 @@ ASSETS = ('fonts/DejaVuSans.ttf', 'fonts/LICENSE-DejaVu.txt',
           *(f'lessons/lesson_{index}.svg' for index in range(1, 7)))
 
 
-def prepareAndroid(output, apiUrl=None):
+def prepareAndroid(output, apiUrl=None, localDemo=False):
     output = Path(output).expanduser().resolve()
     # Новая папка: ни исходники, ни существующая сборка не заменяются.
     if output == ROOT or ROOT in output.parents or output in ROOT.parents:
         raise ValueError('Выберите новую папку вне репозитория')
+    if apiUrl is None and localDemo:
+        apiUrl = ''
     if apiUrl is None:
         config = json.loads((ROOT / 'assets' / 'client_config.json').read_text(encoding='utf-8'))
         apiUrl = config.get('apiBaseUrl', '')
     if not isinstance(apiUrl, str):
         raise ValueError('Адрес API должен быть строкой')
+    if localDemo and apiUrl:
+        raise ValueError('Для локальной демоверсии адрес API должен быть пустым')
     if apiUrl:
         address = urlsplit(apiUrl)
         if (address.scheme != 'https' or not address.hostname or address.username or address.password
@@ -55,6 +59,7 @@ def prepareAndroid(output, apiUrl=None):
     (output / 'assets' / 'client_config.json').write_text(
         json.dumps({'apiBaseUrl': apiUrl.rstrip('/')}, ensure_ascii=False), encoding='utf-8')
     (output / 'main.py').write_text(
+        ('import os\nos.environ["LEPKA_FORCE_LOCAL"] = "1"\n' if localDemo else '') +
         'from pathlib import Path\nimport flet as ft\nfrom app_main import main\n\n'
         'ft.app(target=main, assets_dir=str(Path(__file__).resolve().parent / "assets"))\n', encoding='utf-8')
     # В APK не требуются uvicorn и FastAPI сервера. Starlette используется общими
@@ -88,10 +93,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True)
     parser.add_argument('--api-url', default=None)
+    parser.add_argument('--local-demo', action='store_true', help='Локальная проверка Android без сервера')
     options = parser.parse_args()
     try:
-        path = prepareAndroid(options.output, options.api_url)
+        path = prepareAndroid(options.output, options.api_url, options.local_demo)
     except (ValueError, OSError) as error:
         parser.exit(1, f'{error}\n')
     print(f'Папка сборки: {path}')
-    print('Если адрес API пуст, Android покажет сообщение о необходимости настройки сервера.')
+    if options.local_demo:
+        print('Локальная демоверсия: test@email.com / Test123456. Общего интернет-сообщества нет.')
+    else:
+        print('Если адрес API пуст, Android покажет сообщение о необходимости настройки сервера.')

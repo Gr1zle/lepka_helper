@@ -6,6 +6,7 @@ __pycache__/
 *.db-wal
 *.db-shm
 app_state.json
+device_session.json
 exports/
 build/
 dist/
