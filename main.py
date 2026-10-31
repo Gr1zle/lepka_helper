@@ -14,6 +14,8 @@ from views.home_view import createHomeView
 from app_info import APP_TITLE
 from device_session import restoreDeviceSession
 from account_gateway import getUserProfile
+from views.model_gallery import createModelGallery
+from views.model_view import createModelView
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -64,7 +66,22 @@ def main(page: ft.Page):
         elif page.route == "/auth":
             view = createAuthView(page)
         elif page.route == "/home":
+            returning=page.session.get('modelReturnLesson')
+            page.session.set('modelReturnLesson',None)
+            if returning:
+                page.session.set('openBuiltinLesson',returning)
+                page.session.set('homeTab',1)
             view = createHomeView(page)
+        elif page.route == '/models':
+            root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
+            page.views[:]=[root,createModelGallery(page)]
+            page.update();return
+        elif page.route.startswith('/models/'):
+            root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
+            parents=[root]
+            if page.views and page.views[-1].route=='/models':parents.append(page.views[-1])
+            page.views[:]=[*parents,createModelView(page,page.route[len('/models/'):])]
+            page.update();return
         else:
             page.go("/")
             return
@@ -73,6 +90,9 @@ def main(page: ft.Page):
         page.update()
 
     def view_pop(e):
+        if len(page.views)>1 and page.views[-1].route.startswith('/models'):
+            page.go(page.views[-2].route)
+            return
         if len(page.views) > 1:
             removedView = page.views.pop()
             if removedView.route.startswith('/workshop/'):

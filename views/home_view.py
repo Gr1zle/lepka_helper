@@ -41,6 +41,9 @@ from views.clay_tools_view import createClayTools
 from lesson_library import (favoriteLessonIds,normalizeSearchQuery,recentSearches,rememberSearch,
                             clearSearchHistory,searchSuggestions,lessonSearchResults)
 from views.lesson_library_view import createLessonFavorite,createLessonNotebook,createLessonShare
+from views.model_gallery import createModelCard
+from model_service import searchModels
+from learning_assets import MODEL_ITEMS
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -60,9 +63,11 @@ def createSearchTab(page, currentUser):
     selectedLessonId = {"value": None}
     selectedStepIndex = {"value": 0}
     lessonState = {"value": None}
-    noteDraft = {}
     searchVersion = {'value':0}
     owner = currentUser.get('sessionToken') if currentUser else None
+    noteDraft=page.session.get('lessonNoteDraft') or {}
+    if noteDraft.get('owner')!=owner:noteDraft={'owner':owner}
+    page.session.set('lessonNoteDraft',noteDraft)
     cached = page.session.get('lessonSearchWorkspace') or {}
     if cached.get('owner') != owner:
         cached = {}
@@ -97,7 +102,7 @@ def createSearchTab(page, currentUser):
     videoCheckbox = ft.Checkbox(label='Только с видео', value=cached.get('video',False))
     favoritesCheckbox = ft.Checkbox(label='Только избранные уроки',value=cached.get('favorites',False),disabled=currentUser is None)
     progressCheckbox = ft.Checkbox(label='Продолжить начатые уроки',value=cached.get('progress',False),disabled=currentUser is None)
-    offlineCheckbox = ft.Checkbox(label='Только встроенные уроки (офлайн)',value=cached.get('offline',False))
+    offlineCheckbox = ft.Checkbox(label='Только встроенные уроки и модели (офлайн)',value=cached.get('offline',False))
     sortDropdown = ft.Dropdown(label='Сортировка уроков',value=cached.get('sort','Релевантность'),
         options=[ft.dropdown.Option(value) for value in ('Релевантность','По времени','По названию')])
     ideaThemeDropdown = ft.Dropdown(label='Тематика идеи', value='Случайная',
@@ -176,7 +181,7 @@ def createSearchTab(page, currentUser):
     @lessonAction
     def showLessonDetail(lessonId):
         saveWorkspace()
-        if selectedLessonId['value'] != lessonId:
+        if noteDraft.get('lessonId') != lessonId:
             noteDraft.pop('lessonId',None)
             noteDraft.pop('value',None)
         selectedLessonId["value"] = lessonId
@@ -205,6 +210,16 @@ def createSearchTab(page, currentUser):
         progressValue = len(state['completedSteps']) / len(steps)
 
         materialsText = ", ".join(lessonItem["materials"])
+        def enlarge(event):
+            dialog=ft.AlertDialog(title=ft.Text(f"Схема шага {currentStepIndex+1}"),
+                content=ft.Container(width=500,height=360,content=ft.InteractiveViewer(min_scale=1,max_scale=4,
+                    content=ft.Image(src=lessonItem['stepImages'][currentStepIndex],fit=ft.ImageFit.CONTAIN))),
+                actions=[ft.TextButton('Закрыть',on_click=lambda event:page.close(dialog))])
+            page.open(dialog)
+        model=next(item for item in MODEL_ITEMS if item['lessonId']==lessonItem['lessonId'])
+        def openModel(event):
+            page.session.set('modelReturnLesson',lessonItem['lessonId'])
+            page.go('/models/'+model['modelId'])
 
         def persistState():
             state['lastStep'] = selectedStepIndex['value']
@@ -325,13 +340,15 @@ def createSearchTab(page, currentUser):
                                     bgcolor="#DDDDDD",
                                 ),
                                 ft.Container(
-                                    height=150,
+                                    height=190,
                                     border_radius=18,
                                     bgcolor="#F5F5F5",
                                     alignment=ft.alignment.center,
-                                    content=ft.Image(src=lessonItem['previewImage'], fit=ft.ImageFit.CONTAIN),
+                                    content=ft.Image(src=lessonItem['stepImages'][currentStepIndex], fit=ft.ImageFit.CONTAIN),
                                 ),
-                                ft.Text('Схематичная иллюстрация итоговой фигурки', size=12),
+                                ft.Text('3D-схема текущего этапа, не фотография', size=12),
+                                ft.Row(wrap=True,controls=[ft.TextButton('Увеличить схему',on_click=enlarge),
+                                    ft.TextButton('3D этой фигурки',on_click=openModel)]),
                                 ft.Text(
                                     currentStepText,
                                     size=16,
@@ -471,6 +488,12 @@ def createSearchTab(page, currentUser):
         lessonItems = lessonSearchResults(lessonItems,query,currentUser['userId'] if currentUser else None,
             favoritesCheckbox.value,progressCheckbox.value,sortDropdown.value)
         controls = [createLessonCard(item) for item in lessonItems]
+        if not favoritesCheckbox.value and not progressCheckbox.value and not videoCheckbox.value:
+            models=searchModels(query,categoryDropdown.value,levelDropdown.value,
+                None if timeDropdown.value=='Любое' else timeDropdown.value)
+            if models:
+                controls.append(ft.Text('3D-модели',size=18,weight=ft.FontWeight.BOLD))
+                controls.extend(createModelCard(page,item) for item in models)
         if not (offlineCheckbox.value or favoritesCheckbox.value or progressCheckbox.value):
             try:
                 works = CommunityClient(currentUser).getPosts(search={
@@ -651,6 +674,7 @@ def createSearchTab(page, currentUser):
                     weight=ft.FontWeight.BOLD,
                 ),
                 searchField,
+                ft.TextButton('3D-галерея',icon=ft.Icons.VIEW_IN_AR_OUTLINED,on_click=lambda event:page.go('/models')),
                 ft.Row(wrap=True,controls=[ft.ElevatedButton('Найти',icon=ft.Icons.SEARCH,on_click=submitSearch),
                                            ft.TextButton('Сбросить фильтры',on_click=resetFilters)]),
                 suggestionBox,

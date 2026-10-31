@@ -2,6 +2,7 @@
 import time
 from database import openDatabase
 from lesson_service import LESSON_ITEMS, getLessonById, getUserLessonState
+from learning_assets import MODEL_ITEMS
 
 MAX_NOTE_LENGTH = 2000
 MAX_QUERY_LENGTH = 120
@@ -106,6 +107,8 @@ def searchSuggestions(text,userId=None):
     candidates = recentSearches(userId) if userId is not None else []
     for lesson in LESSON_ITEMS:
         candidates.extend([lesson['title'],*lesson['tags'],*lesson['materials']])
+    for model in MODEL_ITEMS:
+        candidates.extend([f"3D {model['title']}",*model['tags']])
     seen, result = set(), []
     for index,value in enumerate(candidates):
         key = value.casefold().replace('ё','е')

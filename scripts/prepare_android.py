@@ -13,16 +13,17 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from app_info import APP_VERSION
+from learning_assets import MODEL_ASSETS,STEP_ASSETS
 MODULES = (
     'account_gateway', 'account_security', 'api_client', 'app_info', 'app_paths', 'app_state',
     'auth_service', 'color_export', 'color_service', 'community_gateway', 'database', 'date_field',
     'download_service', 'device_session', 'lesson_service', 'lesson_library', 'mail_service', 'password_service',
     'photo_service', 'photo_upload', 'photo_picker', 'post_service', 'profile_service',
-    'project_service', 'project_sharing', 'project_archive', 'project_backups', 'project_statistics', 'project_upload', 'clay_tools', 'workshop_service', 'remote_account_cache', 'ui_helpers', 'validators',
+    'project_service', 'project_sharing', 'project_archive', 'project_backups', 'project_statistics', 'project_upload', 'clay_tools', 'workshop_service', 'remote_account_cache', 'ui_helpers', 'validators', 'mesh_renderer','model_service','learning_assets',
 )
-VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'project_step_order', 'project_transfer', 'project_statistics', 'clay_tools_view', 'lesson_library_view', 'workshop_view', 'profile_tab', 'splash_view', 'onboarding_view')
+VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'project_step_order', 'project_transfer', 'project_statistics', 'clay_tools_view', 'lesson_library_view', 'model_gallery','model_view','workshop_view', 'profile_tab', 'splash_view', 'onboarding_view')
 ASSETS = ('fonts/DejaVuSans.ttf', 'fonts/LICENSE-DejaVu.txt',
-          *(f'lessons/lesson_{index}.svg' for index in range(1, 7)))
+          *(f'lessons/lesson_{index}.svg' for index in range(1, 7)),*MODEL_ASSETS,*STEP_ASSETS)
 
 
 def prepareAndroid(output, apiUrl=None, localDemo=False):
@@ -54,7 +55,7 @@ def prepareAndroid(output, apiUrl=None, localDemo=False):
     (output / 'assets').mkdir()
     for name in ASSETS:
         destination = output / 'assets' / name
-        destination.parent.mkdir(exist_ok=True)
+        destination.parent.mkdir(parents=True,exist_ok=True)
         shutil.copyfile(ROOT / 'assets' / name, destination)
     (output / 'assets' / 'client_config.json').write_text(
         json.dumps({'apiBaseUrl': apiUrl.rstrip('/')}, ensure_ascii=False), encoding='utf-8')
