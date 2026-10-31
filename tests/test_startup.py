@@ -275,6 +275,16 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(any(isinstance(control, ft.Text) and 'HTTPS' in (control.value or '')
                                 for control in walk(self.page)))
 
+    async def test_android_explicit_local_demo_starts_without_api(self):
+        self.page._set_attr('platform', 'android')
+        with patch.dict(os.environ, {'LEPKA_FORCE_LOCAL': '1'}), patch('main.getApiUrl', return_value=''):
+            with patch('main.initializeDatabase') as initialize, patch('main.ensureDemoUser') as demo:
+                main(self.page)
+                initialize.assert_called_once()
+                demo.assert_called_once()
+        self.assertFalse(any(isinstance(control, ft.Text) and 'задайте HTTPS' in (control.value or '')
+                             for control in walk(self.page)))
+
     def openToolsTab(self, factory):
         return self.mount(ft.View('/tools', controls=[factory(self.page, self.user)]))
 

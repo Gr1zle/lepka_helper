@@ -279,6 +279,17 @@ Remove-Item Env:LEPKA_MAIL_FROM -ErrorAction SilentlyContinue
 описана в `backend/README.md`; ключ Resend остаётся в процессе сервера.
 
 Flet может загружать Flutter, JDK и Android SDK, это требует времени и места.
+Для проверки на телефоне без сервера можно подготовить отдельную локальную демоверсию:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\prepare_android.py --output ..\lepka-android-demo --local-demo
+.\.venv\Scripts\flet.exe build apk ..\lepka-android-demo --arch arm64-v8a
+```
+
+Тестовый вход: `test@email.com` / `Test123456`. Данные и публикации остаются на
+телефоне; общего сообщества между устройствами и отправки писем без сервера нет.
+Обычная серверная сборка сохраняет требование HTTPS API.
+
 В облачной попытке Python-клиент упакован, но готовый APK не получен: финальная
 сборка дважды остановилась на HTTP 503 при скачивании зависимостей Google Maven.
 Подробности — в отчёте этапа. Установка и работа на Android-устройстве ещё
