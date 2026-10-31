@@ -16,11 +16,11 @@ from app_info import APP_VERSION
 MODULES = (
     'account_gateway', 'account_security', 'api_client', 'app_info', 'app_paths', 'app_state',
     'auth_service', 'color_export', 'color_service', 'community_gateway', 'database', 'date_field',
-    'download_service', 'device_session', 'lesson_service', 'mail_service', 'password_service',
+    'download_service', 'device_session', 'lesson_service', 'lesson_library', 'mail_service', 'password_service',
     'photo_service', 'photo_upload', 'photo_picker', 'post_service', 'profile_service',
     'project_service', 'project_sharing', 'project_archive', 'project_backups', 'project_statistics', 'project_upload', 'clay_tools', 'workshop_service', 'remote_account_cache', 'ui_helpers', 'validators',
 )
-VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'project_step_order', 'project_transfer', 'project_statistics', 'clay_tools_view', 'workshop_view', 'profile_tab', 'splash_view', 'onboarding_view')
+VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'project_step_order', 'project_transfer', 'project_statistics', 'clay_tools_view', 'lesson_library_view', 'workshop_view', 'profile_tab', 'splash_view', 'onboarding_view')
 ASSETS = ('fonts/DejaVuSans.ttf', 'fonts/LICENSE-DejaVu.txt',
           *(f'lessons/lesson_{index}.svg' for index in range(1, 7)))
 

@@ -8,6 +8,7 @@ from photo_picker import createPhotoPicker
 from community_gateway import CommunityClient
 from views.community_tab import createMyWorksButton, createLocalWorksButton
 from views.about_dialog import showAbout, showDataInfo
+from views.lesson_library_view import createProfileLessonLibrary
 from project_service import getUserProjects
 from profile_service import (
     AGE_CATEGORIES, FAVORITE_COLOR_OPTIONS, LANGUAGE_OPTIONS, THEME_OPTIONS,
@@ -620,6 +621,7 @@ def createProfileTab(page, nickname, email):
                             ),
                             createMyWorksButton(page, currentUser, refreshPostStats),
                             createLocalWorksButton(page, currentUser),
+                            createProfileLessonLibrary(page,currentUser),
                             ft.Row(
                                 controls=[
                                     createStatItem(userPostsCount, "Работ", PRIMARY_COLOR, "#FFF0F0"),

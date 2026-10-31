@@ -101,6 +101,18 @@ def initializeDatabase():
         updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (userId, lessonId), FOREIGN KEY (userId) REFERENCES users(userId)
     )""")
+    cursor.execute('''CREATE TABLE IF NOT EXISTS lessonFavorites (
+        userId INTEGER NOT NULL, lessonId INTEGER NOT NULL,
+        savedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(userId,lessonId), FOREIGN KEY(userId) REFERENCES users(userId))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS lessonNotes (
+        userId INTEGER NOT NULL, lessonId INTEGER NOT NULL, noteText TEXT NOT NULL,
+        updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(userId,lessonId), FOREIGN KEY(userId) REFERENCES users(userId))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS searchHistory (
+        userId INTEGER NOT NULL, queryKey TEXT NOT NULL, queryText TEXT NOT NULL,
+        lastUsed INTEGER NOT NULL, PRIMARY KEY(userId,queryKey),
+        FOREIGN KEY(userId) REFERENCES users(userId))''')
 
     addColumnIfNotExists(
         cursor,
@@ -961,6 +973,9 @@ def deleteUserDataById(userId, existingConnection=None):
         connection.execute('DELETE FROM projects WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM colorMixtures WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM lessonProgress WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM lessonFavorites WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM lessonNotes WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM searchHistory WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM accountCodes WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM accountSessions WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM remoteSessionBindings WHERE localUserId = ?', (userId,))

@@ -185,7 +185,7 @@ IDEA_PALETTES = {
 
 
 def searchLessons(searchText, categoryName='Все', levelName='Все', maxTime=None, onlyVideo=False):
-    query = (searchText or '').strip().casefold()
+    query = (searchText or '').strip().casefold().replace('ё','е')
     if categoryName not in SEARCH_CATEGORIES or levelName not in ['Все', *IDEA_LEVELS]:
         raise ValueError('Выберите категорию и сложность из списка')
     if maxTime not in (None, ''):
@@ -202,7 +202,7 @@ def searchLessons(searchText, categoryName='Все', levelName='Все', maxTime
     result = []
     for lesson in LESSON_ITEMS:
         searchable = ' '.join([lesson['title'], lesson['description'], lesson['level'],
-                               lesson['category'], *lesson['tags'], *lesson['materials']]).casefold()
+                               lesson['category'], *lesson['tags'], *lesson['materials']]).casefold().replace('ё','е')
         if (categoryName != 'Все' and lesson['category'] != categoryName
                 or levelName != 'Все' and lesson['level'] != levelName
                 or maxTime is not None and lesson['timeMinutes'] > maxTime

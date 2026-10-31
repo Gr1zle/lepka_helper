@@ -38,6 +38,9 @@ from views.project_step_order import createStepOrderButton
 from views.project_transfer import createProjectExport, createProjectImport
 from views.project_statistics import createProjectStatistics
 from views.clay_tools_view import createClayTools
+from lesson_library import (favoriteLessonIds,normalizeSearchQuery,recentSearches,rememberSearch,
+                            clearSearchHistory,searchSuggestions,lessonSearchResults)
+from views.lesson_library_view import createLessonFavorite,createLessonNotebook,createLessonShare
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -57,17 +60,29 @@ def createSearchTab(page, currentUser):
     selectedLessonId = {"value": None}
     selectedStepIndex = {"value": 0}
     lessonState = {"value": None}
+    noteDraft = {}
+    searchVersion = {'value':0}
+    owner = currentUser.get('sessionToken') if currentUser else None
+    cached = page.session.get('lessonSearchWorkspace') or {}
+    if cached.get('owner') != owner:
+        cached = {}
+    suggestions = ft.Column(spacing=0)
+    suggestionBox = ft.Container(content=suggestions,visible=False)
+    history = ft.ExpansionTile(title=ft.Text('Недавние поиски'),controls=[],initially_expanded=False,
+                               visible=currentUser is not None)
 
     searchField = ft.TextField(
         label="Поиск уроков и работ",
         hint_text="Например: котик, еда, дракон",
         prefix_icon=ft.Icons.SEARCH,
         border_radius=12,
+        value=cached.get('query',''),
+        max_length=120,
     )
 
     categoryDropdown = ft.Dropdown(
         label="Категория",
-        value="Все",
+        value=cached.get('category','Все'),
         border_radius=12,
         options=[
             ft.dropdown.Option(categoryName)
@@ -75,11 +90,16 @@ def createSearchTab(page, currentUser):
         ],
     )
 
-    levelDropdown = ft.Dropdown(label='Сложность', value='Все',
+    levelDropdown = ft.Dropdown(label='Сложность', value=cached.get('level','Все'),
         options=[ft.dropdown.Option(value) for value in ['Все', *IDEA_LEVELS]])
-    timeDropdown = ft.Dropdown(label='Время до (минут)', value='Любое',
+    timeDropdown = ft.Dropdown(label='Время до (минут)', value=cached.get('time','Любое'),
         options=[ft.dropdown.Option(value) for value in ['Любое', '30', '60', '120']])
-    videoCheckbox = ft.Checkbox(label='Только с видео', value=False)
+    videoCheckbox = ft.Checkbox(label='Только с видео', value=cached.get('video',False))
+    favoritesCheckbox = ft.Checkbox(label='Только избранные уроки',value=cached.get('favorites',False),disabled=currentUser is None)
+    progressCheckbox = ft.Checkbox(label='Продолжить начатые уроки',value=cached.get('progress',False),disabled=currentUser is None)
+    offlineCheckbox = ft.Checkbox(label='Только встроенные уроки (офлайн)',value=cached.get('offline',False))
+    sortDropdown = ft.Dropdown(label='Сортировка уроков',value=cached.get('sort','Релевантность'),
+        options=[ft.dropdown.Option(value) for value in ('Релевантность','По времени','По названию')])
     ideaThemeDropdown = ft.Dropdown(label='Тематика идеи', value='Случайная',
         options=[ft.dropdown.Option(value) for value in ['Случайная', *IDEA_THEMES]])
     ideaLevelDropdown = ft.Dropdown(label='Сложность идеи', value='Случайная',
@@ -155,6 +175,10 @@ def createSearchTab(page, currentUser):
 
     @lessonAction
     def showLessonDetail(lessonId):
+        saveWorkspace()
+        if selectedLessonId['value'] != lessonId:
+            noteDraft.pop('lessonId',None)
+            noteDraft.pop('value',None)
         selectedLessonId["value"] = lessonId
         lessonState['value'] = getUserLessonState(currentUser['userId'], lessonId) if currentUser else {
             'lastStep': 0, 'completedSteps': [], 'checkedMaterials': [], 'isCompleted': False}
@@ -163,8 +187,13 @@ def createSearchTab(page, currentUser):
         page.update()
 
     def showSearchContent():
+        navigate=page.session.get('navigateHomeTab')
+        if callable(navigate):
+            navigate(1)
+            return
         selectedLessonId["value"] = None
         selectedStepIndex["value"] = 0
+        refreshSearchResults()
         refreshMainContent()
         page.update()
 
@@ -232,6 +261,8 @@ def createSearchTab(page, currentUser):
                     text="← Назад к поиску",
                     on_click=lambda event: showSearchContent(),
                 ),
+                ft.Row(wrap=True,controls=[createLessonFavorite(page,currentUser,lessonItem['lessonId'],refreshMainContent),
+                                           createLessonShare(page,currentUser,lessonItem['lessonId'])]),
                 ft.Container(
                     padding=18,
                     border_radius=18,
@@ -310,6 +341,8 @@ def createSearchTab(page, currentUser):
                                     disabled=currentUser is None, on_change=handleStepChecked),
                                 ft.Text('Урок завершён' if state['isCompleted'] else f"Выполнено шагов: {len(state['completedSteps'])} из {len(steps)}"),
                                 ft.Row(
+                                    wrap=True,
+                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                     controls=[
                                         ft.ElevatedButton(
                                             text="Предыдущий",
@@ -318,7 +351,6 @@ def createSearchTab(page, currentUser):
                                             height=44,
                                             on_click=handlePreviousStep,
                                         ),
-                                        ft.Container(expand=True),
                                         ft.ElevatedButton(
                                             text="Следующий" if currentStepIndex < len(steps) - 1 else "Завершить",
                                             icon=ft.Icons.ARROW_FORWARD,
@@ -347,11 +379,13 @@ def createSearchTab(page, currentUser):
                     ),
                     on_click=lambda event: handleCreateProjectFromLesson(lessonItem),
                 ),
+                createLessonNotebook(page,currentUser,lessonItem['lessonId'],noteDraft),
             ],
         )
 
     def createLessonCard(lessonItem):
         tagText = ", ".join(lessonItem["tags"])
+        state = getUserLessonState(currentUser['userId'],lessonItem['lessonId']) if currentUser else None
 
         return ft.Card(
             elevation=2,
@@ -401,12 +435,12 @@ def createSearchTab(page, currentUser):
                         ft.Row(
                             controls=[
                                 ft.Text(
-                                    f"👁 {lessonItem['views']}",
+                                    (f"Шагов: {len(state['completedSteps'])}/{len(lessonItem['steps'])}" if state else 'Встроенный урок'),
                                     size=12,
                                     color=ft.Colors.GREY_600,
                                 ),
                                 ft.Text(
-                                    f"❤ {lessonItem['likes']}",
+                                    ('Завершён' if state and state['isCompleted'] else ''),
                                     size=12,
                                     color=ft.Colors.GREY_600,
                                 ),
@@ -417,6 +451,7 @@ def createSearchTab(page, currentUser):
                                 ),
                             ],
                         ),
+                        createLessonFavorite(page,currentUser,lessonItem['lessonId'],refreshSearchResults),
                     ],
                     spacing=8,
                 ),
@@ -424,27 +459,107 @@ def createSearchTab(page, currentUser):
         )
 
     def refreshSearchResults():
-        resultColumn.controls.clear()
-
-        lessonItems = searchLessons(searchField.value or '', categoryDropdown.value, levelDropdown.value,
+        searchVersion['value'] += 1
+        version = searchVersion['value']
+        query = normalizeSearchQuery(searchField.value or '')
+        saveWorkspace()
+        if query and len(query)<2:
+            resultColumn.controls = [ft.Text('Введите не меньше двух символов для поиска.')]
+            return
+        lessonItems = searchLessons(query, categoryDropdown.value, levelDropdown.value,
                                     None if timeDropdown.value == 'Любое' else timeDropdown.value, videoCheckbox.value)
+        lessonItems = lessonSearchResults(lessonItems,query,currentUser['userId'] if currentUser else None,
+            favoritesCheckbox.value,progressCheckbox.value,sortDropdown.value)
+        controls = [createLessonCard(item) for item in lessonItems]
+        if not (offlineCheckbox.value or favoritesCheckbox.value or progressCheckbox.value):
+            try:
+                works = CommunityClient(currentUser).getPosts(search={
+                    'queryText':query,'categoryName':categoryDropdown.value,'levelName':levelDropdown.value,
+                    'maxTime':None if timeDropdown.value=='Любое' else timeDropdown.value,'onlyVideo':videoCheckbox.value})
+                if works:
+                    controls.append(ft.Text('Работы сообщества',size=18,weight=ft.FontWeight.BOLD))
+                    controls.extend(createPostCard(page,item,currentUser,refreshSearchResults) for item in works)
+            except ApiError as error:
+                if error.statusCode==401:
+                    if (page.session.get('currentUser') or {}).get('sessionToken')==owner:
+                        raise
+                    return
+                controls.append(createLoadError(page,error,handleSearchChange))
+        if not controls:
+            empty = ('В избранном пока нет уроков. Откройте урок и нажмите «В избранное».'
+                if favoritesCheckbox.value and currentUser and not favoriteLessonIds(currentUser['userId']) else
+                'Ничего не найдено. Попробуйте изменить запрос или фильтры.')
+            controls.append(ft.Text(empty))
+        if searchVersion['value']==version and (page.session.get('currentUser') or {}).get('sessionToken')==owner:
+            resultColumn.controls = controls
 
-        for lessonItem in lessonItems:
-            resultColumn.controls.append(createLessonCard(lessonItem))
+    def saveWorkspace():
+        page.session.set('lessonSearchWorkspace',dict(owner=owner,query=searchField.value or '',
+            category=categoryDropdown.value,level=levelDropdown.value,time=timeDropdown.value,
+            video=videoCheckbox.value,favorites=favoritesCheckbox.value,progress=progressCheckbox.value,
+            offline=offlineCheckbox.value,sort=sortDropdown.value))
 
-        works = CommunityClient(currentUser).getPosts(search={
-            'queryText': searchField.value or '', 'categoryName': categoryDropdown.value, 'levelName': levelDropdown.value,
-            'maxTime': None if timeDropdown.value == 'Любое' else timeDropdown.value, 'onlyVideo': videoCheckbox.value})
-        if works:
-            resultColumn.controls.append(ft.Text('Работы сообщества', size=18, weight=ft.FontWeight.BOLD))
-            resultColumn.controls.extend(createPostCard(page, item, currentUser, refreshSearchResults) for item in works)
-        if not resultColumn.controls:
-            resultColumn.controls.append(ft.Text('Ничего не найдено. Попробуйте изменить запрос или фильтры.'))
+    @authenticatedAction(page,currentUser)
+    def clearHistory(event):
+        @authenticatedAction(page,currentUser)
+        def confirm():
+            clearSearchHistory(currentUser['userId'])
+            refreshHistory()
+            page.update()
+        confirmAction(page,'Очистить историю поиска?','Будут удалены только ваши недавние запросы на этом устройстве.',confirm)
+
+    def refreshHistory():
+        history.controls = []
+        if currentUser:
+            for query in recentSearches(currentUser['userId']):
+                history.controls.append(ft.TextButton(query,on_click=lambda event,value=query:useQuery(value)))
+            history.controls.append(ft.TextButton('Очистить историю',on_click=clearHistory))
+
+    def refreshSuggestions():
+        values = searchSuggestions(searchField.value or '',currentUser['userId'] if currentUser else None)
+        suggestions.controls = [ft.TextButton(value,on_click=lambda event,value=value:useQuery(value)) for value in values]
+        suggestionBox.visible = bool(values)
+        suggestionBox.height = min(200,len(values)*44)
+        suggestions.scroll = ft.ScrollMode.AUTO
+
+    @lessonAction
+    def useQuery(value):
+        searchField.value = value
+        submitSearch(None)
 
     @serverAction(page)
-    def handleSearchChange(event):
-        refreshSearchResults()
-        refreshMainContent()
+    @lessonAction
+    def handleSearchChange(event=None):
+        if selectedLessonId['value'] is not None:
+            return
+        try:
+            searchField.error_text = None
+            if getattr(event,'control',None) is searchField:
+                refreshSuggestions()
+            else:
+                suggestionBox.visible = False
+            refreshSearchResults()
+        except ValueError as error:
+            searchField.error_text = str(error)
+        page.update()
+
+    @serverAction(page)
+    @lessonAction
+    def submitSearch(event):
+        if selectedLessonId['value'] is not None:
+            return
+        try:
+            query = normalizeSearchQuery(searchField.value or '')
+            if query and len(query)<2:
+                raise ValueError('Введите не меньше двух символов')
+            if currentUser and query:
+                rememberSearch(currentUser['userId'],query)
+            refreshHistory()
+            suggestionBox.visible = False
+            refreshSearchResults()
+            searchField.error_text = None
+        except ValueError as error:
+            searchField.error_text = str(error)
         page.update()
 
     def handleGenerateIdea(event):
@@ -536,15 +651,16 @@ def createSearchTab(page, currentUser):
                     weight=ft.FontWeight.BOLD,
                 ),
                 searchField,
-                categoryDropdown,
-                levelDropdown,
-                timeDropdown,
-                videoCheckbox,
-                ft.Text(
-                    "Генератор идей",
-                    size=18,
-                    weight=ft.FontWeight.BOLD,
-                ),
+                ft.Row(wrap=True,controls=[ft.ElevatedButton('Найти',icon=ft.Icons.SEARCH,on_click=submitSearch),
+                                           ft.TextButton('Сбросить фильтры',on_click=resetFilters)]),
+                suggestionBox,
+                history,
+                favoritesCheckbox,
+                ft.ExpansionTile(title=ft.Text('Фильтры уроков'),initially_expanded=False,
+                    controls=[categoryDropdown,levelDropdown,timeDropdown,videoCheckbox,progressCheckbox,offlineCheckbox,sortDropdown]),
+                ft.Text('Результаты поиска',size=18,weight=ft.FontWeight.BOLD),
+                resultColumn,
+                ft.ExpansionTile(title=ft.Text('Генератор идей'),initially_expanded=False,controls=[
                 ideaThemeDropdown,
                 ideaLevelDropdown,
                 ideaPaletteDropdown,
@@ -561,23 +677,38 @@ def createSearchTab(page, currentUser):
                     on_click=handleGenerateIdea,
                 ),
                 ideaContainer,
-                ft.Text(
-                    "Результаты поиска",
-                    size=18,
-                    weight=ft.FontWeight.BOLD,
-                ),
-                resultColumn,
+                ]),
             ]
         )
 
+    @lessonAction
+    def resetFilters(event):
+        searchField.value = ''
+        categoryDropdown.value = levelDropdown.value = 'Все'
+        timeDropdown.value = 'Любое'
+        videoCheckbox.value = favoritesCheckbox.value = progressCheckbox.value = offlineCheckbox.value = False
+        sortDropdown.value = 'Релевантность'
+        handleSearchChange(None)
+
     searchField.on_change = handleSearchChange
+    searchField.on_submit = submitSearch
     categoryDropdown.on_change = handleSearchChange
     levelDropdown.on_change = handleSearchChange
     timeDropdown.on_change = handleSearchChange
     videoCheckbox.on_change = handleSearchChange
+    favoritesCheckbox.on_change = handleSearchChange
+    progressCheckbox.on_change = handleSearchChange
+    offlineCheckbox.on_change = handleSearchChange
+    sortDropdown.on_change = handleSearchChange
 
-    refreshSearchResults()
-    refreshMainContent()
+    refreshHistory()
+    pendingLesson = page.session.get('openBuiltinLesson')
+    page.session.set('openBuiltinLesson',None)
+    if type(pendingLesson) is int and getLessonById(pendingLesson):
+        showLessonDetail(pendingLesson)
+    else:
+        refreshSearchResults()
+        refreshMainContent()
 
     return ft.ListView(
         expand=True,
@@ -1876,6 +2007,7 @@ def createHomeView(page: ft.Page):
                          lambda: createProjectsTab(page, currentUser), lambda: createProfileTab(page, nickname, email)]
             if not 0 <= index < len(factories):
                 return
+            page.session.set('homeTab',index)
             content_area.content = factories[index]()
         except ApiError as error:
             if error.statusCode == 401:
@@ -1886,8 +2018,11 @@ def createHomeView(page: ft.Page):
     def update_tab(event):
         loadTab(event.control.selected_index)
 
+    initialTab = page.session.get('homeTab')
+    if type(initialTab) is not int or not 0 <= initialTab < 5:
+        initialTab = 0
     nav_bar = ft.NavigationBar(
-        selected_index=0,
+        selected_index=initialTab,
         on_change=update_tab,
         destinations=[
             ft.NavigationBarDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label="Главная"),
@@ -1898,8 +2033,13 @@ def createHomeView(page: ft.Page):
         ],
     )
 
-    # Загружаем первый таб
-    loadTab(0)
+    def navigateHomeTab(index):
+        nav_bar.selected_index=index
+        loadTab(index)
+
+    page.session.set('navigateHomeTab',navigateHomeTab)
+    # Внутренние переходы не зависят от повторного события того же /home.
+    loadTab(initialTab)
 
     return ft.View(
         "/home",
