@@ -33,6 +33,17 @@ class WorkshopFixture(SharingFixture):
 
 
 class WorkshopTests(WorkshopFixture, unittest.TestCase):
+    def test_new_workshop_follows_reordered_steps_and_old_snapshot_stays_unchanged(self):
+        old = workshops.getWorkshop(self.postId)
+        self.assertTrue(projects.saveProjectStepOrder(self.project, self.owner,
+            [self.result, self.step], [self.step, self.result])[0])
+        success, message, newPost = self.publish(workshopInfo=INFO)
+        self.assertTrue(success, message)
+        new = workshops.getWorkshop(newPost)
+        self.assertEqual([step['description'] for step in new['steps']], ['Готовый котик', 'Слепить основу'])
+        self.assertEqual([step['photoPosition'] for step in new['steps']], [0, 1])
+        self.assertEqual(workshops.getWorkshop(self.postId)['steps'], old['steps'])
+
     def test_chronological_steps_have_correct_photos_and_explicit_author_metadata(self):
         workshop = workshops.getWorkshop(self.postId)
         self.assertEqual(workshop['level'], 'Средний')

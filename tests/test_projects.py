@@ -11,6 +11,56 @@ from image_fixtures import photo
 
 
 class ProjectTests(unittest.TestCase):
+    def test_reordering_preserves_photos_completion_and_project_progress(self):
+        second = projects.saveProjectStep(self.project, 'Вторая часть', self.owner)[2]
+        third = projects.saveProjectStep(self.project, 'Третья часть', self.owner)[2]
+        projects.saveProjectStepPhoto(self.project, second, self.owner, photo())
+        projects.changeProjectStepStatus(self.project, second, True, self.owner)
+        image = projects.getProjectStepPhoto(self.project, second, self.owner)
+        before = dict(db.getProjectById(self.project, self.owner))
+        self.assertTrue(projects.saveProjectStepOrder(self.project, self.owner,
+            [third, second, self.step], [self.step, second, third])[0])
+        self.assertEqual([s['stepId'] for s in projects.getProjectSteps(self.project, self.owner)], [third, second, self.step])
+        self.assertEqual(projects.getProjectStepPhoto(self.project, second, self.owner), image)
+        self.assertTrue(projects.getProjectSteps(self.project, self.owner)[1]['isCompleted'])
+        self.assertEqual(dict(db.getProjectById(self.project, self.owner)), before)
+        fourth = projects.saveProjectStep(self.project, 'Последняя часть', self.owner)[2]
+        self.assertEqual([s['stepId'] for s in projects.getProjectSteps(self.project, self.owner)], [third, second, self.step, fourth])
+
+    def test_reorder_rejects_foreign_missing_duplicate_and_stale_steps_atomically(self):
+        second = projects.saveProjectStep(self.project, 'Вторая часть', self.owner)[2]
+        original = [self.step, second]
+        for user, ordered, expected in ((self.other, original[::-1], original),
+                (self.owner, [second, second], original), (self.owner, [second], original),
+                (self.owner, [second, self.otherStep], original),
+                (self.owner, ['1', second], original), (self.owner, original[::-1], original[::-1])):
+            before = self.snapshot()
+            self.assertFalse(projects.saveProjectStepOrder(self.project, user, ordered, expected)[0])
+            self.assertEqual(self.snapshot(), before)
+        self.assertTrue(projects.saveProjectStepOrder(self.project, self.owner, original[::-1], original)[0])
+        before = self.snapshot()
+        self.assertFalse(projects.saveProjectStepOrder(self.project, self.owner, original, original)[0])
+        self.assertEqual(self.snapshot(), before)
+        projects.saveProjectStep(self.project, 'Новый этап из другого окна', self.owner)
+        before = self.snapshot()
+        self.assertFalse(projects.saveProjectStepOrder(self.project, self.owner, original, original[::-1])[0])
+        self.assertEqual(self.snapshot(), before)
+
+    def test_legacy_step_order_migration_preserves_data_and_does_not_reset_later_order(self):
+        second = projects.saveProjectStep(self.project, 'Вторая часть', self.owner)[2]
+        projects.saveProjectStepPhoto(self.project, second, self.owner, photo())
+        image = projects.getProjectStepPhoto(self.project, second, self.owner)
+        with db.openDatabase() as connection:
+            connection.execute('ALTER TABLE projectSteps DROP COLUMN sortOrder')
+            connection.execute("UPDATE projectSteps SET createdAt='2000-01-01' WHERE stepId=?", (second,))
+        db.initializeDatabase()
+        self.assertEqual([s['stepId'] for s in projects.getProjectSteps(self.project, self.owner)], [second, self.step])
+        self.assertEqual(projects.getProjectStepPhoto(self.project, second, self.owner), image)
+        self.assertTrue(projects.saveProjectStepOrder(self.project, self.owner, [self.step, second], [second, self.step])[0])
+        db.initializeDatabase()
+        self.assertEqual([s['stepId'] for s in projects.getProjectSteps(self.project, self.owner)], [self.step, second])
+        self.assertEqual(len(projects.getProjectSteps(self.otherProject, self.other)), 1)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

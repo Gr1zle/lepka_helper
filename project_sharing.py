@@ -131,20 +131,22 @@ def prepareProjectPublication(projectId, userId, titleText, descriptionText, cat
             return False, 'Проект не найден или недоступен', None
         photos, steps, mixtures = [], [], []
         selectedSteps = []
+        stepOrder = {}
         for stepId in [resultStepId, *otherStepIds]:
-            step = connection.execute('SELECT stepDescription, photoImage FROM projectSteps WHERE projectId = ? AND stepId = ?',
+            step = connection.execute('SELECT stepDescription, photoImage, sortOrder FROM projectSteps WHERE projectId = ? AND stepId = ?',
                                       (projectId, stepId)).fetchone()
             if step is None or (not step['photoImage'] and (workshopInfo is None or stepId == resultStepId)):
                 return False, 'Добавьте фото выбранного этапа или измените выбор', None
             position = len(photos) if step['photoImage'] else None
             selectedSteps.append((stepId, {'description': step['stepDescription'], 'photoPosition': position}))
+            stepOrder[stepId] = (step['sortOrder'], stepId)
             if step['photoImage']:
                 photos.append(bytes(step['photoImage']))
                 if len(photos) > 10:
                     return False, 'В публикации допускается не больше 10 фото', None
         # Обложка остаётся первой фотографией, шаги читаются в порядке проекта.
         if workshopInfo is not None:
-            selectedSteps.sort(key=lambda item: item[0])
+            selectedSteps.sort(key=lambda item: stepOrder[item[0]])
         steps = [step for stepId, step in selectedSteps]
         for mixtureId in projectMixtureIds:
             record = connection.execute('SELECT mixtureJson FROM projectMixtures WHERE projectId = ? AND projectMixtureId = ?',

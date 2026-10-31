@@ -197,6 +197,16 @@ def initializeDatabase():
     )
 
     addColumnIfNotExists(cursor, 'projectSteps', 'photoImage', 'photoImage BLOB')
+    stepColumns = {row['name'] for row in cursor.execute('PRAGMA table_info(projectSteps)')}
+    if 'sortOrder' not in stepColumns:
+        addColumnIfNotExists(cursor, 'projectSteps', 'sortOrder', 'sortOrder INTEGER NOT NULL DEFAULT 0')
+        # Сохраняем прежний порядок при первом обновлении существующей базы.
+        records = cursor.execute('SELECT stepId, projectId FROM projectSteps ORDER BY projectId, createdAt, stepId').fetchall()
+        positions = {}
+        for record in records:
+            position = positions.get(record['projectId'], 0)
+            cursor.execute('UPDATE projectSteps SET sortOrder = ? WHERE stepId = ?', (position, record['stepId']))
+            positions[record['projectId']] = position + 1
 
     # Копия рецепта: удаление смеси из палитры не меняет материалы проекта.
     cursor.execute("""CREATE TABLE IF NOT EXISTS projectMixtures (
@@ -532,14 +542,32 @@ def createProjectStep(projectId, stepDescription, userId):
     try:
         with connection:
             cursor = connection.execute(
-                """INSERT INTO projectSteps (projectId, stepDescription)
-                SELECT projectId, ? FROM projects
+                """INSERT INTO projectSteps (projectId, stepDescription, sortOrder)
+                SELECT projectId, ?, COALESCE((SELECT MAX(sortOrder) FROM projectSteps WHERE projectId = ?), -1) + 1 FROM projects
                 WHERE projectId = ? AND userId = ?""",
-                (stepDescription, projectId, userId),
+                (stepDescription, projectId, projectId, userId),
             )
         return cursor.lastrowid if cursor.rowcount else None
     finally:
         connection.close()
+
+
+def reorderProjectSteps(projectId, userId, orderedIds, expectedIds):
+    with openDatabase() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        owned = connection.execute('''SELECT p.projectId FROM projects p JOIN users u ON u.userId = p.userId
+            WHERE p.projectId = ? AND p.userId = ? AND u.isBlocked = 0''', (projectId, userId)).fetchone()
+        if owned is None:
+            return False
+        current = [row['stepId'] for row in connection.execute(
+            'SELECT stepId FROM projectSteps WHERE projectId = ? ORDER BY sortOrder, stepId', (projectId,))]
+        if current != list(expectedIds):
+            raise ValueError('Этапы уже изменились. Закройте окно и откройте порядок этапов заново')
+        if len(orderedIds) != len(current) or set(orderedIds) != set(current):
+            raise ValueError('Нужно передать все этапы проекта без повторений')
+        connection.executemany('UPDATE projectSteps SET sortOrder = ? WHERE projectId = ? AND stepId = ?',
+                               [(position, projectId, stepId) for position, stepId in enumerate(orderedIds)])
+        return True
 
 
 def getProjectStepsByProjectId(projectId, userId):
@@ -551,7 +579,7 @@ def getProjectStepsByProjectId(projectId, userId):
             FROM projectSteps AS s
             JOIN projects AS p ON p.projectId = s.projectId
             WHERE p.projectId = ? AND p.userId = ?
-            ORDER BY s.createdAt ASC, s.stepId ASC""",
+            ORDER BY s.sortOrder ASC, s.stepId ASC""",
             (projectId, userId),
         ).fetchall()
     finally:
@@ -983,8 +1011,8 @@ def createProjectWithSteps(userId, projectName, categoryName, deadlineDate, desc
             """INSERT INTO projects (userId, projectName, categoryName, deadlineDate, descriptionText)
             VALUES (?, ?, ?, ?, ?)""", (userId, projectName, categoryName, deadlineDate, descriptionText))
         projectId = cursor.lastrowid
-        connection.executemany('INSERT INTO projectSteps (projectId, stepDescription) VALUES (?, ?)',
-                               [(projectId, description) for description in stepDescriptions])
+        connection.executemany('INSERT INTO projectSteps (projectId, stepDescription, sortOrder) VALUES (?, ?, ?)',
+                               [(projectId, description, position) for position, description in enumerate(stepDescriptions)])
         return projectId
 
 

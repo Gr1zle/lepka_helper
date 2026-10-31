@@ -20,7 +20,7 @@ MODULES = (
     'photo_service', 'photo_upload', 'photo_picker', 'post_service', 'profile_service',
     'project_service', 'project_sharing', 'workshop_service', 'remote_account_cache', 'ui_helpers', 'validators',
 )
-VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'workshop_view', 'profile_tab', 'splash_view', 'onboarding_view')
+VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'project_step_order', 'workshop_view', 'profile_tab', 'splash_view', 'onboarding_view')
 ASSETS = ('fonts/DejaVuSans.ttf', 'fonts/LICENSE-DejaVu.txt',
           *(f'lessons/lesson_{index}.svg' for index in range(1, 7)))
 
