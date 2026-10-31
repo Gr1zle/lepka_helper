@@ -491,7 +491,7 @@ def createSearchTab(page, currentUser):
         controls = [createLessonCard(item) for item in lessonItems]
         if not favoritesCheckbox.value and not progressCheckbox.value and not videoCheckbox.value:
             models=searchModels(query,categoryDropdown.value,levelDropdown.value,
-                None if timeDropdown.value=='Любое' else timeDropdown.value)
+                None if timeDropdown.value=='Любое' else timeDropdown.value,userId=currentUser['userId'] if currentUser else None)
             if models:
                 controls.append(ft.Text('3D-модели',size=18,weight=ft.FontWeight.BOLD))
                 controls.extend(createModelCard(page,item) for item in models)
@@ -1628,15 +1628,18 @@ def createProjectsTab(page, currentUser):
         descriptionField.value = ""
 
     def refreshProjectList():
-        projectListColumn.controls.clear()
+        # Собираем замену вне живого дерева. Промежуточный page.update() с пустым
+        # списком портил размеры ленивых элементов после закрытия редактора.
+        newProjectControls = []
 
         if currentUser is None:
-            projectListColumn.controls.append(
+            newProjectControls.append(
                 ft.Text(
                     "Войдите в аккаунт, чтобы создавать и видеть проекты.",
                     color=ft.Colors.GREY_600,
                 )
             )
+            projectListColumn.controls = newProjectControls
             return
 
         projectItems = getUserProjects(currentUser["userId"])
@@ -1647,7 +1650,7 @@ def createProjectsTab(page, currentUser):
             projectItems = [item for item in projectItems if item['projectId']==projectTarget['id']]
 
         if len(projectItems) == 0:
-            projectListColumn.controls.append(
+            newProjectControls.append(
                 ft.Container(
                     padding=16,
                     border_radius=12,
@@ -1658,6 +1661,7 @@ def createProjectsTab(page, currentUser):
                     ),
                 )
             )
+            projectListColumn.controls = newProjectControls
             return
 
         for projectItem in projectItems:
@@ -1863,7 +1867,7 @@ def createProjectsTab(page, currentUser):
                 spacing=6,
             )
 
-            projectListColumn.controls.append(
+            newProjectControls.append(
                 ft.Card(
                     elevation=2,
                     content=ft.Container(
@@ -1936,6 +1940,8 @@ def createProjectsTab(page, currentUser):
                 )
             )
 
+        projectListColumn.controls = newProjectControls
+
     @authenticatedAction(page, currentUser)
     def handleCreateProject(event):
         if currentUser is None:
@@ -1963,6 +1969,7 @@ def createProjectsTab(page, currentUser):
 
     return ft.ListView(
         expand=True,
+        build_controls_on_demand=False,
         spacing=14,
         padding=ft.padding.only(left=16, right=16, top=16, bottom=16),
         controls=[

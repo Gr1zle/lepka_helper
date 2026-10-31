@@ -7,29 +7,45 @@ from zipfile import ZipFile,ZIP_DEFLATED
 from database import openDatabase
 from learning_assets import MODEL_ITEMS
 from mesh_renderer import parseObj
+from model_import import importedModel,listImportedModels
 
 ASSET_ROOT=Path(__file__).resolve().parent/'assets'
-MODEL_CATEGORIES=('Все',*dict.fromkeys(item['category'] for item in MODEL_ITEMS))
+MODEL_CATEGORIES=('Все',*dict.fromkeys(item['category'] for item in MODEL_ITEMS),'Мои модели')
 
 
-def getModel(modelId):
-    return next((deepcopy(item) for item in MODEL_ITEMS if item['modelId']==modelId),None)
+def personalItem(record):
+    return {'modelId':record['modelId'],'title':record['title'],'category':'Мои модели',
+            'imported':True,'previewImage':record['previewImage'],'tags':()}
 
 
-def requireModel(modelId):
-    model=getModel(modelId)
+def getModel(modelId,userId=None):
+    item=next((deepcopy(item) for item in MODEL_ITEMS if item['modelId']==modelId),None)
+    if item:return item
+    record=importedModel(modelId,userId)
+    return personalItem(record) if record else None
+
+
+def requireModel(modelId,userId=None):
+    model=getModel(modelId,userId)
     if model is None:raise ValueError('Модель не найдена')
     return model
 
 
 @lru_cache(maxsize=6)
-def loadModel(modelId):
+def loadBuiltinModel(modelId):
     requireModel(modelId)
     return parseObj((ASSET_ROOT/'models'/f'{modelId}.obj').read_text(encoding='utf-8'),
                     (ASSET_ROOT/'models'/f'{modelId}.mtl').read_text(encoding='utf-8'))
 
 
-def searchModels(query='',category='Все',level='Все',maxTime=None):
+def loadModel(modelId,userId=None):
+    if any(item['modelId']==modelId for item in MODEL_ITEMS):return loadBuiltinModel(modelId)
+    record=importedModel(modelId,userId)
+    if not record:raise ValueError('Модель не найдена')
+    return parseObj(record['objText'],record['materialText'])
+
+
+def searchModels(query='',category='Все',level='Все',maxTime=None,userId=None):
     from lesson_service import getLessonById,IDEA_LEVELS
     if not isinstance(query,str) or len(query)>120:
         raise ValueError('Поисковый запрос должен быть не длиннее 120 символов')
@@ -47,6 +63,10 @@ def searchModels(query='',category='Все',level='Все',maxTime=None):
                 or maxTime is not None and lesson['timeMinutes']>int(maxTime)
                 or not all(word in haystack for word in query.split())):continue
         result.append(deepcopy(item))
+    if userId is not None and category in ('Все','Мои модели') and level=='Все' and maxTime is None:
+        for record in listImportedModels(userId):
+            if all(word in ('3d модель фигурка мои модели '+record['title']).casefold().replace('ё','е') for word in query.split()):
+                result.append(personalItem(record))
     return result
 
 
@@ -54,11 +74,11 @@ def favoriteModelIds(userId):
     with openDatabase() as connection:
         records=connection.execute('''SELECT f.modelId FROM modelFavorites f JOIN users u ON u.userId=f.userId
             WHERE f.userId=? AND u.isBlocked=0''',(userId,)).fetchall()
-    return {row['modelId'] for row in records if getModel(row['modelId'])}
+    return {row['modelId'] for row in records if getModel(row['modelId'],userId)}
 
 
 def saveModelFavorite(userId,modelId,selected):
-    requireModel(modelId)
+    requireModel(modelId,userId)
     if type(selected) is not bool:raise ValueError('Некорректная отметка избранного')
     with openDatabase() as connection:
         connection.execute('BEGIN IMMEDIATE')
@@ -71,12 +91,19 @@ def saveModelFavorite(userId,modelId,selected):
     return selected
 
 
-def modelBundle(modelId):
-    requireModel(modelId)
+def modelBundle(modelId,userId=None):
+    item=requireModel(modelId,userId)
     output=BytesIO()
     with ZipFile(output,'w',ZIP_DEFLATED) as archive:
-        for extension in ('obj','mtl'):
-            name=f'{modelId}.{extension}'
-            archive.writestr(name,(ASSET_ROOT/'models'/name).read_bytes())
-        archive.writestr('README.txt','Author-created geometric learning model from Lepka Helper.\nKeep OBJ and MTL in the same folder.\n')
+        if item.get('imported'):
+            record=importedModel(modelId,userId)
+            if not record:raise ValueError('Модель не найдена')
+            archive.writestr('model.obj',record['objText'])
+            archive.writestr('model.mtl',record['materialText'])
+            archive.writestr('README.txt','Personal OBJ model exported from Lepka Helper.\n')
+        else:
+            for extension in ('obj','mtl'):
+                name=f'{modelId}.{extension}'
+                archive.writestr(name,(ASSET_ROOT/'models'/name).read_bytes())
+            archive.writestr('README.txt','Author-created geometric learning model from Lepka Helper.\nKeep OBJ and MTL in the same folder.\n')
     return output.getvalue()

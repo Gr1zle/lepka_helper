@@ -11,19 +11,20 @@ def createProjectStatistics(page, user):
         options=[ft.dropdown.Option(str(number), f'{number:02d}') for number in range(1, 13)])
     result = ft.Text()
 
-    def refresh():
+    def refresh(update=False):
         try:
             stats = getProjectStatistics(user['userId'], int(year.value), int(month.value))
             result.value = (f"Всего: {stats['total']} · В работе: {stats['active']} · Завершено: {stats['completed']}\n"
                 f"За {stats['period']}: {stats['month']} · За {year.value} год: {stats['year']}\n"
                 f"Завершённые без даты: {stats['undated']}")
-            page.update()
+            if update:
+                page.update()
         except (ValueError, TypeError):
             showMessage(page, 'Укажите год от 1 до 9999 и месяц от 1 до 12', True)
 
     @authenticatedAction(page, user)
     def update(event):
-        refresh()
+        refresh(True)
 
     refresh()
     card = ft.Card(content=ft.Container(padding=14, content=ft.Column(controls=[

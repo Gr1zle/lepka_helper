@@ -14,11 +14,12 @@ from scripts.prepare_android import MODULES, VIEWS, ASSETS
 
 DOCS = ('ТЗ', 'Plan', 'day1_requirements_audit.md', 'day2_stabilization.md', 'day3_tools.md',
         'day4_community_android.md', 'account_backend_validation.md', 'avatar_stage_photos.md',
-        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md', 'development_backlog.md', 'project_calendar_reminders.md')
+        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md', 'development_backlog.md', 'project_calendar_reminders.md', 'model_import_fullscreen.md')
 TESTS = ('accounts', 'android_package', 'backend', 'clay_tools', 'community', 'community_api',
          'community_gateway', 'gateway', 'profile_stage_media', 'project_sharing', 'projects',
-         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library', 'models', 'project_planner')
+         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library', 'models', 'project_planner', 'model_import')
 SCREENSHOTS = ('day4-community-form.png', 'day4-community-post.png', 'profile-avatar.png',
+               'projects-edit-fixed-wide.png', 'projects-edit-fixed-320.png', 'import-full-portrait.png', 'import-full-landscape.png', 'import-full-320.png', 'import-personal-library.png',
                'planner-calendar.png', 'planner-320.png', 'planner-reminders.png', 'planner-project.png',
                'models-gallery.png', 'models-view-320.png', 'models-step-enlarged.png', 'models-favorites.png',
                'library-suggestions.png', 'library-note-320.png', 'library-profile-favorites.png', 'library-resume.png',

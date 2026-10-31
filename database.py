@@ -112,6 +112,11 @@ def initializeDatabase():
     cursor.execute('''CREATE TABLE IF NOT EXISTS modelFavorites (
         userId INTEGER NOT NULL, modelId TEXT NOT NULL,
         PRIMARY KEY(userId,modelId), FOREIGN KEY(userId) REFERENCES users(userId))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS importedModels (
+        modelId TEXT PRIMARY KEY, userId INTEGER NOT NULL, title TEXT NOT NULL,
+        objText TEXT NOT NULL, materialText TEXT NOT NULL, previewImage BLOB NOT NULL,
+        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS searchHistory (
         userId INTEGER NOT NULL, queryKey TEXT NOT NULL, queryText TEXT NOT NULL,
         lastUsed INTEGER NOT NULL, PRIMARY KEY(userId,queryKey),
