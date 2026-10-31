@@ -197,6 +197,7 @@ def initializeDatabase():
     )
 
     addColumnIfNotExists(cursor, 'projectSteps', 'photoImage', 'photoImage BLOB')
+    addColumnIfNotExists(cursor, 'projects', 'completedAt', 'completedAt TEXT')
     stepColumns = {row['name'] for row in cursor.execute('PRAGMA table_info(projectSteps)')}
     if 'sortOrder' not in stepColumns:
         addColumnIfNotExists(cursor, 'projectSteps', 'sortOrder', 'sortOrder INTEGER NOT NULL DEFAULT 0')
@@ -624,9 +625,12 @@ def updateProjectProgress(projectId, progressPercent, userId):
     try:
         with connection:
             cursor = connection.execute(
-                """UPDATE projects SET progressPercent = ?
+                """UPDATE projects SET completedAt = CASE
+                    WHEN ? < 100 THEN NULL
+                    WHEN progressPercent < 100 THEN strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+                    ELSE completedAt END, progressPercent = ?
                 WHERE projectId = ? AND userId = ?""",
-                (progressPercent, projectId, userId),
+                (progressPercent, progressPercent, projectId, userId),
             )
         return cursor.rowcount > 0
     finally:
