@@ -9,6 +9,7 @@ from account_gateway import getUserProfile
 from validators import validateEmail, validateNickname, validatePassword, validatePasswordConfirmation
 from app_info import APP_TITLE
 from views.about_dialog import showDataInfo
+from device_session import saveDeviceSession
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -64,8 +65,11 @@ def createAuthView(page):
         page.session.set("currentUser", userData)
         profileData = getUserProfile(userData["userId"], userData.get("sessionToken"))
         page.theme_mode = ft.ThemeMode.DARK if profileData and profileData["themeMode"] == "dark" else ft.ThemeMode.LIGHT
+        sessionSaved = saveDeviceSession(page, userData)
         showMessage(messageText)
         page.go("/home")
+        if not sessionSaved:
+            showMessage('Вход выполнен, но сохранить его для перезапуска не удалось', True)
 
     @serverAction(page)
     def handleRegister(event):

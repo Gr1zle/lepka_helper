@@ -16,7 +16,7 @@ from app_info import APP_VERSION
 MODULES = (
     'account_gateway', 'account_security', 'api_client', 'app_info', 'app_paths', 'app_state',
     'auth_service', 'color_export', 'color_service', 'community_gateway', 'database', 'date_field',
-    'download_service', 'lesson_service', 'mail_service', 'password_service',
+    'download_service', 'device_session', 'lesson_service', 'mail_service', 'password_service',
     'photo_service', 'photo_upload', 'photo_picker', 'post_service', 'profile_service',
     'project_service', 'project_sharing', 'workshop_service', 'remote_account_cache', 'ui_helpers', 'validators',
 )
