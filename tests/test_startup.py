@@ -105,6 +105,34 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 nav.on_change(SimpleNamespace(control=nav))
                 self.page.update()
 
+    async def test_project_step_order_can_be_cancelled_or_saved_after_drag(self):
+        projectId = projects.saveProject(self.user['userId'], 'Порядок', 'Животные', '', '')[2]
+        ids = [projects.saveProjectStep(projectId, name, self.user['userId'])[2] for name in ('Основа', 'Детали', 'Сборка')]
+        view = self.mount(ft.View('/projects', controls=[createProjectsTab(self.page, self.user)]))
+        find(view, ft.TextButton, text='Порядок этапов').on_click(None)
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog) and c.open)
+        find(dialog, ft.IconButton, tooltip='Этап ниже').on_click(None)
+        self.assertEqual([s['stepId'] for s in projects.getProjectSteps(projectId, self.user['userId'])], ids)
+        find(dialog, ft.TextButton, text='Отмена').on_click(None)
+        self.assertEqual([s['stepId'] for s in projects.getProjectSteps(projectId, self.user['userId'])], ids)
+        find(view, ft.TextButton, text='Порядок этапов').on_click(None)
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog) and c.open)
+        find(dialog, ft.ReorderableListView).on_reorder(SimpleNamespace(old_index=2, new_index=0))
+        find(dialog, ft.ElevatedButton, text='Сохранить порядок').on_click(None)
+        self.assertEqual([s['stepId'] for s in projects.getProjectSteps(projectId, self.user['userId'])], [ids[2], ids[0], ids[1]])
+
+    async def test_old_step_order_dialog_cannot_save_after_logout(self):
+        from account_security import logoutUser
+        projectId = projects.saveProject(self.user['userId'], 'Порядок', 'Животные', '', '')[2]
+        ids = [projects.saveProjectStep(projectId, name, self.user['userId'])[2] for name in ('Основа', 'Сборка')]
+        view = self.mount(ft.View('/projects', controls=[createProjectsTab(self.page, self.user)]))
+        find(view, ft.TextButton, text='Порядок этапов').on_click(None)
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog) and c.open)
+        find(dialog, ft.ReorderableListView).on_reorder(SimpleNamespace(old_index=0, new_index=1))
+        logoutUser(self.user['sessionToken'])
+        find(dialog, ft.ElevatedButton, text='Сохранить порядок').on_click(None)
+        self.assertEqual([s['stepId'] for s in projects.getProjectSteps(projectId, self.user['userId'])], ids)
+
     async def test_profile_theme_switch_updates_the_current_background(self):
         view = self.mount(createHomeView(self.page))
         nav = find(view, ft.NavigationBar)

@@ -34,6 +34,7 @@ from project_service import (
     getProjectStepPhoto, saveProjectStepPhoto, removeProjectStepPhoto,
 )
 from views.profile_tab import createProfileTab
+from views.project_step_order import createStepOrderButton
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -1750,6 +1751,7 @@ def createProjectsTab(page, currentUser):
                                     color=ft.Colors.GREY_600,
                                 ),
                                 createProjectSharing(page, currentUser, projectItem, refreshProjectList),
+                                createStepOrderButton(page, currentUser, projectItem['projectId'], refreshProjectList),
                                 stepsBlock,
                             ],
                             spacing=8,

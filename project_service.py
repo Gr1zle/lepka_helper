@@ -15,6 +15,7 @@ from database import (
     updateProjectProgress,
     updateProjectStepStatus,
     getProjectStepPhoto, setProjectStepPhoto,
+    reorderProjectSteps,
 )
 from photo_service import preparePhoto
 
@@ -145,6 +146,17 @@ def getProjectSteps(projectId, userId):
         )
 
     return stepItems
+
+
+def saveProjectStepOrder(projectId, userId, orderedIds, expectedIds):
+    for ids in (orderedIds, expectedIds):
+        if not isinstance(ids, (list, tuple)) or any(type(value) is not int for value in ids):
+            return False, 'Некорректный список этапов'
+    try:
+        success = reorderProjectSteps(projectId, userId, orderedIds, expectedIds)
+    except ValueError as error:
+        return False, str(error)
+    return success, 'Порядок этапов сохранён' if success else 'Проект не найден или недоступен'
 
 
 def calculateProjectProgress(projectId, userId):
