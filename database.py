@@ -291,6 +291,21 @@ def initializeDatabase():
         FOREIGN KEY (userId) REFERENCES users(userId)
     )""")
     cursor.execute('CREATE INDEX IF NOT EXISTS commentEventsUserTime ON commentEvents(userId, createdAt)')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS moderationReports (
+        reportId INTEGER PRIMARY KEY AUTOINCREMENT,
+        reporterId INTEGER, targetType TEXT NOT NULL, targetId INTEGER NOT NULL,
+        reason TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open',
+        resolution TEXT NOT NULL DEFAULT '', resolvedBy INTEGER,
+        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, resolvedAt TEXT,
+        UNIQUE(reporterId,targetType,targetId),
+        FOREIGN KEY(reporterId) REFERENCES users(userId) ON DELETE SET NULL,
+        FOREIGN KEY(resolvedBy) REFERENCES users(userId) ON DELETE SET NULL)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS adminAudit (
+        eventId INTEGER PRIMARY KEY AUTOINCREMENT, actorId INTEGER,
+        actorNickname TEXT NOT NULL, action TEXT NOT NULL,
+        targetType TEXT NOT NULL, targetId INTEGER NOT NULL, reason TEXT NOT NULL,
+        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(actorId) REFERENCES users(userId) ON DELETE SET NULL)''')
 
     cursor.execute(
         """
@@ -782,11 +797,16 @@ def deletePostById(postId, userId):
         ).fetchone()
         if ownedPost is None:
             return False
-        connection.execute('DELETE FROM postComments WHERE postId = ?', (postId,))
-        connection.execute('DELETE FROM postLikes WHERE postId = ?', (postId,))
-        connection.execute('DELETE FROM postPhotos WHERE postId = ?', (postId,))
-        connection.execute('DELETE FROM posts WHERE postId = ?', (postId,))
+        erasePost(connection,postId)
         return True
+
+
+def erasePost(connection,postId):
+    """Внутренняя операция в уже проверенной транзакции владельца/модератора."""
+    connection.execute('DELETE FROM postComments WHERE postId = ?', (postId,))
+    connection.execute('DELETE FROM postLikes WHERE postId = ?', (postId,))
+    connection.execute('DELETE FROM postPhotos WHERE postId = ?', (postId,))
+    connection.execute('DELETE FROM posts WHERE postId = ?', (postId,))
 
 
 def createPostComment(postId, userId, commentText):

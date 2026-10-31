@@ -21,16 +21,19 @@ class CommunityBodyLimit:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if (scope['type'] != 'http' or not scope['path'].startswith('/community/')
+        if (scope['type'] != 'http' or not scope['path'].startswith(('/community/','/admin/'))
                 or scope['method'] not in ('POST', 'PUT')):
             return await self.app(scope, receive, send)
+        moderation=scope['path'].startswith('/admin/') or scope['path']=='/community/reports'
+        limit=8192 if moderation else MAX_COMMUNITY_BODY
         body = bytearray()
         while True:
             event = await receive()
             if event['type'] == 'http.disconnect':
                 return
-            if len(body) + len(event.get('body', b'')) > MAX_COMMUNITY_BODY:
-                return await JSONResponse({'detail': 'Публикация слишком большая (до 48 МБ)'}, status_code=413)(scope, receive, send)
+            if len(body) + len(event.get('body', b'')) > limit:
+                detail='Запрос модерации слишком большой (до 8 КБ)' if moderation else 'Публикация слишком большая (до 48 МБ)'
+                return await JSONResponse({'detail': detail}, status_code=413)(scope, receive, send)
             body.extend(event.get('body', b''))
             if not event.get('more_body', False):
                 break

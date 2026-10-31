@@ -13,6 +13,7 @@ from views.project_sharing import createPublishedProject
 from community_gateway import CommunityClient, ownsItem
 from ui_helpers import serverAction
 from views.project_planner import createDeadlineSummary
+from views.moderation_actions import createReportButton,createModerationDelete
 
 PRIMARY_COLOR = '#FF6B6B'
 SECONDARY_COLOR = '#4ECDC4'
@@ -97,6 +98,10 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
                 if not deleted:
                     actions.append(ft.IconButton(icon=ft.Icons.EDIT, tooltip='Изменить комментарий (до 30 минут)', on_click=edit))
                 actions.append(ft.IconButton(icon=ft.Icons.DELETE, tooltip='Удалить свой комментарий', on_click=delete))
+            if currentUser:
+                actions.append(createReportButton(page,currentUser,'comment',item['commentId']))
+                if currentUser.get('roleName')=='admin':
+                    actions.append(createModerationDelete(page,currentUser,'comment',item['commentId'],lambda:(refreshComments(),page.update())))
             comments.controls.append(ft.Column(controls=[
                 ft.Text(item['nickname'], weight=ft.FontWeight.BOLD, size=12),
                 ft.Text(item['commentText']), ft.Row(controls=actions, wrap=True)]))
@@ -150,6 +155,9 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
                     tooltip='Поставить или снять лайк', disabled=currentUser is None, on_click=like)]
         if ownsItem(postItem, currentUser):
             actions.append(ft.TextButton('Удалить', on_click=deletePost))
+        if currentUser:
+            actions.append(createReportButton(page,currentUser,'post',postId))
+            if currentUser.get('roleName')=='admin':actions.append(createModerationDelete(page,currentUser,'post',postId,lambda:(refreshCallback(),page.update())))
         controls.append(ft.Row(controls=actions, wrap=True))
     refreshComments()
     controls.extend([ft.Divider(), ft.Text('Комментарии', weight=ft.FontWeight.BOLD), comments])

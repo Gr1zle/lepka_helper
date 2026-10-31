@@ -13,6 +13,7 @@ from starlette.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 from backend.community import installCommunityRoutes
+from backend.moderation import installModerationRoutes
 
 import account_security as security
 import auth_service as accounts
@@ -144,7 +145,7 @@ def createApp(dataDirectory=None):
                                         status_code=429, headers={'Retry-After': '60'})
                 history.append(now)
         response = await callNext(request)
-        if request.url.path.startswith('/community/'):
+        if request.url.path.startswith(('/community/','/admin/')):
             response.headers['Cache-Control'] = 'no-store'
         return response
 
@@ -235,6 +236,7 @@ def createApp(dataDirectory=None):
         return resultResponse(accounts.deleteUserAccount(user['userId'], body.password))
 
     installCommunityRoutes(application, currentUser, optionalUser)
+    installModerationRoutes(application,currentUser)
     return application
 
 

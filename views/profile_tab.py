@@ -10,6 +10,7 @@ from views.community_tab import createMyWorksButton, createLocalWorksButton
 from views.about_dialog import showAbout, showDataInfo
 from views.lesson_library_view import createProfileLessonLibrary
 from views.model_gallery import createFavoriteModelsButton
+from views.moderation_actions import createAdminButton
 from project_service import getUserProjects
 from profile_service import (
     AGE_CATEGORIES, FAVORITE_COLOR_OPTIONS, LANGUAGE_OPTIONS, THEME_OPTIONS,
@@ -624,6 +625,7 @@ def createProfileTab(page, nickname, email):
                             createLocalWorksButton(page, currentUser),
                             createProfileLessonLibrary(page,currentUser),
                             createFavoriteModelsButton(page,currentUser),
+                            createAdminButton(page,currentUser),
                             ft.Row(
                                 controls=[
                                     createStatItem(userPostsCount, "Работ", PRIMARY_COLOR, "#FFF0F0"),
