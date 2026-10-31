@@ -1,0 +1,1 @@
+b2340ff802258ed6cafdacfc54edca2beaeb3c52cbd63f1e7ff3bd5b7d4b6444  lepka-helper-0.6.0-demo-arm64.apk
