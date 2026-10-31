@@ -14,11 +14,12 @@ from scripts.prepare_android import MODULES, VIEWS, ASSETS
 
 DOCS = ('ТЗ', 'Plan', 'day1_requirements_audit.md', 'day2_stabilization.md', 'day3_tools.md',
         'day4_community_android.md', 'account_backend_validation.md', 'avatar_stage_photos.md',
-        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md')
+        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md')
 TESTS = ('accounts', 'android_package', 'backend', 'clay_tools', 'community', 'community_api',
          'community_gateway', 'gateway', 'profile_stage_media', 'project_sharing', 'projects',
-         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library')
+         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library', 'models')
 SCREENSHOTS = ('day4-community-form.png', 'day4-community-post.png', 'profile-avatar.png',
+               'models-gallery.png', 'models-view-320.png', 'models-step-enlarged.png', 'models-favorites.png',
                'library-suggestions.png', 'library-note-320.png', 'library-profile-favorites.png', 'library-resume.png',
                'batch-order-320.png', 'batch-import-preview.png', 'batch-calculator.png', 'batch-timer.png',
                'project-step-photo.png', 'project-copied-recipe.png', 'project-publication-recipe.png',
@@ -29,10 +30,10 @@ SCREENSHOTS = ('day4-community-form.png', 'day4-community-post.png', 'profile-av
 def getReviewFiles():
     return ['README.md', 'REVIEW_START.md', 'requirements.txt', '.gitignore', 'main.py', 'web_app.py',
              *[name + '.py' for name in MODULES], *['views/' + name + '.py' for name in VIEWS],
-             *['assets/' + name for name in ASSETS], 'assets/logo.png', 'assets/lessons/README.md',
+             *['assets/' + name for name in ASSETS], 'assets/logo.png', 'assets/lessons/README.md', 'assets/models/README.md',
              'backend/__init__.py', 'backend/main.py', 'backend/community.py', 'backend/requirements.txt',
              'backend/README.md', 'scripts/prepare_android.py', 'scripts/prepare_review.py',
-             'scripts/create_server_demo.py', 'tests/image_fixtures.py',
+             'scripts/create_server_demo.py', 'scripts/generate_learning_models.py', 'tests/image_fixtures.py',
              *['tests/test_' + name + '.py' for name in TESTS], *['docs/' + name for name in DOCS],
              *['docs/screenshots/' + name for name in SCREENSHOTS]]
 

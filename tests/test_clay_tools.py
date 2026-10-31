@@ -231,7 +231,9 @@ class CatalogTests(unittest.TestCase):
             self.assertTrue(lesson['steps'])
             path = Path(__file__).resolve().parents[1] / 'assets' / lesson['previewImage']
             self.assertTrue(path.exists())
-            self.assertIn('<svg', path.read_text(encoding='utf-8'))
+            with Image.open(path) as image:
+                self.assertEqual(image.format,'PNG')
+                image.verify()
         copy = lessons.getLessonById(1)
         copy['steps'].clear()
         self.assertTrue(lessons.getLessonById(1)['steps'])

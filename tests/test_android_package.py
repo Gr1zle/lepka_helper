@@ -52,6 +52,7 @@ class AndroidPackageTests(unittest.TestCase):
             for name in android.VIEWS:
                 (root / 'views' / (name + '.py')).write_text('# safe view\n')
             for name in android.ASSETS:
+                (root / 'assets' / name).parent.mkdir(parents=True,exist_ok=True)
                 (root / 'assets' / name).write_bytes(b'asset')
             for name in ('.env', 'personal.db', 'extra.py', 'assets/fonts/private.txt'):
                 (root / name).write_text('PRIVATE_SENTINEL')

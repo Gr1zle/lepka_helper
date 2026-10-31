@@ -109,6 +109,9 @@ def initializeDatabase():
         userId INTEGER NOT NULL, lessonId INTEGER NOT NULL, noteText TEXT NOT NULL,
         updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY(userId,lessonId), FOREIGN KEY(userId) REFERENCES users(userId))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS modelFavorites (
+        userId INTEGER NOT NULL, modelId TEXT NOT NULL,
+        PRIMARY KEY(userId,modelId), FOREIGN KEY(userId) REFERENCES users(userId))''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS searchHistory (
         userId INTEGER NOT NULL, queryKey TEXT NOT NULL, queryText TEXT NOT NULL,
         lastUsed INTEGER NOT NULL, PRIMARY KEY(userId,queryKey),
@@ -974,6 +977,7 @@ def deleteUserDataById(userId, existingConnection=None):
         connection.execute('DELETE FROM colorMixtures WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM lessonProgress WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM lessonFavorites WHERE userId = ?', (userId,))
+        connection.execute('DELETE FROM modelFavorites WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM lessonNotes WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM searchHistory WHERE userId = ?', (userId,))
         connection.execute('DELETE FROM accountCodes WHERE userId = ?', (userId,))

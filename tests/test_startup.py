@@ -105,6 +105,62 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 nav.on_change(SimpleNamespace(control=nav))
                 self.page.update()
 
+    async def test_model_view_rotates_zooms_lights_and_saves_favorite(self):
+        import flet.canvas as cv
+        from views.model_view import createModelView
+        from model_service import favoriteModelIds
+        view=self.mount(createModelView(self.page,'cat'))
+        canvas=find(view,cv.Canvas)
+        def snapshot():return [(s.elements[0].x,s.elements[0].y,s.paint.color) for s in canvas.shapes]
+        before=snapshot()
+        find(view,ft.TextButton,text='Слева').on_click(None)
+        self.assertNotEqual(snapshot(),before)
+        before=snapshot()
+        find(view,ft.TextButton,text='Увеличить').on_click(None)
+        self.assertNotEqual(snapshot(),before)
+        light=next(c for c in walk(view) if isinstance(c,ft.Slider) and c.min==-180)
+        colors=[s.paint.color for s in canvas.shapes]
+        light.value=120;light.on_change(None)
+        self.assertNotEqual([s.paint.color for s in canvas.shapes],colors)
+        count=len(canvas.shapes)
+        edges=find(view,ft.Checkbox,label='Показать рёбра')
+        edges.value=True;edges.on_change(None)
+        self.assertEqual(len(canvas.shapes),count*2)
+        find(view,ft.TextButton,text='Модель в избранное').on_click(None)
+        self.assertEqual(favoriteModelIds(self.user['userId']),{'cat'})
+
+    async def test_lesson_media_changes_with_step_and_can_be_enlarged(self):
+        from views.home_view import createSearchTab
+        view=self.mount(ft.View('/search',controls=[createSearchTab(self.page,self.user)]))
+        find(view,ft.TextButton,text='Открыть').on_click(None)
+        self.assertTrue(find(view,ft.Image).src.endswith('lesson_1_1.png'))
+        find(view,ft.ElevatedButton,text='Следующий').on_click(None)
+        self.assertTrue(find(view,ft.Image).src.endswith('lesson_1_2.png'))
+        find(view,ft.TextButton,text='Увеличить схему').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        self.assertIsNotNone(find(dialog,ft.InteractiveViewer))
+
+    async def test_model_route_back_preserves_lesson_draft_without_saving_it(self):
+        from lesson_library import getLessonNote
+        async def waitRoute(route):
+            for _ in range(200):
+                if self.page.views and self.page.views[-1].route==route:return
+                await asyncio.sleep(.01)
+            self.fail('Route not ready: '+route)
+        main(self.page)
+        self.page.go('/home');await waitRoute('/home')
+        nav=find(self.page.views[-1],ft.NavigationBar)
+        nav.selected_index=1;nav.on_change(SimpleNamespace(control=nav))
+        find(self.page.views[-1],ft.TextButton,text='Открыть').on_click(None)
+        note=find(self.page.views[-1],ft.TextField,label='Личная заметка к уроку')
+        note.value='Черновик при осмотре модели';note.on_change(SimpleNamespace(control=note))
+        find(self.page.views[-1],ft.TextButton,text='3D этой фигурки').on_click(None)
+        await waitRoute('/models/cat')
+        self.page.views[-1].appbar.leading.on_click(None)
+        await waitRoute('/home')
+        self.assertEqual(find(self.page.views[-1],ft.TextField,label='Личная заметка к уроку').value,'Черновик при осмотре модели')
+        self.assertEqual(getLessonNote(self.user['userId'],1),'')
+
     async def test_lesson_favorite_note_draft_and_share_are_preserved(self):
         from views.home_view import createSearchTab
         from lesson_library import favoriteLessonIds,getLessonNote
@@ -205,7 +261,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
             client.return_value.getPosts.side_effect=ApiError('Сеть недоступна')
             view=self.mount(ft.View('/search',controls=[createSearchTab(self.page,self.user)]))
             self.assertIsNotNone(find(view,ft.TextButton,text='Открыть'))
-            offline=find(view,ft.Checkbox,label='Только встроенные уроки (офлайн)')
+            offline=find(view,ft.Checkbox,label='Только встроенные уроки и модели (офлайн)')
             offline.value=True
             client.return_value.getPosts.reset_mock()
             offline.on_change(None)

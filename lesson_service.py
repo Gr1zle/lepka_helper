@@ -1,6 +1,7 @@
 import random
 import copy
 import json
+from learning_assets import MODEL_ITEMS
 
 from database import getLessonProgress, saveLessonProgress, getUserProfileById
 
@@ -277,4 +278,6 @@ def saveUserLessonState(userId, lessonId, state):
 
 # Авторские схематичные иллюстрации, не фотографии готовых работ.
 for lesson in LESSON_ITEMS:
-    lesson['previewImage'] = f"lessons/lesson_{lesson['lessonId']}.svg"
+    model=next(item for item in MODEL_ITEMS if item['lessonId']==lesson['lessonId'])
+    lesson['previewImage']=f"models/{model['modelId']}-preview.png"
+    lesson['stepImages']=[f"lessons/steps/lesson_{lesson['lessonId']}_{step}.png" for step in range(1,len(lesson['steps'])+1)]
