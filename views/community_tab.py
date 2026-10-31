@@ -12,6 +12,7 @@ from ui_helpers import authenticatedAction, isWebClient, showMessage
 from views.project_sharing import createPublishedProject
 from community_gateway import CommunityClient, ownsItem
 from ui_helpers import serverAction
+from views.project_planner import createDeadlineSummary
 
 PRIMARY_COLOR = '#FF6B6B'
 SECONDARY_COLOR = '#4ECDC4'
@@ -299,6 +300,7 @@ def createHomeTab(page, currentUser, nickname):
     refreshPosts()
     return ft.ListView(expand=True, padding=16, spacing=12, controls=[
         ft.Text(f'Привет, {nickname}!', size=22, weight=ft.FontWeight.BOLD),
+        createDeadlineSummary(page,currentUser),
         ft.Text('Работы пользователей сервера' if client.remote else
                 'Работы на этом устройстве. Для общего сообщества подключите сервер.', size=12),
         ft.Container(padding=18, border_radius=18, bgcolor=PRIMARY_COLOR, content=ft.Column(controls=[

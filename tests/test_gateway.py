@@ -136,6 +136,24 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
         self.assertIsNone(self.page.session.get('currentUser'))
         self.assertIsNone(gateway.getSessionUser(user['sessionToken']))
 
+    async def test_local_reminders_use_remote_profile_setting_and_cached_owner(self):
+        from datetime import date
+        from project_planner import syncProjectReminders
+        from views.project_planner import createDeadlineSummary
+        user=self.login()
+        deadline=date.today().strftime('%d.%m.%Y')
+        database.createProject(self.localId,'Чужой локальный проект','Другое',deadline,'')
+        database.createProject(user['userId'],'Личный проект с API','Другое',deadline,'')
+        self.assertTrue(gateway.saveUserSettings(user['userId'],'light','ru',False,user['sessionToken'])[0])
+        card=createDeadlineSummary(self.page,user)
+        self.assertIsNotNone(find(card,ft.Text,value='Напоминания отключены в профиле'))
+        with database.openDatabase() as c:self.assertEqual(c.execute('SELECT COUNT(*) FROM projectReminders').fetchone()[0],0)
+        self.assertTrue(gateway.saveUserSettings(user['userId'],'light','ru',True,user['sessionToken'])[0])
+        card=createDeadlineSummary(self.page,user)
+        self.assertIsNotNone(find(card,ft.Text,value='Непрочитанных напоминаний: 1'))
+        reminders=syncProjectReminders(user['userId'])
+        self.assertEqual([row['projectName'] for row in reminders],['Личный проект с API'])
+
     async def test_avatar_is_saved_on_server_and_rendered_in_flet_profile(self):
         from pathlib import Path
         from image_fixtures import photo

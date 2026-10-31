@@ -16,6 +16,7 @@ from device_session import restoreDeviceSession
 from account_gateway import getUserProfile
 from views.model_gallery import createModelGallery
 from views.model_view import createModelView
+from views.project_planner import createProjectPlanner
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -72,6 +73,10 @@ def main(page: ft.Page):
                 page.session.set('openBuiltinLesson',returning)
                 page.session.set('homeTab',1)
             view = createHomeView(page)
+        elif page.route == '/planner':
+            root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
+            page.views[:]=[root,createProjectPlanner(page)]
+            page.update();return
         elif page.route == '/models':
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             page.views[:]=[root,createModelGallery(page)]

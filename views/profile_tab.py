@@ -650,6 +650,8 @@ def createProfileTab(page, nickname, email):
                                 weight=ft.FontWeight.BOLD,
                             ),
                             themeDropdown,
+                            notificationsSwitch,
+                            ft.Text('Сейчас эта настройка управляет напоминаниями о сроках внутри приложения. Фоновые push ещё не подключены.',size=12),
                             ft.Text('Язык интерфейса: русский', size=12),
                             ft.ElevatedButton(
                                 text="Сохранить настройки",

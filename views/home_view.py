@@ -37,6 +37,7 @@ from views.profile_tab import createProfileTab
 from views.project_step_order import createStepOrderButton
 from views.project_transfer import createProjectExport, createProjectImport
 from views.project_statistics import createProjectStatistics
+from views.project_planner import createDeadlineSummary
 from views.clay_tools_view import createClayTools
 from lesson_library import (favoriteLessonIds,normalizeSearchQuery,recentSearches,rememberSearch,
                             clearSearchHistory,searchSuggestions,lessonSearchResults)
@@ -1579,6 +1580,15 @@ def createColorsTab(page, currentUser):
 def createProjectsTab(page, currentUser):
     projectListColumn = ft.Column(spacing=10)
     statisticsCard = createProjectStatistics(page, currentUser) if currentUser else ft.Container()
+    deadlineSummary = ft.Container()
+    requested = page.session.get('plannerProject') or {}
+    page.session.set('plannerProject', None)
+    projectTarget = {'id': requested.get('projectId') if currentUser and requested.get('owner')==currentUser.get('sessionToken') else None}
+    @authenticatedAction(page,currentUser)
+    def showAllProjects(event):
+        projectTarget['id']=None
+        refreshProjectList();page.update()
+    showAllButton=ft.TextButton('Показать все проекты',on_click=showAllProjects,visible=projectTarget['id'] is not None)
 
     projectNameField = ft.TextField(
         label="Название проекта",
@@ -1631,6 +1641,10 @@ def createProjectsTab(page, currentUser):
 
         projectItems = getUserProjects(currentUser["userId"])
         statisticsCard.data()
+        deadlineSummary.content = createDeadlineSummary(page,currentUser)
+        showAllButton.visible = projectTarget['id'] is not None
+        if projectTarget['id'] is not None:
+            projectItems = [item for item in projectItems if item['projectId']==projectTarget['id']]
 
         if len(projectItems) == 0:
             projectListColumn.controls.append(
@@ -1639,7 +1653,7 @@ def createProjectsTab(page, currentUser):
                     border_radius=12,
                     bgcolor="#F5F5F5",
                     content=ft.Text(
-                        "Пока нет проектов. Создайте первый проект выше.",
+                        "Выбранный проект недоступен. Нажмите «Показать все проекты»." if projectTarget['id'] is not None else "Пока нет проектов. Создайте первый проект выше.",
                         color=ft.Colors.GREY_700,
                     ),
                 )
@@ -1957,7 +1971,10 @@ def createProjectsTab(page, currentUser):
                 size=24,
                 weight=ft.FontWeight.BOLD,
             ),
+            showAllButton,
+            *([projectListColumn] if projectTarget['id'] is not None else []),
             statisticsCard,
+            deadlineSummary,
             createProjectImport(page, currentUser, refreshProjectList) if currentUser else ft.Container(),
             ft.Card(
                 elevation=2,
@@ -1995,7 +2012,7 @@ def createProjectsTab(page, currentUser):
                 size=18,
                 weight=ft.FontWeight.BOLD,
             ),
-            projectListColumn,
+            *([] if projectTarget['id'] is not None else [projectListColumn]),
         ],
     )
 
