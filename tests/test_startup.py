@@ -105,6 +105,113 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 nav.on_change(SimpleNamespace(control=nav))
                 self.page.update()
 
+    async def test_lesson_favorite_note_draft_and_share_are_preserved(self):
+        from views.home_view import createSearchTab
+        from lesson_library import favoriteLessonIds,getLessonNote
+        view = self.mount(ft.View('/search',controls=[createSearchTab(self.page,self.user)]))
+        find(view,ft.TextButton,text='Открыть').on_click(None)
+        find(view,ft.TextButton,text='В избранное').on_click(None)
+        self.assertEqual(favoriteLessonIds(self.user['userId']),{1})
+        field = find(view,ft.TextField,label='Личная заметка к уроку')
+        field.value = 'Тонкие ушки; PRIVATE_NOTE'
+        field.on_change(SimpleNamespace(control=field))
+        find(view,ft.ElevatedButton,text='Следующий').on_click(None)
+        field.value=''
+        field.on_change(SimpleNamespace(control=field))
+        self.assertEqual(find(view,ft.TextField,label='Личная заметка к уроку').value,'Тонкие ушки; PRIVATE_NOTE')
+        self.assertEqual(getLessonNote(self.user['userId'],1),'')
+        find(view,ft.ElevatedButton,text='Сохранить заметку').on_click(None)
+        self.assertEqual(getLessonNote(self.user['userId'],1),'Тонкие ушки; PRIVATE_NOTE')
+        with patch.object(self.page,'set_clipboard') as clipboard:
+            find(view,ft.TextButton,text='Скопировать урок').on_click(None)
+            self.assertIn('Милый котик',clipboard.call_args.args[0])
+            self.assertNotIn('PRIVATE_NOTE',clipboard.call_args.args[0])
+        find(view,ft.TextButton,text='← Назад к поиску').on_click(None)
+        find(view,ft.TextButton,text='Открыть').on_click(None)
+        self.assertEqual(find(view,ft.TextField,label='Личная заметка к уроку').value,'Тонкие ушки; PRIVATE_NOTE')
+
+    async def test_back_to_search_rebuilds_controls_and_ignores_late_search_event(self):
+        view=self.mount(createHomeView(self.page))
+        nav=find(view,ft.NavigationBar)
+        nav.selected_index=1
+        nav.on_change(SimpleNamespace(control=nav))
+        field=find(view,ft.TextField,label='Поиск уроков и работ')
+        field.value='кот'
+        find(view,ft.ElevatedButton,text='Найти').on_click(None)
+        find(view,ft.TextButton,text='Открыть').on_click(None)
+        field.value=''
+        field.on_change(SimpleNamespace(control=field))
+        find(view,ft.TextButton,text='← Назад к поиску').on_click(None)
+        restored=find(view,ft.TextField,label='Поиск уроков и работ')
+        self.assertIsNot(restored,field)
+        self.assertEqual(restored.value,'кот')
+        self.assertIsNotNone(find(view,ft.ElevatedButton,text='Найти'))
+
+    async def test_search_history_is_submitted_only_and_query_survives_tab_recreation(self):
+        from views.home_view import createSearchTab
+        from lesson_library import recentSearches
+        view = self.mount(ft.View('/search',controls=[createSearchTab(self.page,self.user)]))
+        field = find(view,ft.TextField,label='Поиск уроков и работ')
+        field.value='кот'
+        field.on_change(SimpleNamespace(control=field))
+        self.assertEqual(recentSearches(self.user['userId']),[])
+        find(view,ft.ElevatedButton,text='Найти').on_click(None)
+        self.assertEqual(recentSearches(self.user['userId']),['кот'])
+        view = self.mount(ft.View('/search',controls=[createSearchTab(self.page,self.user)]))
+        self.assertEqual(find(view,ft.TextField,label='Поиск уроков и работ').value,'кот')
+        find(view,ft.TextButton,text='Сбросить фильтры').on_click(None)
+        self.assertEqual(find(view,ft.TextField,label='Поиск уроков и работ').value,'')
+
+    async def test_profile_favorite_navigation_restores_lesson_and_search_tab(self):
+        from lesson_library import saveLessonFavorite
+        saveLessonFavorite(self.user['userId'],1,True)
+        view = self.mount(createHomeView(self.page))
+        nav=find(view,ft.NavigationBar)
+        nav.selected_index=4
+        nav.on_change(SimpleNamespace(control=nav))
+        find(view,ft.TextButton,text='Избранные уроки').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.TextButton,text='Милый котик из пластилина').on_click(None)
+        self.assertEqual(find(view,ft.NavigationBar).selected_index,1)
+        self.assertIsNotNone(find(view,ft.TextField,label='Личная заметка к уроку'))
+        find(view,ft.TextButton,text='← Назад к поиску').on_click(None)
+        self.assertTrue(any(isinstance(c,ft.TextButton) and c.text=='Открыть' for c in walk(view)))
+
+    async def test_revoked_lesson_handlers_cannot_write_note_favorite_or_history(self):
+        from account_security import logoutUser
+        from lesson_library import getLessonNote,favoriteLessonIds,recentSearches
+        from views.home_view import createSearchTab
+        view=self.mount(ft.View('/search',controls=[createSearchTab(self.page,self.user)]))
+        field=find(view,ft.TextField,label='Поиск уроков и работ')
+        field.value='дракон'
+        search=find(view,ft.ElevatedButton,text='Найти')
+        find(view,ft.TextButton,text='Открыть').on_click(None)
+        note=find(view,ft.TextField,label='Личная заметка к уроку')
+        note.value='Не должна сохраниться'
+        save=find(view,ft.ElevatedButton,text='Сохранить заметку')
+        favorite=find(view,ft.TextButton,text='В избранное')
+        logoutUser(self.user['sessionToken'])
+        save.on_click(None)
+        favorite.on_click(None)
+        search.on_click(None)
+        self.assertEqual(getLessonNote(self.user['userId'],1),'')
+        self.assertEqual(favoriteLessonIds(self.user['userId']),set())
+        self.assertEqual(recentSearches(self.user['userId']),[])
+
+    async def test_search_keeps_builtin_lessons_when_community_fails_and_offline_skips_api(self):
+        from views.home_view import createSearchTab
+        from api_client import ApiError
+        with patch('views.home_view.CommunityClient') as client:
+            client.return_value.getPosts.side_effect=ApiError('Сеть недоступна')
+            view=self.mount(ft.View('/search',controls=[createSearchTab(self.page,self.user)]))
+            self.assertIsNotNone(find(view,ft.TextButton,text='Открыть'))
+            offline=find(view,ft.Checkbox,label='Только встроенные уроки (офлайн)')
+            offline.value=True
+            client.return_value.getPosts.reset_mock()
+            offline.on_change(None)
+            client.return_value.getPosts.assert_not_called()
+            self.assertEqual(len([c for c in walk(view) if isinstance(c,ft.TextButton) and c.text=='Открыть']),6)
+
     async def test_calculator_and_timer_controls_work(self):
         from views.home_view import createColorsTab
         view = self.mount(ft.View('/colors', controls=[createColorsTab(self.page, self.user)]))
