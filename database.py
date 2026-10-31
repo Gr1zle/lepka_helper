@@ -213,6 +213,14 @@ def initializeDatabase():
 
     addColumnIfNotExists(cursor, 'projectSteps', 'photoImage', 'photoImage BLOB')
     addColumnIfNotExists(cursor, 'projects', 'completedAt', 'completedAt TEXT')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS projectReminders (
+        reminderId INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER NOT NULL, projectId INTEGER NOT NULL,
+        deadlineDate TEXT NOT NULL, kind TEXT NOT NULL,
+        generatedDate TEXT NOT NULL, isRead INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(userId,projectId,deadlineDate,kind),
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE,
+        FOREIGN KEY(projectId) REFERENCES projects(projectId) ON DELETE CASCADE)''')
     stepColumns = {row['name'] for row in cursor.execute('PRAGMA table_info(projectSteps)')}
     if 'sortOrder' not in stepColumns:
         addColumnIfNotExists(cursor, 'projectSteps', 'sortOrder', 'sortOrder INTEGER NOT NULL DEFAULT 0')

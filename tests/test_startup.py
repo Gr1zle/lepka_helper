@@ -129,6 +129,53 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         find(view,ft.TextButton,text='Модель в избранное').on_click(None)
         self.assertEqual(favoriteModelIds(self.user['userId']),{'cat'})
 
+    async def test_planner_calendar_filter_and_read_state_survive_reopening(self):
+        from datetime import date
+        from project_service import saveProject
+        from project_planner import syncProjectReminders
+        from views.project_planner import createProjectPlanner
+        saveProject(self.user['userId'],'Сегодня лепим котика','Животные',date.today().strftime('%d.%m.%Y'),'')
+        view=self.mount(createProjectPlanner(self.page))
+        self.assertIsNotNone(find(view,ft.Text,value='Сегодня лепим котика'))
+        find(view,ft.TextButton,text='Прочитать все напоминания').on_click(None)
+        self.assertTrue(all(r['isRead'] for r in syncProjectReminders(self.user['userId'])))
+        view=self.mount(createProjectPlanner(self.page))
+        self.assertIsNotNone(find(view,ft.Text,value='Напоминания · непрочитано: 0'))
+        filters=find(view,ft.Dropdown,label='Показать проекты')
+        filters.value='Без срока';filters.on_change(None)
+        self.assertIsNotNone(find(view,ft.Text,value='На выбранный период проектов нет.'))
+
+    async def test_planner_project_link_filters_own_project_and_can_show_all_again(self):
+        from project_service import saveProject
+        from views.project_planner import createProjectPlanner
+        from views.home_view import createProjectsTab
+        first=saveProject(self.user['userId'],'Первый проект','Другое','','')[2]
+        saveProject(self.user['userId'],'Второй проект','Другое','','')
+        view=self.mount(createProjectPlanner(self.page))
+        filters=find(view,ft.Dropdown,label='Показать проекты');filters.value='Все активные';filters.on_change(None)
+        find(view,ft.TextButton,text='К проекту').on_click(None)
+        self.assertEqual(self.page.session.get('plannerProject')['projectId'],first)
+        view=self.mount(ft.View('/home',controls=[createProjectsTab(self.page,self.user)]))
+        names=[c.value for c in walk(view) if isinstance(c,ft.Text)]
+        self.assertIn('Первый проект',names);self.assertNotIn('Второй проект',names)
+        find(view,ft.TextButton,text='Показать все проекты').on_click(None)
+        self.assertIn('Второй проект',[c.value for c in walk(view) if isinstance(c,ft.Text)])
+
+    async def test_revoked_planner_handlers_cannot_read_notices_or_open_projects(self):
+        from datetime import date
+        from project_service import saveProject
+        from project_planner import syncProjectReminders
+        from views.project_planner import createProjectPlanner
+        from account_security import logoutUser
+        saveProject(self.user['userId'],'Важный проект','Другое',date.today().strftime('%d.%m.%Y'),'')
+        view=self.mount(createProjectPlanner(self.page))
+        read=find(view,ft.TextButton,text='Прочитать все напоминания').on_click
+        opening=find(view,ft.TextButton,text='К проекту').on_click
+        logoutUser(self.user['sessionToken'])
+        read(None);opening(None)
+        self.assertIsNone(self.page.session.get('plannerProject'))
+        self.assertTrue(all(not r['isRead'] for r in syncProjectReminders(self.user['userId'])))
+
     async def test_lesson_media_changes_with_step_and_can_be_enlarged(self):
         from views.home_view import createSearchTab
         view=self.mount(ft.View('/search',controls=[createSearchTab(self.page,self.user)]))
