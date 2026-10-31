@@ -60,6 +60,9 @@ def main(page: ft.Page):
 
     @serverAction(page)
     def route_change(e):
+        if not page.route.startswith('/models/'):
+            page.session.set('resizeModelView',None)
+            page.session.set('exitModelFullscreen',None)
         if page.route == "/" or page.route == "":
             view = createSplashView(page)
         elif page.route == "/onboarding":
@@ -95,6 +98,8 @@ def main(page: ft.Page):
         page.update()
 
     def view_pop(e):
+        exitFull=page.session.get('exitModelFullscreen')
+        if callable(exitFull) and exitFull():return
         if len(page.views)>1 and page.views[-1].route.startswith('/models'):
             page.go(page.views[-2].route)
             return
@@ -107,6 +112,10 @@ def main(page: ft.Page):
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop
+    def resizeModel(event):
+        callback=page.session.get('resizeModelView')
+        if callable(callback):callback(event)
+    page.on_resized = resizeModel
     page.go("/")
 
 

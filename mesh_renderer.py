@@ -96,7 +96,7 @@ def parseObj(objText,materialText=''):
 def projectMesh(mesh,width,height,yaw=-25,pitch=15,zoom=1,light=-45,brightness=1):
     if not all(math.isfinite(v) for v in (width,height,yaw,pitch,zoom,light,brightness)):
         raise ValueError('Некорректные параметры просмотра')
-    if not 0<width<=2000 or not 0<height<=2000 or not 0.5<=zoom<=2.5 or not 0.4<=brightness<=1.6:
+    if not 0<width<=8192 or not 0<height<=8192 or not 0.5<=zoom<=2.5 or not 0.4<=brightness<=1.6:
         raise ValueError('Параметры просмотра вне допустимых границ')
     cy,sy=math.cos(math.radians(yaw)),math.sin(math.radians(yaw))
     cp,sp=math.cos(math.radians(pitch)),math.sin(math.radians(pitch))

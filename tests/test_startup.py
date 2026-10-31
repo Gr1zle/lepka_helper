@@ -176,6 +176,60 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.page.session.get('plannerProject'))
         self.assertTrue(all(not r['isRead'] for r in syncProjectReminders(self.user['userId'])))
 
+    async def test_fullscreen_keeps_camera_controls_and_back_exits_before_navigation(self):
+        import flet.canvas as cv
+        from views.model_view import createModelView
+        view=self.mount(createModelView(self.page,'cat'))
+        find(view,ft.TextButton,text='Слева').on_click(None)
+        find(view,ft.TextButton,text='Увеличить').on_click(None)
+        camera=dict(view.data['camera'])
+        canvas=find(view,cv.Canvas)
+        find(view,ft.TextButton,text='Во весь экран').on_click(None)
+        self.assertIsNone(view.appbar);self.assertEqual(view.data['camera'],camera)
+        self.assertIs(find(view,cv.Canvas),canvas)
+        self.assertIsNotNone(find(view,ft.TextButton,text='Сверху'))
+        self.assertTrue(self.page.session.get('exitModelFullscreen')())
+        self.assertIsNotNone(view.appbar);self.assertEqual(view.data['camera'],camera)
+
+    async def test_native_model_import_preview_save_and_private_view(self):
+        from views.model_import import createModelImport
+        from views.model_view import createModelView
+        from model_import import listImportedModels
+        path=Path(self.temp.name)/'test.obj';path.write_text('v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n')
+        imported=[]
+        view=self.mount(ft.View('/models',controls=[createModelImport(self.page,self.user,imported.append)]))
+        find(view,ft.ElevatedButton,text='Импорт 3D-модели').on_click(None)
+        picker=next(c for c in self.page.overlay if isinstance(c,ft.FilePicker))
+        picker.on_result(SimpleNamespace(control=picker,files=[SimpleNamespace(name='test.obj',size=path.stat().st_size,path=str(path))]))
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.TextField,label='Название модели').value='Моя фигурка'
+        save=find(dialog,ft.ElevatedButton,text='Сохранить модель').on_click
+        save(None);save(None)
+        self.assertEqual(len(imported),1);self.assertEqual(len(listImportedModels(self.user['userId'])),1)
+        view=self.mount(createModelView(self.page,imported[0]))
+        self.assertIsNotNone(find(view,ft.TextButton,text='Удалить модель'))
+        self.page.session.clear()
+        view=self.mount(createModelView(self.page,imported[0]))
+        self.assertIsNotNone(find(view,ft.Text,value='Модель не найдена или недоступна'))
+
+    async def test_repeated_project_edits_never_update_an_empty_live_project_list(self):
+        from views.home_view import createProjectsTab
+        from project_service import saveProject,getUserProjects
+        saveProject(self.user['userId'],'Проект с дедлайном','Другое','','')
+        view=self.mount(ft.View('/home',controls=[createProjectsTab(self.page,self.user)]))
+        self.assertFalse(find(view,ft.ListView).build_controls_on_demand)
+        realUpdate=self.page.update
+        def checkedUpdate(*args,**kwargs):
+            self.assertIn('Проект с дедлайном',[c.value for c in walk(view) if isinstance(c,ft.Text)])
+            return realUpdate(*args,**kwargs)
+        with patch.object(self.page,'update',side_effect=checkedUpdate):
+            for day in (20,21,22):
+                find(view,ft.IconButton,icon=ft.Icons.EDIT).on_click(None)
+                dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+                find(dialog,ft.TextField,label='Дедлайн').value=f'{day}.11.2026'
+                find(dialog,ft.ElevatedButton,text='Сохранить изменения').on_click(None)
+        self.assertEqual(getUserProjects(self.user['userId'])[0]['deadlineDate'],'22.11.2026')
+
     async def test_lesson_media_changes_with_step_and_can_be_enlarged(self):
         from views.home_view import createSearchTab
         view=self.mount(ft.View('/search',controls=[createSearchTab(self.page,self.user)]))

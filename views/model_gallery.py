@@ -1,8 +1,11 @@
+import base64
 import flet as ft
 from model_service import searchModels,MODEL_CATEGORIES,favoriteModelIds,saveModelFavorite
 from lesson_library import normalizeSearchQuery,rememberSearch
-from ui_helpers import getCurrentUser,authenticatedAction,showMessage
+from ui_helpers import getCurrentUser,authenticatedAction,showMessage,confirmAction
 from api_client import ApiError
+from model_import import deleteImportedModel
+from views.model_import import createModelImport
 
 
 def modelUser(page):
@@ -27,12 +30,27 @@ def createModelFavorite(page,user,modelId):
     return button
 
 
-def createModelCard(page,item):
+def createModelCard(page,item,onDeleted=None):
+    image=(ft.Image(src_base64=base64.b64encode(item['previewImage']).decode(),height=145,fit=ft.ImageFit.CONTAIN)
+           if item.get('imported') else ft.Image(src=f"models/{item['modelId']}-preview.png",height=145,fit=ft.ImageFit.CONTAIN))
+    actions=[]
+    if item.get('imported'):
+        user=modelUser(page)
+        @authenticatedAction(page,user)
+        def remove(event):
+            @authenticatedAction(page,user)
+            def confirmed():
+                deleted=deleteImportedModel(user['userId'],item['modelId'])
+                showMessage(page,'Модель удалена' if deleted else 'Модель уже недоступна',not deleted)
+                if onDeleted:onDeleted()
+                else:page.go('/models')
+            confirmAction(page,'Удалить личную модель?','Будут удалены модель и её отметка в избранном.',confirmed)
+        actions=[ft.TextButton('Удалить модель',icon=ft.Icons.DELETE_OUTLINED,on_click=remove)]
     return ft.Card(content=ft.Container(padding=12,content=ft.Column(controls=[
-        ft.Image(src=f"models/{item['modelId']}-preview.png",height=145,fit=ft.ImageFit.CONTAIN),
+        image,
         ft.Text(item['title'],size=18,weight=ft.FontWeight.BOLD),
-        ft.Text(f"{item['category']} · встроенная 3D-модель",size=12),
-        ft.TextButton('Открыть 3D',on_click=lambda event:page.go('/models/'+item['modelId']))])))
+        ft.Text('Личная модель на этом устройстве' if item.get('imported') else f"{item['category']} · встроенная 3D-модель",size=12),
+        ft.TextButton('Открыть 3D',on_click=lambda event:page.go('/models/'+item['modelId'])),*actions])))
 
 
 def createModelGallery(page):
@@ -43,9 +61,9 @@ def createModelGallery(page):
     result=ft.Column(spacing=8)
     def refresh(event=None):
         try:
-            items=searchModels(query.value or '',category.value)
+            items=searchModels(query.value or '',category.value,userId=user['userId'] if user else None)
             saved=favoriteModelIds(user['userId']) if user else set()
-            result.controls=[createModelCard(page,item) for item in items if not onlyFavorites.value or item['modelId'] in saved]
+            result.controls=[createModelCard(page,item,refresh) for item in items if not onlyFavorites.value or item['modelId'] in saved]
             if not result.controls:result.controls=[ft.Text('Подходящих моделей пока нет. Измените запрос или фильтры.')]
             query.error_text=None
         except ValueError as error:query.error_text=str(error)
@@ -59,13 +77,14 @@ def createModelGallery(page):
             def save():rememberSearch(user['userId'],value)
             save()
         refresh()
-    query.on_change=refresh;query.on_submit=submit
-    category.on_change=refresh;onlyFavorites.on_change=personalFilter
+    query.on_change=authenticatedAction(page,user)(refresh) if user else refresh;query.on_submit=submit
+    category.on_change=authenticatedAction(page,user)(refresh) if user else refresh;onlyFavorites.on_change=personalFilter
     refresh()
     return ft.View('/models',padding=12,
         appbar=ft.AppBar(title=ft.Text('3D-галерея'),leading=ft.IconButton(icon=ft.Icons.ARROW_BACK,on_click=lambda event:page.go('/home'))),
         controls=[ft.ListView(expand=True,spacing=12,controls=[
             ft.Text('Поверните фигурку, приблизьте детали и измените свет. Модели входят в приложение.',size=14),
+            createModelImport(page,user,lambda modelId:page.go('/models/'+modelId)),
             query,category,onlyFavorites,result])])
 
 
