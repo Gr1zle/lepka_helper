@@ -35,6 +35,9 @@ from project_service import (
 )
 from views.profile_tab import createProfileTab
 from views.project_step_order import createStepOrderButton
+from views.project_transfer import createProjectExport, createProjectImport
+from views.project_statistics import createProjectStatistics
+from views.clay_tools_view import createClayTools
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -1343,6 +1346,7 @@ def createColorsTab(page, currentUser):
         padding=16,
         controls=[
             ft.Text("Смешивание цветов", size=26, weight=ft.FontWeight.BOLD),
+            createClayTools(page, currentUser),
             resultColorBox,
 
             ft.Text("Базовая палитра", size=18, weight=ft.FontWeight.BOLD),
@@ -1419,6 +1423,7 @@ def createColorsTab(page, currentUser):
 
 def createProjectsTab(page, currentUser):
     projectListColumn = ft.Column(spacing=10)
+    statisticsCard = createProjectStatistics(page, currentUser) if currentUser else ft.Container()
 
     projectNameField = ft.TextField(
         label="Название проекта",
@@ -1470,6 +1475,7 @@ def createProjectsTab(page, currentUser):
             return
 
         projectItems = getUserProjects(currentUser["userId"])
+        statisticsCard.data()
 
         if len(projectItems) == 0:
             projectListColumn.controls.append(
@@ -1752,6 +1758,7 @@ def createProjectsTab(page, currentUser):
                                 ),
                                 createProjectSharing(page, currentUser, projectItem, refreshProjectList),
                                 createStepOrderButton(page, currentUser, projectItem['projectId'], refreshProjectList),
+                                createProjectExport(page, currentUser, projectItem['projectId']),
                                 stepsBlock,
                             ],
                             spacing=8,
@@ -1795,6 +1802,8 @@ def createProjectsTab(page, currentUser):
                 size=24,
                 weight=ft.FontWeight.BOLD,
             ),
+            statisticsCard,
+            createProjectImport(page, currentUser, refreshProjectList) if currentUser else ft.Container(),
             ft.Card(
                 elevation=2,
                 content=ft.Container(

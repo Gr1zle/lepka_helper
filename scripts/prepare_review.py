@@ -14,11 +14,12 @@ from scripts.prepare_android import MODULES, VIEWS, ASSETS
 
 DOCS = ('ТЗ', 'Plan', 'day1_requirements_audit.md', 'day2_stabilization.md', 'day3_tools.md',
         'day4_community_android.md', 'account_backend_validation.md', 'avatar_stage_photos.md',
-        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md')
+        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md')
 TESTS = ('accounts', 'android_package', 'backend', 'clay_tools', 'community', 'community_api',
          'community_gateway', 'gateway', 'profile_stage_media', 'project_sharing', 'projects',
-         'startup', 'workshops', 'review_release', 'device_session')
+         'startup', 'workshops', 'review_release', 'device_session', 'project_batch')
 SCREENSHOTS = ('day4-community-form.png', 'day4-community-post.png', 'profile-avatar.png',
+               'batch-order-320.png', 'batch-import-preview.png', 'batch-calculator.png', 'batch-timer.png',
                'project-step-photo.png', 'project-copied-recipe.png', 'project-publication-recipe.png',
                'workshop-320.png', 'workshop-desktop.png', 'workshop-step-390.png',
                'server-community-feed.png', 'server-community-workshop.png', 'review-home.png', 'review-profile.png')

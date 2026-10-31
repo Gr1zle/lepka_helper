@@ -6,6 +6,7 @@ from starlette.routing import Route
 
 from download_service import downloadRecipe
 from photo_upload import uploadPhoto, publishedPhoto
+from project_upload import uploadProject
 
 
 def createWebApp():
@@ -22,5 +23,6 @@ def createWebApp():
     # Маршрут должен находиться перед корневым Mount Flet.
     application.router.routes.insert(0, Route('/downloads/{ticket}', downloadRecipe, methods=['GET']))
     application.router.routes.insert(0, Route('/photo-uploads/{ticket}', uploadPhoto, methods=['PUT']))
+    application.router.routes.insert(0, Route('/project-uploads/{ticket}', uploadProject, methods=['PUT']))
     application.router.routes.insert(0, Route('/post-photos/{photoId:int}', publishedPhoto, methods=['GET']))
     return application

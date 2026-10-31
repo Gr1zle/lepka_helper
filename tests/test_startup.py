@@ -105,6 +105,58 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 nav.on_change(SimpleNamespace(control=nav))
                 self.page.update()
 
+    async def test_calculator_and_timer_controls_work(self):
+        from views.home_view import createColorsTab
+        view = self.mount(ft.View('/colors', controls=[createColorsTab(self.page, self.user)]))
+        find(view, ft.TextButton, text='Количество пластилина').on_click(None)
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog) and c.open)
+        find(dialog, ft.TextField, label='Объём, см³').value = '100'
+        find(dialog, ft.ElevatedButton, text='Рассчитать массу').on_click(None)
+        self.assertTrue(any(isinstance(c, ft.Text) and '176.00' in (c.value or '') for c in walk(dialog)))
+        find(dialog, ft.TextButton, text='Закрыть').on_click(None)
+        with patch.object(self.page, 'run_task'):
+            find(view, ft.TextButton, text='Таймер').on_click(None)
+        dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog) and c.open)
+        find(dialog, ft.TextField, label='Длительность, минуты').value = '1'
+        find(dialog, ft.ElevatedButton, text='Старт / продолжить').on_click(None)
+        self.assertTrue(self.page.session.get('clayTimer').running)
+        find(dialog, ft.TextButton, text='Пауза').on_click(None)
+        self.assertFalse(self.page.session.get('clayTimer').running)
+        find(dialog, ft.TextButton, text='Сброс').on_click(None)
+        self.assertEqual(self.page.session.get('clayTimer').seconds(),60)
+
+    async def test_json_import_previews_and_creates_copy_only_after_confirmation(self):
+        from project_archive import exportProject
+        projectId = projects.saveProject(self.user['userId'],'Перенос','Животные','','Заметки')[2]
+        path = Path(self.temp.name)/'project.json'
+        path.write_bytes(exportProject(projectId,self.user['userId']))
+        view = self.mount(ft.View('/projects', controls=[createProjectsTab(self.page,self.user)]))
+        find(view, ft.ElevatedButton, text='Импорт JSON').on_click(None)
+        picker = next(c for c in self.page.overlay if isinstance(c,ft.FilePicker))
+        picker.on_result(SimpleNamespace(control=picker,files=[SimpleNamespace(name='project.json',size=path.stat().st_size,path=str(path))]))
+        self.assertEqual(len(projects.getUserProjects(self.user['userId'])),1)
+        dialog = next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.ElevatedButton,text='Импортировать проект').on_click(None)
+        self.assertEqual(len(projects.getUserProjects(self.user['userId'])),2)
+        find(dialog,ft.ElevatedButton,text='Импортировать проект').on_click(None)
+        self.assertEqual(len(projects.getUserProjects(self.user['userId'])),2)
+
+    async def test_android_json_backup_can_be_saved_and_restored_inside_app(self):
+        from project_backups import listBackups
+        self.page._set_attr('platform','android')
+        projects.saveProject(self.user['userId'],'Копия','Животные','','Заметки')
+        with patch('project_backups.DATA_DIRECTORY',Path(self.temp.name)):
+            view = self.mount(ft.View('/projects',controls=[createProjectsTab(self.page,self.user)]))
+            find(view,ft.TextButton,text='Экспорт JSON').on_click(None)
+            names = listBackups(self.user['userId'])
+            self.assertEqual(len(names),1)
+            find(view,ft.TextButton,text='Копии в приложении').on_click(None)
+            dialog = next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+            find(dialog,ft.TextButton,text=names[0]).on_click(None)
+            preview = next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+            find(preview,ft.ElevatedButton,text='Импортировать проект').on_click(None)
+            self.assertEqual(len(projects.getUserProjects(self.user['userId'])),2)
+
     async def test_project_step_order_can_be_cancelled_or_saved_after_drag(self):
         projectId = projects.saveProject(self.user['userId'], 'Порядок', 'Животные', '', '')[2]
         ids = [projects.saveProjectStep(projectId, name, self.user['userId'])[2] for name in ('Основа', 'Детали', 'Сборка')]

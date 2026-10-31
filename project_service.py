@@ -173,7 +173,8 @@ def calculateProjectProgress(projectId, userId):
         if stepItem["isCompleted"]:
             completedCount += 1
 
-    return round(completedCount / len(stepItems) * 100, 1)
+    progress = round(completedCount / len(stepItems) * 100, 1)
+    return progress if completedCount == len(stepItems) else min(99.9, progress)
 
 
 def refreshProjectProgress(projectId, userId):

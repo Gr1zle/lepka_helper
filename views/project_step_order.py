@@ -26,12 +26,15 @@ def createStepOrderButton(page, currentUser, projectId, onSaved):
                 def down(event, stepId=step['stepId']):
                     move(stepId, 1)
 
-                controls.append(ft.Container(key=str(step['stepId']), padding=4,
-                    content=ft.Row(controls=[
-                        ft.Text(f"{index + 1}. {step['stepDescription']}", expand=True, max_lines=2,
+                # Справа зарезервировано место для штатной ручки перетаскивания.
+                controls.append(ft.Container(key=str(step['stepId']), padding=ft.padding.only(left=4, top=4, bottom=4, right=40),
+                    content=ft.Column(tight=True, spacing=0, controls=[
+                        ft.Text(f"{index + 1}. {step['stepDescription']}", max_lines=2,
                                 overflow=ft.TextOverflow.ELLIPSIS),
-                        ft.IconButton(icon=ft.Icons.ARROW_UPWARD, tooltip='Этап выше', disabled=index == 0, on_click=up),
-                        ft.IconButton(icon=ft.Icons.ARROW_DOWNWARD, tooltip='Этап ниже', disabled=index == len(ordered)-1, on_click=down),
+                        ft.Row(spacing=4, controls=[
+                        ft.IconButton(icon=ft.Icons.ARROW_UPWARD, width=32, height=36, icon_size=18, tooltip='Этап выше', disabled=index == 0, on_click=up),
+                        ft.IconButton(icon=ft.Icons.ARROW_DOWNWARD, width=32, height=36, icon_size=18, tooltip='Этап ниже', disabled=index == len(ordered)-1, on_click=down),
+                        ]),
                     ])))
             listing.controls = controls
             page.update()
