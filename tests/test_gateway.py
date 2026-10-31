@@ -136,6 +136,24 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
         self.assertIsNone(self.page.session.get('currentUser'))
         self.assertIsNone(gateway.getSessionUser(user['sessionToken']))
 
+    async def test_remote_admin_uses_server_target_ids_and_never_promotes_local_cache(self):
+        from scripts.manage_admin import grantAdmin
+        from moderation_gateway import ModerationClient
+        grantAdmin(self.root/'server'/'accounts.db','server@example.com')
+        user=self.login();self.assertEqual(user['roleName'],'admin')
+        client=ModerationClient(user)
+        target=next(row for row in client.users('second@example.com'))
+        self.assertEqual(target['userId'],user['userId'])  # Совпали чужой server ID и свой local ID.
+        self.assertNotEqual(target['userId'],user['serverUserId'])
+        self.assertTrue(client.changeUser(target['userId'],'Проверка серверной блокировки',blocked=True))
+        self.assertFalse(gateway.loginUser('second@example.com','ServerPass123')[0])
+        self.assertIsNotNone(gateway.getSessionUser(user['sessionToken']))
+        with database.openDatabase() as c:
+            local=c.execute('SELECT roleName,isBlocked FROM users WHERE userId=?',(user['userId'],)).fetchone()
+            self.assertEqual(tuple(local),('user',0))
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM adminAudit').fetchone()[0],0)
+        self.assertEqual(client.audit()[0]['action'],'user.block')
+
     async def test_local_reminders_use_remote_profile_setting_and_cached_owner(self):
         from datetime import date
         from project_planner import syncProjectReminders

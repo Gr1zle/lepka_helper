@@ -176,6 +176,40 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.page.session.get('plannerProject'))
         self.assertTrue(all(not r['isRead'] for r in syncProjectReminders(self.user['userId'])))
 
+    async def test_report_form_requires_reason_and_submits_for_current_user(self):
+        from views.moderation_actions import createReportButton
+        from post_service import savePost
+        from image_fixtures import photo
+        post=savePost(self.user['userId'],'Работа для жалобы','Подробное описание работы','Животные','котик',[photo()])[2]
+        view=self.mount(ft.View('/home',controls=[createReportButton(self.page,self.user,'post',post)]))
+        find(view,ft.TextButton,text='Пожаловаться').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        save=find(dialog,ft.ElevatedButton,text='Отправить жалобу')
+        save.on_click(None)
+        self.assertIsNotNone(find(dialog,ft.TextField,label='Причина').error_text)
+        find(dialog,ft.TextField,label='Причина').value='Материал содержит нежелательный текст'
+        save.on_click(None)
+        with database.openDatabase() as c:self.assertEqual(c.execute('SELECT reporterId FROM moderationReports').fetchone()[0],self.user['userId'])
+
+    async def test_admin_panel_denies_user_and_stale_admin_handler_after_demotion(self):
+        from views.admin_view import createAdminView
+        from scripts.manage_admin import grantAdmin
+        view=self.mount(createAdminView(self.page))
+        self.assertIsNotNone(find(view,ft.Text,value='Этот раздел доступен только администратору'))
+        # Подготовка администратора только в этой временной базе.
+        grantAdmin(database.DATABASE_PATH,self.user['email'])
+        self.user=loginUser('test@email.com','Test123456')[2];self.page.session.set('currentUser',self.user)
+        view=self.mount(createAdminView(self.page))
+        section=find(view,ft.Dropdown,label='Раздел панели')
+        section.value='Журнал';section.on_change(None)
+        self.assertIsNotNone(find(view,ft.Text,value='Назначение администратора'))
+        section.value='Аккаунты';section.on_change(None)
+        self.assertIsNotNone(find(view,ft.Text,value=self.user['email']))
+        refresh=find(view,ft.TextButton,text='Обновить панель').on_click
+        with database.openDatabase() as c:c.execute("UPDATE users SET roleName='user' WHERE userId=?",(self.user['userId'],))
+        refresh(None)
+        self.assertIsNotNone(find(view,ft.Text,value='Доступно только администратору'))
+
     async def test_fullscreen_keeps_camera_controls_and_back_exits_before_navigation(self):
         import flet.canvas as cv
         from views.model_view import createModelView
