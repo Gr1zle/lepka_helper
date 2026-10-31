@@ -195,6 +195,9 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 await asyncio.sleep(.01)
             self.fail('Route not ready: '+route)
         main(self.page)
+        # Дождаться первого события /: иначе оно может догнать /home и заменить
+        # уже переключённую вкладку поиска вторым экземпляром домашнего экрана.
+        await waitRoute('/')
         self.page.go('/home');await waitRoute('/home')
         nav=find(self.page.views[-1],ft.NavigationBar)
         nav.selected_index=1;nav.on_change(SimpleNamespace(control=nav))
