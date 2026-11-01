@@ -24,15 +24,16 @@ class CommunityBodyLimit:
         if (scope['type'] != 'http' or not scope['path'].startswith(('/community/','/admin/'))
                 or scope['method'] not in ('POST', 'PUT')):
             return await self.app(scope, receive, send)
+        challenge=scope['path'].startswith(('/admin/challenges','/community/challenges'))
         moderation=scope['path'].startswith('/admin/') or scope['path']=='/community/reports'
-        limit=8192 if moderation else MAX_COMMUNITY_BODY
+        limit=32768 if challenge else (8192 if moderation else MAX_COMMUNITY_BODY)
         body = bytearray()
         while True:
             event = await receive()
             if event['type'] == 'http.disconnect':
                 return
             if len(body) + len(event.get('body', b'')) > limit:
-                detail='Запрос модерации слишком большой (до 8 КБ)' if moderation else 'Публикация слишком большая (до 48 МБ)'
+                detail='Запрос задания слишком большой (до 32 КБ)' if challenge else 'Запрос модерации слишком большой (до 8 КБ)' if moderation else 'Публикация слишком большая (до 48 МБ)'
                 return await JSONResponse({'detail': detail}, status_code=413)(scope, receive, send)
             body.extend(event.get('body', b''))
             if not event.get('more_body', False):
@@ -106,6 +107,19 @@ def installCommunityRoutes(application, currentUser, optionalUser):
             item['isOwn'] = bool(user and item['userId'] == user['userId'])
             item['isLiked'] = bool(user and posts.checkPostLikedByUser(item['postId'], user['userId']))
         return {'data': {'items': items, 'hasMore': offset + len(items) < total}}
+
+    @application.get('/community/posts/{postId}')
+    def singlePost(postId: int, user=Depends(optionalUser)):
+        requirePost(postId)
+        with db.openDatabase() as connection:
+            row = connection.execute('SELECT userId FROM posts WHERE postId=?', (postId,)).fetchone()
+        items = posts.getUserPosts(row['userId'])
+        item = next((item for item in items if item['postId'] == postId and not item['isDeleted']), None)
+        if item is None:
+            raise HTTPException(404, 'Работа недоступна')
+        item['isOwn'] = bool(user and item['userId'] == user['userId'])
+        item['isLiked'] = bool(user and posts.checkPostLikedByUser(postId, user['userId']))
+        return {'data': item}
 
     @application.post('/community/posts')
     def publish(body: PostInput, user=Depends(currentUser)):

@@ -306,6 +306,26 @@ def initializeDatabase():
         targetType TEXT NOT NULL, targetId INTEGER NOT NULL, reason TEXT NOT NULL,
         createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(actorId) REFERENCES users(userId) ON DELETE SET NULL)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS challenges (
+        challengeId INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
+        rules TEXT NOT NULL, deadline TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'open',
+        createdBy INTEGER, winnerPostId INTEGER, result TEXT NOT NULL DEFAULT '',
+        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(createdBy) REFERENCES users(userId) ON DELETE SET NULL,
+        FOREIGN KEY(winnerPostId) REFERENCES posts(postId) ON DELETE SET NULL)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS challengeEntries (
+        challengeId INTEGER NOT NULL, userId INTEGER NOT NULL, postId INTEGER NOT NULL,
+        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(challengeId,userId), UNIQUE(challengeId,postId),
+        FOREIGN KEY(challengeId) REFERENCES challenges(challengeId) ON DELETE CASCADE,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE,
+        FOREIGN KEY(postId) REFERENCES posts(postId) ON DELETE CASCADE)''')
+
+    cursor.execute('''CREATE TABLE IF NOT EXISTS challengeVotes (
+        challengeId INTEGER NOT NULL, postId INTEGER NOT NULL, userId INTEGER NOT NULL,
+        PRIMARY KEY(challengeId,postId,userId),
+        FOREIGN KEY(challengeId,postId) REFERENCES challengeEntries(challengeId,postId) ON DELETE CASCADE,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)''')
 
     cursor.execute(
         """

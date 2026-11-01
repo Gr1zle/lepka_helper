@@ -61,6 +61,17 @@ class CommunityClient:
                 return items
             offset += len(batch['items'])
 
+    def getPost(self, postId):
+        if self.remote:
+            try:
+                return self.request('GET', f'/posts/{postId}')
+            except ApiError as error:
+                if error.statusCode == 404: return None
+                raise
+        with db.openDatabase() as connection:
+            row = connection.execute('SELECT userId FROM posts WHERE postId=? AND isDeleted=0', (postId,)).fetchone()
+        return next((item for item in posts.getUserPosts(row['userId']) if item['postId']==postId), None) if row else None
+
     def getComments(self, postId):
         if not self.remote:
             return posts.getPostComments(postId)
