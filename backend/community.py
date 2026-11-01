@@ -93,6 +93,11 @@ def requirePost(postId):
 def installCommunityRoutes(application, currentUser, optionalUser):
     application.add_middleware(CommunityBodyLimit)
 
+    @application.get('/community/my-stats')
+    def myStats(user=Depends(currentUser)):
+        from feed_service import userStats
+        return {'data':userStats(user['userId'])}
+
     @application.get('/community/feed')
     def pagedFeed(mine: bool=False,query: str=Query('',max_length=120),category: str='Все',
                   sort: str=Query('new',pattern='^(new|popular)$'),offset: int=Query(0,ge=0),limit: int=Query(12,ge=1,le=50),user=Depends(optionalUser)):

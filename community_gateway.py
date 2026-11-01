@@ -45,6 +45,17 @@ class CommunityClient:
         import feed_service
         return feed_service.page(self.user['userId'] if self.user else None,mine,query,category,sort,offset,limit)
 
+    def userStats(self):
+        if not self.user:raise ApiError('Выполните вход',401)
+        if self.remote:
+            try:return self.request('GET','/my-stats',personal=True)
+            except ApiError as error:
+                if error.statusCode!=404:raise
+                items=self.getPosts(mine=True)  # Совместимость с сервером 0.7.0.
+                return {'posts':len(items),'likes':sum(p['likesCount'] for p in items)}
+        from feed_service import userStats
+        return userStats(self.user['userId'])
+
     def getPosts(self, mine=False, search=None):
         if not self.remote:
             if search is not None:

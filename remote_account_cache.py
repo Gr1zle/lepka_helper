@@ -36,6 +36,9 @@ def cacheRemoteUser(userData, sessionToken):
             localId = record['localUserId']
             connection.execute('UPDATE remoteAccounts SET displayNickname = ? WHERE localUserId = ?',
                                (userData['nickname'], localId))
+        if type(userData.get('notificationsEnabled')) is bool:
+            connection.execute('UPDATE users SET notificationsEnabled=? WHERE userId=?',
+                               (int(userData['notificationsEnabled']),localId))
         connection.execute('INSERT OR REPLACE INTO remoteSessionBindings VALUES (?, ?, ?)',
                            (hashToken(sessionToken), apiUrl, localId))
     return {**userData, 'userId': localId, 'serverUserId': remoteId,

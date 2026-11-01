@@ -109,6 +109,15 @@ def initializeDatabase():
         userId INTEGER NOT NULL, lessonId INTEGER NOT NULL, noteText TEXT NOT NULL,
         updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY(userId,lessonId), FOREIGN KEY(userId) REFERENCES users(userId))''')
+    cursor.execute("""CREATE TABLE IF NOT EXISTS personalNoticeSettings (
+        userId INTEGER PRIMARY KEY, projectsEnabled INTEGER NOT NULL DEFAULT 1,
+        lessonsEnabled INTEGER NOT NULL DEFAULT 1, resumeDays INTEGER NOT NULL DEFAULT 3,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS learningNotices (
+        noticeId INTEGER PRIMARY KEY AUTOINCREMENT,userId INTEGER NOT NULL,lessonId INTEGER NOT NULL,
+        kind TEXT NOT NULL,eventKey TEXT NOT NULL,createdAt TEXT NOT NULL,isRead INTEGER NOT NULL DEFAULT 0,
+        snoozedUntil TEXT,UNIQUE(userId,eventKey),
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
     cursor.execute('''CREATE TABLE IF NOT EXISTS modelFavorites (
         userId INTEGER NOT NULL, modelId TEXT NOT NULL,
         PRIMARY KEY(userId,modelId), FOREIGN KEY(userId) REFERENCES users(userId))''')

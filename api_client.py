@@ -2,6 +2,7 @@
 import ipaddress
 import json
 import os
+import threading
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -70,6 +71,20 @@ def getApiUrl():
     return validateApiUrl(address)
 
 
+_transports = threading.local()
+
+
+def lanTransport(baseUrl):
+    # Пул соединений изолирован по потоку и адресу; токены не сохраняются в Session.
+    pair = getattr(_transports, 'lan', None)
+    if pair is None or pair[0] != baseUrl:
+        if pair is not None:pair[1].close()
+        session = requests.Session()
+        session.trust_env = False
+        _transports.lan = (baseUrl, session)
+    return _transports.lan[1]
+
+
 def apiRequest(method, path, payload=None, sessionToken=None, imageData=None):
     baseUrl = getApiUrl()
     if not baseUrl:
@@ -81,9 +96,7 @@ def apiRequest(method, path, payload=None, sessionToken=None, imageData=None):
         body = {'data': imageData}
     try:
         if baseUrl.startswith('http://'):
-            with requests.Session() as session:
-                session.trust_env = False
-                response = session.request(method, baseUrl + path, **body, headers=headers,
+            response = lanTransport(baseUrl).request(method, baseUrl + path, **body, headers=headers,
                                            timeout=(5, 20), allow_redirects=False)
         else:
             response = requests.request(method, baseUrl + path, **body, headers=headers,

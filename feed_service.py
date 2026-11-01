@@ -25,3 +25,9 @@ def page(userId=None,mine=False,query='',category='Все',sort='new',offset=0,l
             item['photoIds']=[r[0] for r in c.execute('SELECT photoId FROM postPhotos WHERE postId=? ORDER BY position',(row['postId'],))]
             result.append(item)
         return {'items':result,'hasMore':len(records)>limit}
+
+
+def userStats(userId):
+    with db.openDatabase() as c:
+        row=c.execute('SELECT COUNT(*) AS posts,COALESCE(SUM(likesCount),0) AS likes FROM posts WHERE userId=? AND isDeleted=0',(userId,)).fetchone()
+    return dict(row)

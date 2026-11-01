@@ -887,7 +887,7 @@ def createColorsTab(page, currentUser):
     )
 
     def refreshSavedMixtures():
-        savedMixturesColumn.controls.clear()
+        savedMixturesColumn.controls = []
 
         if not currentUser:
             savedMixturesColumn.controls.append(
@@ -908,6 +908,7 @@ def createColorsTab(page, currentUser):
             def handleDeleteMixture(event, currentMixtureId=mixture["mixtureId"]):
                 deleteColorMixture(currentUser["userId"], currentMixtureId)
                 refreshSavedMixtures()
+                page.update()
                 showMessage("Смесь удалена")
 
             @authenticatedAction(page, currentUser)
@@ -1261,6 +1262,7 @@ def createColorsTab(page, currentUser):
             return
 
         refreshSavedMixtures()
+        page.update()
         showMessage("Смесь сохранена")
 
     def colorAction(callback):
@@ -1330,143 +1332,14 @@ def createColorsTab(page, currentUser):
             ),
         )
 
-    def rgbToHex(redValue, greenValue, blueValue):
-        return "#{:02X}{:02X}{:02X}".format(
-            int(round(redValue * 255)),
-            int(round(greenValue * 255)),
-            int(round(blueValue * 255)),
-        )
-
-    def getColorWheelHexAtPoint(xPosition, yPosition, wheelSize):
-        center = wheelSize / 2
-        dx = xPosition - center
-        dy = center - yPosition
-        radius = math.sqrt(dx * dx + dy * dy)
-        maxRadius = wheelSize / 2
-
-        if radius > maxRadius:
-            return None
-
-        saturation = min(1.0, radius / maxRadius)
-        hue = (math.atan2(dy, dx) / (2 * math.pi)) % 1.0
-
-        if saturation < 0.04:
-            return "#FFFFFF"
-
-        redValue, greenValue, blueValue = colorsys.hsv_to_rgb(hue, saturation, 1.0)
-        return rgbToHex(redValue, greenValue, blueValue)
-
-    def createPngChunk(chunkType, chunkData):
-        chunkHeader = struct.pack(">I", len(chunkData)) + chunkType + chunkData
-        checksum = zlib.crc32(chunkHeader[4:]) & 0xFFFFFFFF
-        return chunkHeader + struct.pack(">I", checksum)
-
-    def createColorWheelBase64(wheelSize):
-        rawRows = []
-
-        for yPosition in range(wheelSize):
-            rowBytes = bytearray()
-            rowBytes.append(0)
-
-            for xPosition in range(wheelSize):
-                center = wheelSize / 2
-                dx = xPosition - center
-                dy = center - yPosition
-                radius = math.sqrt(dx * dx + dy * dy)
-                maxRadius = wheelSize / 2 - 1
-
-                if radius > maxRadius:
-                    rowBytes.extend([255, 255, 255, 0])
-                    continue
-
-                saturation = min(1.0, radius / maxRadius)
-                hue = (math.atan2(dy, dx) / (2 * math.pi)) % 1.0
-                redValue, greenValue, blueValue = colorsys.hsv_to_rgb(hue, saturation, 1.0)
-
-                rowBytes.extend([
-                    int(round(redValue * 255)),
-                    int(round(greenValue * 255)),
-                    int(round(blueValue * 255)),
-                    255,
-                ])
-
-            rawRows.append(bytes(rowBytes))
-
-        pngHeader = b"\x89PNG\r\n\x1a\n"
-        imageHeader = struct.pack(">IIBBBBB", wheelSize, wheelSize, 8, 6, 0, 0, 0)
-        imageData = zlib.compress(b"".join(rawRows), 9)
-        pngBytes = (
-            pngHeader
-            + createPngChunk(b"IHDR", imageHeader)
-            + createPngChunk(b"IDAT", imageData)
-            + createPngChunk(b"IEND", b"")
-        )
-
-        return base64.b64encode(pngBytes).decode("ascii")
-
-    def createColorWheelTapArea(colorItem, leftPosition, topPosition, touchSize):
-        return ft.Container(
-            left=leftPosition,
-            top=topPosition,
-            width=touchSize,
-            height=touchSize,
-            content=ft.GestureDetector(
-                on_tap=lambda event, currentColor=colorItem: handleTargetColorClick(event, currentColor),
-                content=ft.Container(
-                    width=touchSize,
-                    height=touchSize,
-                    bgcolor="#01000000",
-                ),
-            ),
-        )
-
     def createRealColorWheel():
-        wheelSize = 220
-        touchSize = 11
-        wheelControls = [
-            ft.Image(
-                src_base64=createColorWheelBase64(wheelSize),
-                width=wheelSize,
-                height=wheelSize,
-                fit=ft.ImageFit.CONTAIN,
-            )
-        ]
-
-        colorId = 1000
-
-        for topPosition in range(0, wheelSize, touchSize):
-            for leftPosition in range(0, wheelSize, touchSize):
-                centerX = leftPosition + touchSize / 2
-                centerY = topPosition + touchSize / 2
-                hexColor = getColorWheelHexAtPoint(centerX, centerY, wheelSize)
-
-                if hexColor is None:
-                    continue
-
-                colorId += 1
-                wheelControls.append(
-                    createColorWheelTapArea(
-                        {
-                            "colorId": colorId,
-                            "name": hexColor,
-                            "hex": hexColor,
-                        },
-                        leftPosition,
-                        topPosition,
-                        touchSize,
-                    )
-                )
-
-        return ft.Container(
-            width=wheelSize,
-            height=wheelSize,
-            alignment=ft.alignment.center,
-            content=ft.Stack(
-                width=wheelSize,
-                height=wheelSize,
-                controls=wheelControls,
-            ),
-        )
+        from color_wheel import createColorWheelBase64, getColorWheelHexAtPoint
+        def choose(event):
+            value = getColorWheelHexAtPoint(event.local_x, event.local_y, 220)
+            if value:
+                handleTargetColorClick(event, {'hex': value})
+        return ft.GestureDetector(on_tap_down=choose, content=ft.Image(
+            src_base64=createColorWheelBase64(220), width=220, height=220, fit=ft.ImageFit.CONTAIN))
 
     colorGrid = ft.GridView(
         expand=False,
@@ -1482,14 +1355,6 @@ def createColorsTab(page, currentUser):
 
     targetColorWheel = createRealColorWheel()
 
-    def prewarmRecipeSearch():
-        try:
-            findClosestRecipeForTargetColor(targetHexField.value, getTotalWeight())
-        except Exception:
-            pass
-
-    threading.Thread(target=prewarmRecipeSearch, daemon=True).start()
-
     totalWeightField.on_change = lambda event: (refreshRecipe(), page.update())
 
     updateTargetSelectedPreview(targetHexField.value)
@@ -1497,6 +1362,7 @@ def createColorsTab(page, currentUser):
     refreshSavedMixtures()
 
     return ft.ListView(
+        build_controls_on_demand=False,
         expand=True,
         spacing=16,
         padding=16,
