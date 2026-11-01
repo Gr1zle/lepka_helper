@@ -265,6 +265,27 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         like.on_click(None)
         self.assertEqual(like.text,'❤️ 1');self.assertEqual(refresh,[])
 
+    async def test_publication_draft_restores_text_and_photo_after_tab_recreation(self):
+        from views.community_tab import createHomeTab
+        from publication_drafts import listDrafts
+        from views.offline_controls import createDraftTools
+        selected=[photo()]
+        fields={'title':ft.TextField(value='Незавершённый котик'),'description':ft.TextField(value='Описание черновика'),
+            'category':ft.Dropdown(value='Животные',options=[ft.dropdown.Option('Животные')]),'tags':ft.TextField(value='котик'),
+            'contest':ft.Dropdown(value='',options=[ft.dropdown.Option('')])}
+        with patch('views.offline_controls.getApiUrl',return_value=''):
+            tools=createDraftTools(self.page,self.user,fields,selected,lambda:None)
+        view=self.mount(ft.View('/draft',controls=[*[fields[key] for key in ('title','description','category','tags','contest')],tools]))
+        find(tools,ft.TextButton,text='Сохранить черновик').on_click(None)
+        self.assertEqual(len(listDrafts(self.user['userId'],'')),1)
+        find(tools,ft.TextButton,text='Новый черновик').on_click(None)
+        self.assertEqual(selected,[])
+        find(tools,ft.TextButton,text='Мои черновики').on_click(None)
+        dialog=next(c for c in reversed(self.page.overlay) if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.TextButton,text='Открыть черновик').on_click(None)
+        self.assertEqual(fields['title'].value,'Незавершённый котик')
+        self.assertEqual(selected[0]['data'],photo()['data'])
+
     async def test_full_personal_copy_restores_only_owner_after_explicit_confirmation(self):
         from views.personal_data import createPersonalDataButton
         from personal_checkpoints import listCheckpoints

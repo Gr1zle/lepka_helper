@@ -205,6 +205,7 @@ def createHomeTab(page, currentUser, nickname):
     contest,contestControls=createContestPicker(page,currentUser)
     photos = []
     pending = {}
+    draftFields={'title':title,'description':description,'category':category,'tags':tags,'contest':contest}
     previews = ft.Column()
     status = ft.Text('Добавьте от 1 до 10 фотографий: JPG, PNG или WebP, до 10 МБ каждая', size=12)
     onlyMine = ft.Checkbox(label='Только мои работы', visible=currentUser is not None, value=False)
@@ -223,7 +224,7 @@ def createHomeTab(page, currentUser, nickname):
         batch=client.getPostsPage(mine=bool(onlyMine.value and currentUser),query=feedQuery.value or '',
             category=feedCategory.value,sort=feedSort.value,offset=offset)
         cards=[createPostCard(page,item,currentUser,refreshPosts) for item in batch['items']]
-        posts.controls=([*posts.controls,*cards] if append else cards) or [ft.Text('Публикаций по этим фильтрам нет.')]
+        posts.controls=([*posts.controls,*cards] if append else cards) or [ft.Text('Оффлайн: сохранённых публикаций по этим фильтрам пока нет.' if batch.get('offline') else 'Публикаций по этим фильтрам нет.')]
         feedOffset['value']=offset+len(batch['items']);more.visible=batch['hasMore']
 
     @feedAction
@@ -250,6 +251,7 @@ def createHomeTab(page, currentUser, nickname):
         status.value = f'Готово фото: {len(photos)} из 10. Загружается: {len(pending)}'
         publish.disabled = bool(pending)
         pick.disabled = bool(pending)
+        if 'draftChanged' in draftFields:draftFields['draftChanged']()
 
     @authenticatedAction(page, currentUser)
     def cancel(event):
@@ -338,6 +340,7 @@ def createHomeTab(page, currentUser, nickname):
         success, message, _ = client.publishPost(title.value, description.value,
                                        category.value, tags.value, photos,challengeId=int(contest.value) if contest.value else None)
         if success:
+            draftFields['clearDraft']()
             title.value, description.value, tags.value = '', '', ''
             photos.clear()
             refreshPhotos()
@@ -348,6 +351,9 @@ def createHomeTab(page, currentUser, nickname):
     pick = ft.OutlinedButton('Добавить фото', icon=ft.Icons.ADD_PHOTO_ALTERNATE, on_click=choose)
     publish = ft.ElevatedButton('Опубликовать', icon=ft.Icons.PUBLISH, on_click=publishPost, height=48)
     onlyMine.on_change = lambda event: (refreshPosts(), page.update())
+    from views.offline_controls import createDraftTools
+    draftTools=createDraftTools(page,currentUser,draftFields,photos,refreshPhotos)
+    page.session.set('refreshCommunityFeed',lambda:(refreshPosts(),page.update()))
     refreshPosts()
     return ft.ListView(expand=True, build_controls_on_demand=False, padding=16, spacing=12, controls=[
         ft.Text(f'Привет, {nickname}!', size=22, weight=ft.FontWeight.BOLD),
@@ -364,7 +370,7 @@ def createHomeTab(page, currentUser, nickname):
                     color=ft.Colors.WHITE)])),
         ft.Card(visible=currentUser is not None, content=ft.Container(padding=16, content=ft.Column(controls=[
             ft.Text('Опубликовать работу', size=18, weight=ft.FontWeight.BOLD), title, description, category,
-            tags, contestControls, pick, status, previews, ft.TextButton('Отменить загрузку', on_click=cancel), publish]))),
+            tags, contestControls, draftTools, pick, status, previews, ft.TextButton('Отменить загрузку', on_click=cancel), publish]))),
         ft.Text('Лента сообщества', size=18, weight=ft.FontWeight.BOLD),feedQuery,
         ft.Container(content=feedCategory,padding=ft.padding.symmetric(vertical=6)),
         ft.Container(content=feedSort,padding=ft.padding.symmetric(vertical=6)),onlyMine,

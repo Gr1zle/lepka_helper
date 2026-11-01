@@ -43,7 +43,10 @@ def loginUser(email, password):
         response = apiRequest('POST', '/auth/login', {'email': email, 'password': password})
         data = response['data']
         token = data.get('sessionToken') if isinstance(data, dict) else None
-        return True, response.get('message', 'Вход выполнен'), cacheRemoteUser(data, token)
+        user=cacheRemoteUser(data,token)
+        from offline_access import registerVerified
+        registerVerified(user)
+        return True, response.get('message', 'Вход выполнен'), user
     except ApiError as error:
         return False, str(error), None
 
@@ -57,13 +60,21 @@ def getSessionUser(sessionToken):
         return localSecurity.getSessionUser(sessionToken)
     if not sessionToken:
         return None
+    from offline_access import registerVerified,cachedUser,forgetVerified,noteUnavailable,coolingDown
+    cached=cachedUser(sessionToken)
+    if cached and coolingDown():return cached
     try:
         response = apiRequest('GET', '/auth/me', sessionToken=sessionToken)
-        return cacheRemoteUser(response['data'], sessionToken)
+        user=cacheRemoteUser(response['data'],sessionToken)
+        registerVerified(user)
+        return user
     except ApiError as error:
         if error.statusCode == 401:
-            forgetRemoteSession(sessionToken)
+            forgetVerified(sessionToken);forgetRemoteSession(sessionToken)
             return None
+        if error.statusCode==0 or error.statusCode>=500:
+            noteUnavailable()
+            if cached:return cached
         raise
 
 
@@ -75,6 +86,8 @@ def logoutUser(sessionToken):
     try:
         apiRequest('POST', '/auth/logout', sessionToken=sessionToken)
     finally:
+        from offline_access import forgetVerified
+        forgetVerified(sessionToken)
         forgetRemoteSession(sessionToken)
 
 
@@ -108,8 +121,15 @@ def getUserProfile(userId, sessionToken=None):
     if not getApiUrl():
         return localProfiles.getUserProfile(userId)
     requireCachedUser(userId, sessionToken)
-    data = apiRequest('GET', '/profile', sessionToken=sessionToken)['data']
-    return cacheRemoteUser(data, sessionToken)
+    from offline_access import cachedProfile,coolingDown
+    cached=cachedProfile(userId,sessionToken)
+    if cached and coolingDown():return cached
+    try:
+        data=apiRequest('GET','/profile',sessionToken=sessionToken)['data']
+        return cacheRemoteUser(data,sessionToken)
+    except ApiError as error:
+        if cached and (error.statusCode==0 or error.statusCode>=500):return cached
+        raise
 
 
 def saveUserAvatar(userId, photo, sessionToken=None):

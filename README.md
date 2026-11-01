@@ -1,3 +1,5 @@
+[№25: офлайн-вход, черновики и автоматическая очередь](docs/offline_session_outbox.md).
+
 [Оставшиеся блоки приложения](docs/remaining_work.md) · [№24: личные данные и синхронизация](docs/personal_vault_sync.md).
 
 [Блок №23: личные уведомления и ускорение «Цветов»](docs/personal_notices_performance.md).

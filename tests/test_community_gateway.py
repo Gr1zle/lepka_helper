@@ -176,9 +176,10 @@ class CommunityGatewayTests(ServerFixture, unittest.TestCase):
                     lost[0] = False
                     raise ApiError('Ответ потерян')
                 return response
-            with patch('community_gateway.apiRequest', side_effect=send):
-                with self.assertRaises(ApiError):
-                    self.publish(first)
+            with patch('community_outbox.apiRequest', side_effect=send):
+                self.assertIsNone(self.publish(first))
+                from community_outbox import entries
+                self.assertEqual(len(entries(first.user,first.apiUrl)),1)
                 postId = self.publish(first)
             self.assertEqual([item['postId'] for item in first.getPosts()], [postId])
             self.assertEqual(db.getAllPosts(), [])
@@ -187,11 +188,12 @@ class CommunityGatewayTests(ServerFixture, unittest.TestCase):
         with self.client('author', 'author@example.com') as (author, first):
             import post_service
             post_service.savePost(author['userId'], 'Старая местная работа', 'Старое описание работы', 'Другое', '', [photo()])
+            self.assertEqual(first.getPosts(),[])
             self.stopServer()
-            with self.assertRaises(ApiError):
-                first.getPosts()
-            with self.assertRaises(ApiError):
-                self.publish(first)
+            self.assertEqual(first.getPosts(),[])
+            self.assertIsNone(self.publish(first))
+            from community_outbox import entries
+            self.assertEqual(len(entries(author,first.apiUrl)),1)
             self.assertEqual(len(db.getAllPosts()), 1)
 
     def test_foreign_local_owner_cannot_use_cached_remote_session(self):

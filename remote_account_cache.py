@@ -36,6 +36,12 @@ def cacheRemoteUser(userData, sessionToken):
             localId = record['localUserId']
             connection.execute('UPDATE remoteAccounts SET displayNickname = ? WHERE localUserId = ?',
                                (userData['nickname'], localId))
+        allowed=('email','nickname','roleName','bioText','ageCategory','favoriteColors','themeMode','languageCode','notificationsEnabled','avatarPath','avatarImage')
+        import json
+        old=connection.execute('SELECT profileJson FROM remoteProfileCache WHERE userId=? AND apiUrl=?',(localId,apiUrl)).fetchone()
+        profile=json.loads(old[0]) if old else {}
+        profile.update({key:userData[key] for key in allowed if key in userData})
+        connection.execute('INSERT OR REPLACE INTO remoteProfileCache VALUES (?,?,?)',(localId,apiUrl,json.dumps(profile,ensure_ascii=False)))
         if type(userData.get('notificationsEnabled')) is bool:
             connection.execute('UPDATE users SET notificationsEnabled=? WHERE userId=?',
                                (int(userData['notificationsEnabled']),localId))

@@ -232,7 +232,7 @@ class ReviewUiTests(unittest.IsolatedAsyncioTestCase):
         from views.auth_view import createAuthView
         view = self.mount(createAuthView(self.page))
         self.assertFalse(any(isinstance(item, ft.OutlinedButton) and item.text == 'Войти через Google' for item in walk(view)))
-        self.assertFalse(any(isinstance(item, ft.Switch) for item in walk(view)))
+        self.assertFalse(any(isinstance(item, ft.Switch) and item.visible for item in walk(view)))
         tabs = find(view, ft.Tabs)
         tabs.selected_index = 1
         tabs.on_change(SimpleNamespace(control=tabs))

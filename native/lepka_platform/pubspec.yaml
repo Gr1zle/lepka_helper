@@ -1,0 +1,15 @@
+name: lepka_platform
+description: Native protected session storage for Lepka Helper.
+version: 0.1.0
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flet: 0.28.3
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: ru.gr1zle.lepka_platform
+        pluginClass: LepkaPlatformPlugin

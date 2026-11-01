@@ -20,6 +20,8 @@ def localAction(page,user):
             current=page.session.get('currentUser')
             if not current or current.get('sessionToken')!=user.get('sessionToken') or current.get('userId')!=user['userId']:
                 raise ApiError('Сессия изменилась. Выполните вход снова',401)
+            if current.get('apiUrl') and current.get('sessionExpiresAt') is not None and current['sessionExpiresAt']<=__import__('time').time():
+                raise ApiError('Срок серверного входа истёк. Войдите снова',401)
             try:return callback(*args,**kwargs)
             except (ValueError,OSError,sqlite3.Error) as error:
                 showMessage(page,str(error) if isinstance(error,ValueError) else 'Не удалось выполнить операцию с личными данными',True)
@@ -82,7 +84,7 @@ def createPersonalDataButton(page,user):
                     invalidate();showMessage(page,'Данные восстановлены. Заново откройте нужную вкладку.')
                 finally:busy['value']=False
             confirmDialog=ft.AlertDialog(modal=True,title=ft.Text(title),content=ft.Column(tight=True,controls=[
-                ft.Text(summaryText(snapshotSummary(document))),ft.Text('Будут заменены ваши личные проекты, смеси, учебные данные и импортированные модели на этом устройстве. Перед заменой автоматически сохранится полная копия. Аккаунт и публикации сохраняются.')]),
+                ft.Text(summaryText(snapshotSummary(document))),ft.Text('Будут заменены ваши личные проекты, смеси, учебные данные и импортированные модели на этом устройстве. Перед заменой автоматически сохранится полная копия. Аккаунт, публикации, черновики и очередь отправки сохраняются на этом устройстве.')]),
                 actions=[ft.TextButton('Отмена',on_click=lambda e:returnToMain(confirmDialog)),ft.TextButton('Заменить личные данные',on_click=confirm)])
             openChild(confirmDialog)
 
@@ -163,7 +165,7 @@ def createPersonalDataButton(page,user):
                 except ApiError as error:networkError(error)
                 finally:busy['value']=False;page.update()
             confirmDialog=ft.AlertDialog(modal=True,title=ft.Text('Заменить данные устройства?'),content=ft.Text(
-                'Будут заменены личные проекты, смеси, прогресс, заметки, избранное и импортированные модели. Сначала автоматически сохранится полная копия текущих данных. Аккаунт и публикации сохраняются.'),
+                'Будут заменены личные проекты, смеси, прогресс, заметки, избранное и импортированные модели. Сначала автоматически сохранится полная копия текущих данных. Аккаунт, публикации, черновики и очередь отправки сохраняются на этом устройстве.'),
                 actions=[ft.TextButton('Отмена',on_click=lambda e:returnToMain(confirmDialog)),ft.TextButton('Подтвердить загрузку',on_click=confirm)])
             openChild(confirmDialog)
 

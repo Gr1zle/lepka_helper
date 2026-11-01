@@ -12,7 +12,7 @@ from views.onboarding_view import createOnboardingView
 from views.auth_view import createAuthView
 from views.home_view import createHomeView
 from app_info import APP_TITLE
-from device_session import restoreDeviceSession
+from device_session import restoreDeviceSession,nativeClient
 from account_gateway import getUserProfile
 from views.model_gallery import createModelGallery
 from views.model_view import createModelView
@@ -39,6 +39,9 @@ def main(page: ft.Page):
 
     page.title = APP_TITLE
     page.theme_mode = ft.ThemeMode.LIGHT
+    if apiUrl and nativeClient(page):
+        from secure_device import attachProtectedSession
+        attachProtectedSession(page)
     restoredUser = restoreDeviceSession(page)
     if restoredUser:
         page.session.set('currentUser', restoredUser)
@@ -123,6 +126,8 @@ def main(page: ft.Page):
         callback=page.session.get('resizeModelView')
         if callable(callback):callback(event)
     page.on_resized = resizeModel
+    from connection_monitor import startConnectionMonitor
+    startConnectionMonitor(page)
     page.go("/")
 
 

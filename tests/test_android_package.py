@@ -55,6 +55,9 @@ class AndroidPackageTests(unittest.TestCase):
             for name in android.ASSETS:
                 (root / 'assets' / name).parent.mkdir(parents=True,exist_ok=True)
                 (root / 'assets' / name).write_bytes(b'asset')
+            for name in android.NATIVE_FILES:
+                native=root/'native'/'lepka_platform'/name
+                native.parent.mkdir(parents=True,exist_ok=True);native.write_text('safe native fixture')
             for name in ('.env', 'personal.db', 'extra.py', 'assets/fonts/private.txt'):
                 (root / name).write_text('PRIVATE_SENTINEL')
             with patch.object(android, 'ROOT', root), patch.dict('os.environ', {'LEPKA_MAIL_API_KEY': 'PRIVATE_SENTINEL'}):

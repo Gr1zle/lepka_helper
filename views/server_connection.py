@@ -33,6 +33,8 @@ def openServerConnection(page):
     def save(e, local=False):
         try:
             url = '' if local else checked()
+            from device_session import forgetDeviceSession
+            forgetDeviceSession(page)
             payload = {'apiBaseUrl': url, 'allowLan': bool(lan.value)}
             with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=DATA_DIRECTORY, delete=False) as stream:
                 json.dump(payload, stream)

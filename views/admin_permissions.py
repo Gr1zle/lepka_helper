@@ -5,7 +5,7 @@ from account_gateway import getApiUrl
 
 
 def panelAccess(page,user):
-    if not user:return {'permissions':[]}
+    if not user or user.get('offline'):return {'permissions':[]}
     key=(user.get('sessionToken'),getApiUrl())
     cached=page.session.get('adminAccess')
     if cached and cached['key']==key and monotonic()-cached['at']<10:return cached['access']
