@@ -1,6 +1,5 @@
 """Личные события устройства: дедлайны и обучение. Доставка при открытии приложения."""
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
 import hashlib
 import json
 from database import openDatabase
@@ -72,7 +71,7 @@ def personalItems(userId,enabled=None,now=None):
             requireOwner(c,userId)
             enabled=bool(c.execute('SELECT notificationsEnabled FROM users WHERE userId=?',(userId,)).fetchone()[0])
     now=now or nowUtc();prefs=settings(userId)
-    projects=syncProjectReminders(userId,enabled and bool(prefs['projectsEnabled']),today=now.astimezone(ZoneInfo('Europe/Moscow')).date())
+    projects=syncProjectReminders(userId,enabled and bool(prefs['projectsEnabled']),today=now.astimezone(timezone(timedelta(hours=3))).date())
     result=[dict(noticeId='project:'+str(r['reminderId']),source='projects',kind='deadline',title=r['projectName'],
                  preview=r['label']+' · '+r['deadlineDate'],createdAt=r['generatedDate'],isRead=r['isRead'],projectId=r['projectId']) for r in projects]
     for row in syncLearning(userId,enabled,now):

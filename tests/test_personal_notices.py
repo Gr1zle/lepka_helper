@@ -69,6 +69,13 @@ class PersonalNoticeTests(unittest.TestCase):
         for days in (0,31,True):
             with self.assertRaises(ValueError):notices.saveSettings(self.user,True,True,days)
 
+    def test_deadline_date_uses_moscow_even_when_host_day_is_previous(self):
+        saveProject(self.user,'Ночной проект','Другое','02.11.2026','')
+        now=datetime(2026,11,1,22,tzinfo=timezone.utc)
+        item=notices.personalItems(self.user,now=now)[0]
+        self.assertEqual(item['createdAt'],'2026-11-02')
+        self.assertIn('сегодня',item['preview'])
+
     def test_account_delete_cleans_personal_tables(self):
         self.progress();notices.personalItems(self.user,now=self.now);notices.saveSettings(self.user,True,True,3)
         db.deleteUserDataById(self.user)
