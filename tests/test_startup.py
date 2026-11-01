@@ -176,6 +176,62 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.page.session.get('plannerProject'))
         self.assertTrue(all(not r['isRead'] for r in syncProjectReminders(self.user['userId'])))
 
+    async def test_role_editor_and_scoped_panel_hide_ungranted_sections(self):
+        from views.admin_view import createAdminView
+        from moderation_gateway import ModerationClient
+        import role_service as roles
+        import moderation_service as moderation
+        from password_service import createPasswordHash
+        with database.openDatabase() as c:c.execute("UPDATE users SET roleName='admin' WHERE userId=?",(self.user['userId'],))
+        view=self.mount(createAdminView(self.page))
+        section=find(view,ft.Dropdown,label='Раздел панели');section.value='Роли';section.on_change(None)
+        find(view,ft.OutlinedButton,text='Создать роль').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.TextField,label='Код роли').value='helper'
+        find(dialog,ft.TextField,label='Название роли').value='Помощник модератора'
+        find(dialog,ft.Checkbox,label='Рассматривать жалобы').value=True
+        find(dialog,ft.TextField,label='Причина').value='Создание роли для проверки панели'
+        find(dialog,ft.ElevatedButton,text='Сохранить роль').on_click(None)
+        self.assertEqual(roles.roles(self.user['userId'])['items'][0]['permissions'],['reports.manage'])
+        hashed,salt=createPasswordHash('Student123')
+        staff=database.createUser('staff@example.com',hashed,salt,'Сотрудник')
+        moderation.changeUser(self.user['userId'],staff,'Назначение роли для проверки панели',role='helper')
+        other=loginUser('staff@example.com','Student123')[2];self.page.session.set('currentUser',other)
+        view=self.mount(createAdminView(self.page))
+        section=find(view,ft.Dropdown,label='Раздел панели')
+        self.assertEqual([o.key for o in section.options],['Жалобы'])
+        roles.save(self.user['userId'],'helper','Помощник модератора',[],'Отзыв полномочий для проверки сессии')
+        find(view,ft.TextButton,text='Обновить панель').on_click(None)
+        self.assertEqual(self.page.route,'/auth')
+
+    async def test_admin_delete_dialog_requires_reason_before_removing_account(self):
+        from views.admin_view import createAdminView
+        with database.openDatabase() as c:c.execute("UPDATE users SET roleName='admin' WHERE userId=?",(self.user['userId'],))
+        target=database.createUser('remove@example.com','','','Удаляемый тестовый аккаунт')
+        view=self.mount(createAdminView(self.page))
+        section=find(view,ft.Dropdown,label='Раздел панели');section.value='Аккаунты';section.on_change(None)
+        find(view,ft.TextButton,text='Удалить аккаунт').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        self.assertIn('remove@example.com',dialog.title.value)
+        find(dialog,ft.ElevatedButton,text='Удалить аккаунт и данные').on_click(None)
+        self.assertIsNotNone(database.getUserByEmail('remove@example.com'))
+        find(dialog,ft.TextField,label='Причина').value='Учебный аккаунт удаляется для проверки формы'
+        find(dialog,ft.ElevatedButton,text='Удалить аккаунт и данные').on_click(None)
+        self.assertIsNone(database.getUserByEmail('remove@example.com'))
+
+    async def test_personal_report_history_shows_published_decision_only_for_own_report(self):
+        from views.report_history import createReportHistoryButton
+        import moderation_service as moderation
+        import post_service as posts
+        pid=posts.savePost(self.user['userId'],'Работа для жалобы','Описание публикации для жалобы','Животные','кот',[photo()])[2]
+        rid=moderation.reportMaterial(self.user['userId'],'post',pid,'Причина для проверки личной истории')
+        with database.openDatabase() as c:c.execute("UPDATE users SET roleName='admin' WHERE userId=?",(self.user['userId'],))
+        moderation.resolveReport(self.user['userId'],rid,'rejected','Проверка не подтвердила нарушение')
+        view=self.mount(ft.View('/profile',controls=[createReportHistoryButton(self.page,self.user)]))
+        find(view,ft.TextButton,text='Мои жалобы и решения').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        self.assertIsNotNone(find(dialog,ft.Text,value='Решение: Проверка не подтвердила нарушение'))
+
     async def test_contest_new_publication_shortcut_prefills_picker_and_preserves_identity(self):
         from views.challenge_view import createChallengeView
         from views.community_tab import createHomeTab
@@ -325,7 +381,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         from views.admin_view import createAdminView
         from scripts.manage_admin import grantAdmin
         view=self.mount(createAdminView(self.page))
-        self.assertIsNotNone(find(view,ft.Text,value='Этот раздел доступен только администратору'))
+        self.assertIsNotNone(find(view,ft.Text,value='Нет прав для доступа к панели'))
         # Подготовка администратора только в этой временной базе.
         grantAdmin(database.DATABASE_PATH,self.user['email'])
         self.user=loginUser('test@email.com','Test123456')[2];self.page.session.set('currentUser',self.user)
@@ -338,7 +394,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         refresh=find(view,ft.TextButton,text='Обновить панель').on_click
         with database.openDatabase() as c:c.execute("UPDATE users SET roleName='user' WHERE userId=?",(self.user['userId'],))
         refresh(None)
-        self.assertIsNotNone(find(view,ft.Text,value='Доступно только администратору'))
+        self.assertIsNotNone(find(view,ft.Text,value='Недостаточно прав для этого действия'))
 
     async def test_fullscreen_keeps_camera_controls_and_back_exits_before_navigation(self):
         import flet.canvas as cv

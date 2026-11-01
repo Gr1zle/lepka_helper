@@ -5,6 +5,7 @@ import account_gateway as accounts
 from api_client import ApiError,apiRequest
 from remote_account_cache import requireCachedUser
 import moderation_service as service
+import role_service as roles
 
 
 class ModerationClient:
@@ -52,3 +53,24 @@ class ModerationClient:
 
     def audit(self,offset=0):
         return self.call('GET','/admin/audit?'+urlencode(dict(offset=offset)),local=lambda actor:service.listAudit(actor,offset))
+
+    def access(self):
+        return self.call('GET','/community/access',local=lambda actor:roles.access(actor))
+
+    def roles(self):
+        return self.call('GET','/admin/roles',local=lambda actor:roles.roles(actor))
+
+    def saveRole(self,code,title,permissions,reason,create=False):
+        if not isinstance(code,str) or not roles.CODE.fullmatch(code):raise ApiError('Некорректный код роли',400)
+        return self.call('POST' if create else 'PUT',f'/admin/roles/{code}',dict(title=title,permissions=permissions,reason=reason),
+                         lambda actor:roles.save(actor,code,title,permissions,reason,create))
+
+    def deleteRole(self,code,reason):
+        if not isinstance(code,str) or not roles.CODE.fullmatch(code):raise ApiError('Некорректный код роли',400)
+        return self.call('POST',f'/admin/roles/{code}/delete',dict(reason=reason),lambda actor:roles.remove(actor,code,reason))
+
+    def deleteUser(self,userId,reason):
+        return self.call('POST',f'/admin/users/{userId}/delete',dict(reason=reason),lambda actor:service.deleteUser(actor,userId,reason))
+
+    def myReports(self,offset=0):
+        return self.call('GET',f'/community/my-reports?offset={offset}',local=lambda actor:service.myReports(actor,offset))

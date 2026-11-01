@@ -1,8 +1,9 @@
 """HTTP права администратора проверяются заново для каждого действия."""
-from fastapi import Depends,HTTPException,Query
+from fastapi import Depends,HTTPException,Query,Path
 from pydantic import BaseModel,ConfigDict,Field
 import sqlite3
 import moderation_service as service
+import role_service as roles
 
 
 class ReasonInput(BaseModel):
@@ -21,7 +22,12 @@ class ResolveInput(ReasonInput):
 
 class UserChangeInput(ReasonInput):
     blocked:bool|None=None
-    role:str|None=Field(default=None,pattern='^(user|admin)$')
+    role:str|None=Field(default=None,pattern='^[a-z][a-z0-9_]{2,23}$')
+
+
+class RoleInput(ReasonInput):
+    title:str=Field(min_length=3,max_length=50)
+    permissions:list[str]=Field(max_length=7)
 
 
 def invoke(callback):
@@ -59,3 +65,31 @@ def installModerationRoutes(application,currentUser):
     @application.get('/admin/audit')
     def journal(offset:int=Query(default=0,ge=0),user=Depends(currentUser)):
         return invoke(lambda:service.listAudit(user['userId'],offset))
+
+    @application.get('/community/access')
+    def access(user=Depends(currentUser)):
+        return invoke(lambda:roles.access(user['userId']))
+
+    @application.get('/community/my-reports')
+    def myReports(offset:int=Query(0,ge=0),user=Depends(currentUser)):
+        return invoke(lambda:service.myReports(user['userId'],offset))
+
+    @application.get('/admin/roles')
+    def listRoles(user=Depends(currentUser)):
+        return invoke(lambda:roles.roles(user['userId']))
+
+    @application.post('/admin/roles/{code}')
+    def createRole(code:str,body:RoleInput,user=Depends(currentUser)):
+        return invoke(lambda:roles.save(user['userId'],code,body.title,body.permissions,body.reason,True))
+
+    @application.put('/admin/roles/{code}')
+    def updateRole(code:str,body:RoleInput,user=Depends(currentUser)):
+        return invoke(lambda:roles.save(user['userId'],code,body.title,body.permissions,body.reason))
+
+    @application.post('/admin/roles/{code}/delete')
+    def deleteRole(code:str,body:ReasonInput,user=Depends(currentUser)):
+        return invoke(lambda:roles.remove(user['userId'],code,body.reason))
+
+    @application.post('/admin/users/{userId}/delete')
+    def deleteAccount(body:ReasonInput,userId:int=Path(gt=0,le=9223372036854775807),user=Depends(currentUser)):
+        return invoke(lambda:service.deleteUser(user['userId'],userId,body.reason))

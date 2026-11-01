@@ -300,6 +300,8 @@ def initializeDatabase():
         UNIQUE(reporterId,targetType,targetId),
         FOREIGN KEY(reporterId) REFERENCES users(userId) ON DELETE SET NULL,
         FOREIGN KEY(resolvedBy) REFERENCES users(userId) ON DELETE SET NULL)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS customRoles (
+        roleCode TEXT PRIMARY KEY,title TEXT NOT NULL,permissionsJson TEXT NOT NULL)''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS adminAudit (
         eventId INTEGER PRIMARY KEY AUTOINCREMENT, actorId INTEGER,
         actorNickname TEXT NOT NULL, action TEXT NOT NULL,

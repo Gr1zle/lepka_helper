@@ -5,6 +5,7 @@ import os
 import asyncio
 import logging
 import sqlite3
+from contextlib import closing
 import challenge_service
 from pathlib import Path
 import threading
@@ -174,6 +175,16 @@ def createApp(dataDirectory=None):
     async def validationError(request, error):
         # Стандартный ответ Pydantic может включать введённые пароли.
         return JSONResponse({'detail': 'Проверьте поля запроса: неверный формат или лишние поля'}, status_code=422)
+
+    @application.get('/ready')
+    def ready():
+        try:
+            with closing(sqlite3.connect(Path(database.DATABASE_PATH).resolve().as_uri()+'?mode=ro',uri=True)) as c:
+                c.execute('SELECT userId FROM users LIMIT 1').fetchone()
+                c.execute('SELECT roleCode FROM customRoles LIMIT 1').fetchone()
+        except sqlite3.Error:
+            raise HTTPException(503,'Серверная база пока недоступна') from None
+        return {'status':'ready'}
 
     @application.get('/health')
     def health():
