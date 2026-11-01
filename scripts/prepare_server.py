@@ -12,7 +12,7 @@ MODULES=('account_security','activity_service','app_paths','auth_service','chall
  'password_service','photo_service','post_service','profile_service','project_sharing','role_service','social_feed','validators','workshop_service')
 FILES=(*[m+'.py' for m in MODULES],'backend/__init__.py','backend/main.py','backend/community.py','backend/moderation.py',
  'backend/challenges.py','backend/requirements.txt','backend/Dockerfile','backend/README.md','backend/compose.yml',
- 'backend/Caddyfile','backend/.env.example','docs/roles_admin_server.md','scripts/__init__.py','scripts/manage_admin.py','scripts/server_backup.py','.dockerignore')
+ 'backend/Caddyfile','backend/.env.example','docs/roles_admin_server.md','scripts/__init__.py','scripts/manage_admin.py','scripts/server_backup.py','scripts/run_wifi_server.py','scripts/create_server_demo.py','docs/wifi_server.md','.dockerignore')
 
 
 def prepareServer(output):

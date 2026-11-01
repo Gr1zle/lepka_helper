@@ -864,15 +864,15 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                          'Сохранённый чужой комментарий')
         self.assertTrue(item['isDeleted'])
 
-    async def test_android_without_api_cannot_start_local_account_mode(self):
+    async def test_android_without_api_can_start_and_choose_server(self):
         with patch('main.getApiUrl', return_value=''):
             self.page._set_attr('platform', 'android')
             with patch('main.initializeDatabase') as initialize, patch('main.ensureDemoUser') as demo:
                 main(self.page)
-                initialize.assert_not_called()
-                demo.assert_not_called()
-            self.assertTrue(any(isinstance(control, ft.Text) and 'HTTPS' in (control.value or '')
-                                for control in walk(self.page)))
+                initialize.assert_called_once()
+                demo.assert_called_once()
+            view = self.mount(createAuthView(self.page))
+            self.assertIsNotNone(find(view, ft.TextButton, text='Подключение к серверу / Wi-Fi'))
 
     async def test_android_explicit_local_demo_starts_without_api(self):
         self.page._set_attr('platform', 'android')

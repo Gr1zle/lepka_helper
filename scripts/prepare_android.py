@@ -21,7 +21,7 @@ MODULES = (
     'photo_service', 'photo_upload', 'photo_picker', 'post_service', 'profile_service',
     'project_service', 'project_sharing', 'project_archive', 'project_backups', 'project_statistics', 'project_upload', 'clay_tools', 'workshop_service', 'remote_account_cache', 'ui_helpers', 'validators', 'mesh_renderer','model_service','learning_assets',
 )
-VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'project_step_order', 'project_transfer', 'project_statistics', 'project_planner', 'clay_tools_view', 'lesson_library_view', 'model_import', 'model_gallery','model_view','workshop_view', 'profile_tab', 'splash_view', 'onboarding_view','admin_view','moderation_actions','challenge_view','community_notices','contest_picker','admin_permissions','role_editor','report_history')
+VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'project_step_order', 'project_transfer', 'project_statistics', 'project_planner', 'clay_tools_view', 'lesson_library_view', 'model_import', 'model_gallery','model_view','workshop_view', 'profile_tab', 'splash_view', 'onboarding_view','admin_view','moderation_actions','challenge_view','community_notices','contest_picker','admin_permissions','role_editor','report_history','server_connection')
 ASSETS = ('fonts/DejaVuSans.ttf', 'fonts/LICENSE-DejaVu.txt',
           *(f'lessons/lesson_{index}.svg' for index in range(1, 7)),*MODEL_ASSETS,*STEP_ASSETS)
 
@@ -79,6 +79,7 @@ product = "Помощник по лепке"
 
 [tool.flet.android]
 split_per_abi = true
+target_arch = ["arm64-v8a"]
 min_sdk_version = 28
 
 [tool.flet.android.permission]

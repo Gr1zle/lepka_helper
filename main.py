@@ -34,9 +34,6 @@ def main(page: ft.Page):
     except ApiError as error:
         page.add(ft.Text(str(error)))
         return
-    if isAndroid and not apiUrl and os.environ.get('LEPKA_FORCE_LOCAL') != '1':
-        page.add(ft.Text('Для Android задайте HTTPS-адрес сервера в assets/client_config.json'))
-        return
     initializeDatabase()
     ensureDemoUser()
 

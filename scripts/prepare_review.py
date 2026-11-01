@@ -14,10 +14,10 @@ from scripts.prepare_android import MODULES, VIEWS, ASSETS
 
 DOCS = ('ТЗ', 'Plan', 'day1_requirements_audit.md', 'day2_stabilization.md', 'day3_tools.md',
         'day4_community_android.md', 'account_backend_validation.md', 'avatar_stage_photos.md',
-        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md', 'development_backlog.md', 'project_calendar_reminders.md', 'model_import_fullscreen.md', 'community_moderation.md', 'community_challenges.md','challenge_results.md','community_complete_batch.md','roles_admin_server.md')
+        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md', 'development_backlog.md', 'project_calendar_reminders.md', 'model_import_fullscreen.md', 'community_moderation.md', 'community_challenges.md','challenge_results.md','community_complete_batch.md','roles_admin_server.md','wifi_server.md')
 TESTS = ('accounts', 'android_package', 'backend', 'clay_tools', 'community', 'community_api',
          'community_gateway', 'gateway', 'profile_stage_media', 'project_sharing', 'projects',
-         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library', 'models', 'project_planner', 'model_import', 'moderation', 'challenges','challenge_results','community_batch','roles_admin','server_package')
+         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library', 'models', 'project_planner', 'model_import', 'moderation', 'challenges','challenge_results','community_batch','roles_admin','server_package','wifi_connection')
 SCREENSHOTS = ('roles-editor.png','roles-scoped-panel-320.png','roles-my-report.png','roles-delete-confirm.png','roles-audit.png','community-center.png','community-reply.png','community-reply-notice.png','community-grid-wide.png','community-grid-320.png','community-publish-contest.png','results-awards-320.png','results-notice-320.png','results-profile-320.png','results-scheduled-320.png','challenges-list-320.png','challenges-entry-320.png','challenges-create.png','day4-community-form.png', 'day4-community-post.png', 'profile-avatar.png',
                'moderation-panel-320.png','moderation-confirm-delete.png','moderation-user-blocked.png','moderation-audit.png',
                'projects-edit-fixed-wide.png', 'projects-edit-fixed-320.png', 'import-full-portrait.png', 'import-full-landscape.png', 'import-full-320.png', 'import-personal-library.png',
@@ -36,7 +36,7 @@ def getReviewFiles():
              *['assets/' + name for name in ASSETS], 'assets/logo.png', 'assets/lessons/README.md', 'assets/models/README.md',
              'backend/__init__.py', 'backend/main.py', 'backend/community.py', 'backend/moderation.py', 'backend/challenges.py', 'backend/requirements.txt',
              'backend/README.md','backend/Dockerfile','backend/compose.yml','backend/Caddyfile','backend/.env.example','.dockerignore',
-             'scripts/__init__.py','scripts/prepare_server.py','scripts/server_backup.py', 'scripts/prepare_android.py', 'scripts/prepare_review.py',
+             'scripts/__init__.py','scripts/prepare_server.py','scripts/server_backup.py', 'scripts/run_wifi_server.py', 'scripts/prepare_android.py', 'scripts/prepare_review.py',
              'scripts/create_server_demo.py', 'scripts/generate_learning_models.py', 'scripts/manage_admin.py', 'tests/image_fixtures.py',
              *['tests/test_' + name + '.py' for name in TESTS], *['docs/' + name for name in DOCS],
              *['docs/screenshots/' + name for name in SCREENSHOTS]]

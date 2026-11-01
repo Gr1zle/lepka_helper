@@ -18,6 +18,7 @@ SECONDARY_COLOR = "#4ECDC4"
 def createAuthView(page):
     dialog = None
     remoteMode = bool(getApiUrl())
+    from views.server_connection import openServerConnection
 
     loginEmailField = ft.TextField(label="Email", value="" if remoteMode else "test@email.com", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
     loginPasswordField = ft.TextField(label="Пароль", value="" if remoteMode else "Test123456", prefix_icon=ft.Icons.LOCK, password=True, can_reveal_password=True, border_radius=12)
@@ -292,6 +293,7 @@ def createAuthView(page):
                             ),
                             ft.Container(height=28),
                             ft.Container(width=360, alignment=ft.alignment.center, content=authTabs),
+                            ft.TextButton("Подключение к серверу / Wi-Fi", on_click=lambda e: openServerConnection(page)),
                             activeFormContainer,
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
