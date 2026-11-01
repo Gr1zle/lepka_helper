@@ -273,7 +273,8 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         fields={'title':ft.TextField(value='Незавершённый котик'),'description':ft.TextField(value='Описание черновика'),
             'category':ft.Dropdown(value='Животные',options=[ft.dropdown.Option('Животные')]),'tags':ft.TextField(value='котик'),
             'contest':ft.Dropdown(value='',options=[ft.dropdown.Option('')])}
-        tools=createDraftTools(self.page,self.user,fields,selected,lambda:None)
+        with patch('views.offline_controls.getApiUrl',return_value=''):
+            tools=createDraftTools(self.page,self.user,fields,selected,lambda:None)
         view=self.mount(ft.View('/draft',controls=[*[fields[key] for key in ('title','description','category','tags','contest')],tools]))
         find(tools,ft.TextButton,text='Сохранить черновик').on_click(None)
         self.assertEqual(len(listDrafts(self.user['userId'],'')),1)
