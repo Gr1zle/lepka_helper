@@ -79,6 +79,7 @@ product = "Помощник по лепке"
 
 [tool.flet.android]
 split_per_abi = true
+target_arch = ["arm64-v8a"]
 min_sdk_version = 28
 
 [tool.flet.android.permission]

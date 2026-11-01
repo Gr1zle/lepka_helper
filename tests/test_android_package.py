@@ -14,6 +14,7 @@ class AndroidPackageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             output = android.prepareAndroid(Path(folder) / 'demo', localDemo=True)
             entrypoint = (output / 'main.py').read_text(encoding='utf-8')
+            self.assertIn('target_arch = ["arm64-v8a"]', (output / 'pyproject.toml').read_text())
             self.assertIn('os.environ["LEPKA_FORCE_LOCAL"] = "1"', entrypoint)
             self.assertLess(entrypoint.index('LEPKA_FORCE_LOCAL'), entrypoint.index('from app_main'))
             self.assertEqual(json.loads((output / 'assets/client_config.json').read_text()),
