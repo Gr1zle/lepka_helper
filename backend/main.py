@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
+from backend.personal import installPersonalRoutes
 from backend.challenges import installChallengeRoutes
 from backend.community import installCommunityRoutes
 from backend.moderation import installModerationRoutes
@@ -267,6 +268,7 @@ def createApp(dataDirectory=None):
     def delete(body: DeleteInput, user=Depends(currentUser)):
         return resultResponse(accounts.deleteUserAccount(user['userId'], body.password))
 
+    installPersonalRoutes(application,currentUser)
     installCommunityRoutes(application, currentUser, optionalUser)
     installChallengeRoutes(application, currentUser)
     installModerationRoutes(application,currentUser)

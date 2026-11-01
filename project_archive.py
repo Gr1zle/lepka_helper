@@ -1,6 +1,7 @@
 """Перенос личного проекта: ограниченный JSON, без ID владельца и путей файлов."""
 import base64
 import json
+from contextlib import nullcontext
 from database import openDatabase, createProjectWithSteps
 from project_service import normalizeProjectData, validateStepDescription
 from project_sharing import readMixture
@@ -57,9 +58,9 @@ def decodeProject(content):
         raise ValueError('Не удалось прочитать JSON проекта') from error
 
 
-def exportProject(projectId, userId):
-    with openDatabase() as connection:
-        connection.execute('BEGIN')
+def exportProject(projectId, userId, existingConnection=None):
+    with (nullcontext(existingConnection) if existingConnection is not None else openDatabase()) as connection:
+        if not connection.in_transaction:connection.execute('BEGIN')
         project = connection.execute('SELECT * FROM projects WHERE projectId=? AND userId=?', (projectId, userId)).fetchone()
         if project is None:
             raise ValueError('Проект не найден или недоступен')
@@ -78,11 +79,11 @@ def exportProject(projectId, userId):
     return content
 
 
-def importProject(userId, content):
+def importProject(userId, content, existingConnection=None):
     data = decodeProject(content)  # Полная проверка и обработка фото до записи.
     project = data['project']
-    with openDatabase() as connection:
-        connection.execute('BEGIN IMMEDIATE')
+    with (nullcontext(existingConnection) if existingConnection is not None else openDatabase()) as connection:
+        if not connection.in_transaction:connection.execute('BEGIN IMMEDIATE')
         owner = connection.execute('SELECT userId FROM users WHERE userId=? AND isBlocked=0', (userId,)).fetchone()
         if owner is None:
             raise ValueError('Аккаунт недоступен')

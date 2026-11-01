@@ -131,6 +131,22 @@ def initializeDatabase():
         lastUsed INTEGER NOT NULL, PRIMARY KEY(userId,queryKey),
         FOREIGN KEY(userId) REFERENCES users(userId))''')
 
+    cursor.execute("""CREATE TABLE IF NOT EXISTS personalVault (
+        userId INTEGER PRIMARY KEY,revision INTEGER NOT NULL,checksum TEXT NOT NULL,
+        snapshotJson TEXT NOT NULL,deviceId TEXT NOT NULL,updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS personalVaultHistory (
+        userId INTEGER NOT NULL,revision INTEGER NOT NULL,checksum TEXT NOT NULL,snapshotJson TEXT NOT NULL,
+        deviceId TEXT NOT NULL,updatedAt TEXT NOT NULL,PRIMARY KEY(userId,revision),
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS personalSyncState (
+        userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,
+        checksum TEXT NOT NULL DEFAULT '',pending INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY(userId,apiUrl),FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS personalCheckpoints (
+        checkpointId TEXT PRIMARY KEY,userId INTEGER NOT NULL,title TEXT NOT NULL,content BLOB NOT NULL,
+        checksum TEXT NOT NULL,createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
     addColumnIfNotExists(
         cursor,
         "users",
