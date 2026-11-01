@@ -6,3 +6,5 @@ d1735df068625993ce2cc8a6eaa04bd6cfa49e21c30a6de2ed637f1f36dafdcd  lepka-helper-0
 7fc4e332452cd973db7deb9099356ad07a2a8caccb7f034cbd70ada8a5866aca  lepka-server-0.7.1.zip
 2b82291bf8eb2d379afb481dddce6c5f85e79dcc98f122cbe85411772220a708  lepka-helper-0.8.0-sync-arm64.apk
 24401c1f7c74b1ee157ca87fd2396fb693bd0c7a5ec18b0bf9c00b9a01844240  lepka-server-0.8.0.zip
+8bf01dfee51a838359e4df4f330bff2ec7dd14330abc4800e4a7ca63d0f3b706  lepka-helper-0.9.0-offline-arm64.apk
+e3b6f8c2d02270d62f524b11abe28361085a4c49cfa5833c7ad6f60f391b0b62  lepka-server-0.9.0.zip

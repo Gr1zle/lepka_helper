@@ -1,3 +1,19 @@
+# Android 0.9.0 — офлайн-вход, черновики и очередь
+
+[Скачать APK 0.9.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.9.0-offline-arm64.apk) · [Сервер 0.9.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.9.0.zip).
+
+Android 9+, ARM64, около 31 МБ. Установить поверх 0.8.0 без удаления приложения: подпись сохранена, versionCode 2006. Исходники: feature/offline-session-outbox, runtime 1f641c5, PR №25. Все 418 тестов прошли локально и в GitHub Actions (41359072846).
+
+Серверный вход Android сохраняется по выбору пользователя через Android Keystore/AES-GCM, в пределах срока сессии 12 часов. Личные данные доступны при выключенном сервере после ранее подтверждённого входа. Черновики публикаций сохраняют текст и фото; прочитанная лента кешируется. Публикации, лайки и комментарии ожидают связи в очереди и отправляются автоматически, пока приложение открыто. Это не фоновая служба закрытого Android-приложения. Очередь и черновики остаются на исходном устройстве.
+
+Обновление: остановить прежний сервер, распаковать новый ZIP в отдельную папку и запустить с прежним --data-dir. Сохранить каталог LepkaHelperServer/accounts.db. Затем установить APK и один раз войти с включённым запоминанием. Проверить закрытие/открытие, выключение сервера, черновик и очередь; запустить сервер и дождаться доставки при открытом приложении. Новые действия очереди требуют сервера 0.9.0.
+
+Проверены браузерный цикл остановки/запуска настоящего API, доставка без дублей, изоляция аккаунтов, исходники и ресурсы APK, подпись, нативный класс Keystore в DEX и отключённый Auto Backup. Физическая проверка Keystore и перезапуска на Android ожидается от пользователя.
+
+[Отчёт №25](https://github.com/Gr1zle/lepka_helper/blob/feature/offline-session-outbox/docs/offline_session_outbox.md) · [Оставшиеся пять блоков](https://github.com/Gr1zle/lepka_helper/blob/feature/offline-session-outbox/docs/remaining_work.md).
+
+---
+
 # Android 0.8.0 — личные данные между устройствами
 
 [Скачать APK 0.8.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.8.0-sync-arm64.apk) · [Сервер 0.8.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.8.0.zip).
