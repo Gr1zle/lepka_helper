@@ -3,6 +3,7 @@ import flet as ft
 from moderation_gateway import ModerationClient
 from api_client import ApiError
 from ui_helpers import authenticatedAction,showMessage
+from views.admin_permissions import panelAccess
 
 
 def reasonDialog(page,user,title,action,callback,onDone=None,successMessage='Изменение сохранено'):
@@ -52,4 +53,4 @@ def createAdminButton(page,user):
     @authenticatedAction(page,user)
     def openPanel(event):page.go('/admin')
     return ft.TextButton('Администрирование',icon=ft.Icons.ADMIN_PANEL_SETTINGS_OUTLINED,on_click=openPanel,
-                         visible=bool(user and user.get('roleName')=='admin'))
+                         visible=bool(panelAccess(page,user)['permissions']))

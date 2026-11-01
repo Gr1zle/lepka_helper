@@ -1,0 +1,6 @@
+{$LEPKA_DOMAIN} {
+    request_body {
+        max_size 64MB
+    }
+    reverse_proxy api:8000
+}

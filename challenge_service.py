@@ -1,7 +1,8 @@
 """Конкурсы: единые транзакции для локального режима и API."""
 from datetime import datetime, date, timedelta, timezone
 import database as db
-from moderation_service import requireAdmin, ModerationDenied, audit, cleanReason
+from moderation_service import ModerationDenied, audit, cleanReason
+from role_service import require
 
 MOSCOW = timezone(timedelta(hours=3))
 
@@ -59,7 +60,7 @@ def create(userId, title, rules, deadline, startsOn=None, theme='', resultMode='
         raise ValueError('Выберите способ подведения итогов')
     with db.openDatabase() as c:
         c.execute('BEGIN IMMEDIATE')
-        actor = requireAdmin(c, userId)
+        actor = require(c, userId,'contests.manage')
         if c.execute("SELECT COUNT(*) FROM challenges WHERE state='open' AND deadline>=?", (today(),)).fetchone()[0] >= 30:
             raise ValueError('Одновременно можно открыть до 30 заданий')
         newId = c.execute('INSERT INTO challenges(title,rules,deadline,createdBy,startsOn,theme,resultMode) VALUES(?,?,?,?,?,?,?)',
@@ -172,7 +173,7 @@ def finish(userId, challengeId, state, reason, winnerPostId=None):
         identifier(winnerPostId)
     with db.openDatabase() as c:
         c.execute('BEGIN IMMEDIATE')
-        actor = requireAdmin(c, userId)
+        actor = require(c, userId,'contests.manage')
         item = getChallenge(c, challengeId)
         if item['state'] != 'open':
             raise ValueError('Итоги уже опубликованы')

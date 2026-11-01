@@ -12,6 +12,7 @@ from views.about_dialog import showAbout, showDataInfo
 from views.lesson_library_view import createProfileLessonLibrary
 from views.model_gallery import createFavoriteModelsButton
 from views.moderation_actions import createAdminButton
+from views.report_history import createReportHistoryButton
 from project_service import getUserProjects
 from profile_service import (
     AGE_CATEGORIES, FAVORITE_COLOR_OPTIONS, LANGUAGE_OPTIONS, THEME_OPTIONS,
@@ -627,6 +628,7 @@ def createProfileTab(page, nickname, email):
                             createProfileLessonLibrary(page,currentUser),
                             createFavoriteModelsButton(page,currentUser),
                             createAdminButton(page,currentUser),
+                            createReportHistoryButton(page,currentUser),
                             createChallengeProfile(page,currentUser),
                             ft.Row(
                                 controls=[

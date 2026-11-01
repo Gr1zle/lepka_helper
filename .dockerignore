@@ -10,3 +10,4 @@ server-data
 build
 dist
 exports
+!backend/.env.example

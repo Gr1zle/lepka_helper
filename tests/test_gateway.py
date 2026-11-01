@@ -94,6 +94,29 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
         self.page.session.set('currentUser', user)
         return user
 
+    async def test_remote_custom_role_and_admin_delete_use_server_ids(self):
+        from scripts.manage_admin import grantAdmin
+        from moderation_gateway import ModerationClient
+        grantAdmin(self.root/'server'/'accounts.db','server@example.com')
+        user=self.login();admin=ModerationClient(user)
+        other=gateway.loginUser('second@example.com','ServerPass123')[2]
+        admin.saveRole('helper','Помощник',['reports.manage'],'Роль для проверки серверных полномочий',True)
+        admin.changeUser(other['serverUserId'],'Назначение роли на сервере',role='helper')
+        other=gateway.loginUser('second@example.com','ServerPass123')[2]
+        helper=ModerationClient(other)
+        self.assertEqual(helper.access()['permissions'],['reports.manage'])
+        self.assertEqual(helper.reports(),[])
+        from api_client import ApiError
+        with self.assertRaises(ApiError):helper.users()
+        with self.assertRaises(ApiError):helper.changeUser(other['serverUserId'],'Попытка повысить собственные права',role='admin')
+        with self.assertRaises(ApiError):admin.deleteRole('../users/'+str(other['serverUserId']),'Проверка недопустимого кода роли')
+        self.assertEqual(helper.access()['roleName'],'helper')
+        self.assertTrue(admin.deleteUser(other['serverUserId'],'Удаление учебного серверного аккаунта'))
+        with self.assertRaises(ApiError):helper.access()
+        with database.openDatabase() as c:
+            self.assertEqual(c.execute('SELECT email,roleName FROM users WHERE userId=?',(self.localId,)).fetchone()['email'],'local@example.com')
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM customRoles').fetchone()[0],0)
+
     async def test_remote_contest_publication_replies_and_notice_center_keep_ids_on_server(self):
         from scripts.manage_admin import grantAdmin
         from challenge_gateway import ChallengeClient

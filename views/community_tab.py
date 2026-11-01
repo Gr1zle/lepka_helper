@@ -15,6 +15,7 @@ from ui_helpers import serverAction
 from views.project_planner import createDeadlineSummary
 from views.moderation_actions import createReportButton,createModerationDelete
 from views.community_notices import createNoticeButton
+from views.admin_permissions import panelAccess
 
 PRIMARY_COLOR = '#FF6B6B'
 SECONDARY_COLOR = '#4ECDC4'
@@ -113,7 +114,7 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
                 actions.append(ft.IconButton(icon=ft.Icons.DELETE, tooltip='Удалить свой комментарий', on_click=delete))
             if currentUser:
                 actions.append(createReportButton(page,currentUser,'comment',item['commentId']))
-                if currentUser.get('roleName')=='admin':
+                if 'materials.remove' in panelAccess(page,currentUser)['permissions']:
                     actions.append(createModerationDelete(page,currentUser,'comment',item['commentId'],lambda:(refreshComments(),page.update())))
             if currentUser and not deleted:
                 @authenticatedAction(page,currentUser)
@@ -180,7 +181,7 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
             actions.append(ft.TextButton('Удалить', on_click=deletePost))
         if currentUser:
             actions.append(createReportButton(page,currentUser,'post',postId))
-            if currentUser.get('roleName')=='admin':actions.append(createModerationDelete(page,currentUser,'post',postId,lambda:(refreshCallback(),page.update())))
+            if 'materials.remove' in panelAccess(page,currentUser)['permissions']:actions.append(createModerationDelete(page,currentUser,'post',postId,lambda:(refreshCallback(),page.update())))
         controls.append(ft.Row(controls=actions, wrap=True))
     moreComments.on_click=serverAction(page)(lambda e:(refreshComments(False),page.update()))
     refreshComments()

@@ -7,6 +7,7 @@ from date_field import createDeadlineField
 from ui_helpers import getCurrentUser, authenticatedAction, createLoadError, showMessage
 from views.moderation_actions import reasonDialog
 from api_client import ApiError
+from views.admin_permissions import panelAccess
 
 LABELS = {'scheduled':'Скоро начнётся','open': 'Приём работ', 'judging': 'Ожидает итогов', 'finished': 'Завершено', 'cancelled': 'Отменено'}
 
@@ -18,6 +19,7 @@ def createChallengeView(page):
                        ft.TextButton('Войти', on_click=lambda e: page.go('/auth'))])
     client = ChallengeClient(user)
     community = CommunityClient(user)
+    manage='contests.manage' in panelAccess(page,user)['permissions']
     selected = {'id': page.session.get('openChallengeId'), 'offset': 0, 'listOffset': 0}
     page.session.set('openChallengeId',None)
     mode = ft.Dropdown(label='Показать задания', value='active', options=[
@@ -136,7 +138,7 @@ def createChallengeView(page):
             if selected['id'] is None:
                 items = client.listing(mode.value, selected['listOffset'])
                 controls.append(ft.Container(content=mode, padding=ft.padding.symmetric(vertical=6)))
-                if user.get('roleName') == 'admin':
+                if manage:
                     controls.append(button('Создать задание', createDialog))
                 for item in items:
                     controls.append(ft.Card(content=ft.Container(padding=14, content=ft.Column(controls=[
@@ -171,7 +173,7 @@ def createChallengeView(page):
                         page.session.set('homeTab',0);page.go('/home')
                     controls.append(button('Опубликовать новую работу в конкурс',publishNew))
                     controls.append(button('Участвовать: отправить свою работу', lambda e: submitDialog(cid)))
-                if user.get('roleName') == 'admin' and item['state'] == 'open':
+                if manage and item['state'] == 'open':
                     controls.append(button('Отменить задание', lambda e: decide(cid, 'cancelled')))
                     if item['status'] == 'judging':
                         controls.append(button('Завершить без победителя', lambda e: decide(cid, 'finished')))
@@ -188,7 +190,7 @@ def createChallengeView(page):
                     if item['status']=='open' and not entry['isOwn']:
                         entryControls.append(button('Убрать голос' if entry['isVoted'] else 'Голосовать за работу',
                             lambda e, pid=entry['postId'], liked=not bool(entry['isVoted']): (client.vote(cid,pid,liked),render())))
-                    if user.get('roleName') == 'admin' and item['status'] == 'judging':
+                    if manage and item['status'] == 'judging':
                         entryControls.append(button('Выбрать победителем', lambda e, pid=entry['postId']: decide(cid, 'finished', pid)))
                     cards.append(ft.Card(col={'xs':12,'sm':6,'md':4,'lg':3},content=ft.Container(padding=12, content=ft.Column(controls=entryControls))))
                 controls.append(ft.ResponsiveRow(controls=cards,spacing=12,run_spacing=12))
