@@ -30,7 +30,7 @@
 
 API: `GET /personal/snapshot-meta`, `GET /personal/snapshot`, `PUT /personal/snapshot`, `GET /personal/snapshot-history`. Владельца определяет Bearer-сессия. Неизвестные поля отклоняются, размер фактического потока ограничен, изменение выполняется с ожидаемой ревизией. Удаление аккаунта очищает его снимки, историю и локальные копии в этой базе через внешние ключи. Копии чужих устройств удалённо не стираются.
 
-Исходное ТЗ не изменено. APK 0.7.1 предшествует этому блоку; новая сборка требуется для проверки на телефоне.
+Исходное ТЗ не изменено. APK 0.7.1 предшествует этому блоку; для проверки подготовлен 0.8.0.
 
 ## Проверки
 
@@ -42,3 +42,11 @@ API: `GET /personal/snapshot-meta`, `GET /personal/snapshot`, `PUT /personal/sna
 ![Подтверждение загрузки](screenshots/sync-download-confirm.png)
 ![Второе устройство после загрузки](screenshots/sync-device-b.png)
 ![Конфликт на 320 px](screenshots/sync-conflict-320.png)
+
+## Готовая сборка
+
+[APK 0.8.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.8.0-sync-arm64.apk) · [Серверный пакет 0.8.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.8.0.zip).
+
+Android 9+, ARM64, versionCode 2005. Установить поверх 0.7.1, не удаляя приложение; подпись совпадает. Проверены целостность, актуальные исходники/учебные ресурсы и отсутствие пользовательских баз/файлов сессий/секретов в APK. SHA-256: `2b82291bf8eb2d379afb481dddce6c5f85e79dcc98f122cbe85411772220a708`.
+
+Окончательный код d7c4485 прошёл **406 тестов** в [GitHub Actions](https://github.com/Gr1zle/lepka_helper/actions/runs/41353528473). Физический Android остаётся на проверке пользователя. Синхронизации требуется новый серверный пакет; прежнюю папку данных и accounts.db сохранять.
