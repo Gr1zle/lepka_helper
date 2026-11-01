@@ -1,3 +1,17 @@
+# Android 0.7.0 — локальный режим и сервер через Wi-Fi
+
+[Скачать APK 0.7.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.7.0-wifi-arm64.apk)
+
+Android 9+, ARM64, около 32 МБ. Устанавливать поверх 0.6.1 без удаления приложения: подпись совпадает, versionCode 2003. Исходники: ветка feature/wifi-local-server, коммит 32de3d3. Все 379 тестов GitHub Actions прошли. Целостность APK и соответствие исходников проверены. Проверка физического Android ожидается от пользователя.
+
+Для сервера: [скачать ZIP](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.7.0.zip), распаковать на компьютере и выполнить [инструкцию Windows](https://github.com/Gr1zle/lepka_helper/blob/feature/wifi-local-server/docs/wifi_server.md). Нужен Python 3.12, Docker не требуется. Компьютер должен работать в той же сети, что телефон.
+
+В APK: выйти из локального аккаунта → «Подключение к серверу / Wi-Fi» → адрес компьютера → явно разрешить HTTP → проверить и сохранить → войти в серверный аккаунт. Для возвращения прежних проектов выбрать «Локальный режим». Личные проекты автоматически между режимами не переносятся. HTTP не шифрует данные; используйте учебный пароль в доверенной сети.
+
+Включены доработки блоков до №22. Серверные токены после перезапуска не сохраняются. Сервер не встроен в APK и запускается отдельно на компьютере. Редизайн отложен.
+
+---
+
 # Android 0.6.1 — локальная демоверсия
 
 [Скачать APK 0.6.1](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.6.1-demo-arm64.apk)
