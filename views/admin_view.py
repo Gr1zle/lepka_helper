@@ -8,7 +8,7 @@ from community_gateway import CommunityClient
 from api_client import ApiError
 
 STATUS_LABELS={'open':'Открыта','resolved':'Рассмотрена','rejected':'Отклонена'}
-ACTION_LABELS={'challenge.create':'Создание задания','challenge.finished':'Итоги задания','challenge.cancelled':'Отмена задания','material.delete':'Удаление материала','user.block':'Блокировка аккаунта','user.unblock':'Разблокировка аккаунта',
+ACTION_LABELS={'challenge.auto':'Автоматические итоги конкурса','challenge.create':'Создание задания','challenge.finished':'Итоги задания','challenge.cancelled':'Отмена задания','material.delete':'Удаление материала','user.block':'Блокировка аккаунта','user.unblock':'Разблокировка аккаунта',
                'role.admin':'Назначение администратора','role.user':'Снятие роли администратора',
                'report.resolved':'Жалоба рассмотрена','report.rejected':'Жалоба отклонена'}
 

@@ -2,6 +2,10 @@
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 import os
+import asyncio
+import logging
+import sqlite3
+import challenge_service
 from pathlib import Path
 import threading
 import time
@@ -119,7 +123,23 @@ def createApp(dataDirectory=None):
         database.DATABASE_PATH = directory / 'accounts.db'
         try:
             database.initializeDatabase()
-            yield
+            stop=asyncio.Event()
+            async def updateChallenges():
+                while not stop.is_set():
+                    try:
+                        await run_in_threadpool(challenge_service.settleDue)
+                    except sqlite3.Error:
+                        logging.getLogger(__name__).warning('Не удалось подвести итоги конкурсов; повтор через 30 секунд')
+                    try:
+                        await asyncio.wait_for(stop.wait(),timeout=30)
+                    except asyncio.TimeoutError:
+                        pass
+            worker=asyncio.create_task(updateChallenges())
+            try:
+                yield
+            finally:
+                stop.set()
+                await worker
         finally:
             database.DATABASE_PATH = previousPath
 

@@ -1,3 +1,4 @@
+from views.community_notices import createChallengeProfile
 """Профиль, настройки и действия с аккаунтом — отдельно от ленты и инструментов."""
 import flet as ft
 from api_client import getApiUrl
@@ -626,6 +627,7 @@ def createProfileTab(page, nickname, email):
                             createProfileLessonLibrary(page,currentUser),
                             createFavoriteModelsButton(page,currentUser),
                             createAdminButton(page,currentUser),
+                            createChallengeProfile(page,currentUser),
                             ft.Row(
                                 controls=[
                                     createStatItem(userPostsCount, "Работ", PRIMARY_COLOR, "#FFF0F0"),
@@ -653,7 +655,7 @@ def createProfileTab(page, nickname, email):
                             ),
                             themeDropdown,
                             notificationsSwitch,
-                            ft.Text('Сейчас эта настройка управляет напоминаниями о сроках внутри приложения. Фоновые push ещё не подключены.',size=12),
+                            ft.Text('Настройка управляет созданием напоминаний о сроках и уведомлений о призовых местах внутри приложения. Ранее полученные уведомления сохраняются. Фоновые push ещё не подключены.',size=12),
                             ft.Text('Язык интерфейса: русский', size=12),
                             ft.ElevatedButton(
                                 text="Сохранить настройки",

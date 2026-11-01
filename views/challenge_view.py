@@ -8,7 +8,7 @@ from ui_helpers import getCurrentUser, authenticatedAction, createLoadError, sho
 from views.moderation_actions import reasonDialog
 from api_client import ApiError
 
-LABELS = {'open': 'Приём работ', 'judging': 'Ожидает итогов', 'finished': 'Завершено', 'cancelled': 'Отменено'}
+LABELS = {'scheduled':'Скоро начнётся','open': 'Приём работ', 'judging': 'Ожидает итогов', 'finished': 'Завершено', 'cancelled': 'Отменено'}
 
 
 def createChallengeView(page):
@@ -18,7 +18,8 @@ def createChallengeView(page):
                        ft.TextButton('Войти', on_click=lambda e: page.go('/auth'))])
     client = ChallengeClient(user)
     community = CommunityClient(user)
-    selected = {'id': None, 'offset': 0, 'listOffset': 0}
+    selected = {'id': page.session.get('openChallengeId'), 'offset': 0, 'listOffset': 0}
+    page.session.set('openChallengeId',None)
     mode = ft.Dropdown(label='Показать задания', value='active', options=[
         ft.dropdown.Option('active', 'Активные и без итогов'),
         ft.dropdown.Option('mine', 'Мои заявки'), ft.dropdown.Option('finished', 'Завершённые и отменённые')])
@@ -80,6 +81,11 @@ def createChallengeView(page):
     def createDialog(event):
         title = ft.TextField(label='Название задания', max_length=100)
         rules = ft.TextField(label='Правила и критерии выбора победителя', multiline=True, min_lines=3, max_length=2000)
+        starts = createDeadlineField(page)
+        starts.label = 'Начало конкурса'
+        starts.hint_text = 'ДД.ММ.ГГГГ, пусто — сегодня'
+        theme = ft.TextField(label='Тематика',max_length=80)
+        resultMode = ft.Dropdown(label='Подведение итогов',value='votes',options=[ft.dropdown.Option('votes','Автоматически: топ-3 по голосам'),ft.dropdown.Option('manual','Выбирает администратор')])
         deadline = createDeadlineField(page)
         deadline.hint_text = 'ДД.ММ.ГГГГ, обязательное поле'
         error = ft.Text(color=ft.Colors.RED)
@@ -90,11 +96,12 @@ def createChallengeView(page):
             if busy['value']: return
             try:
                 day = datetime.strptime(deadline.value or '', '%d.%m.%Y').date().isoformat()
+                startDay = datetime.strptime(starts.value,'%d.%m.%Y').date().isoformat() if starts.value else None
             except ValueError:
                 error.value = 'Укажите дату в формате ДД.ММ.ГГГГ'; page.update(); return
             busy['value'] = True
             try:
-                challengeId = client.create(title.value or '', rules.value or '', day)
+                challengeId = client.create(title.value or '', rules.value or '', day, startDay, theme.value or '', resultMode.value)
                 page.close(dialog); openDetail(challengeId)
             except ApiError as exc:
                 if exc.statusCode == 401: raise
@@ -102,7 +109,7 @@ def createChallengeView(page):
             finally:
                 busy['value'] = False
         dialog = ft.AlertDialog(title=ft.Text('Новое задание'), content=ft.Container(width=460, height=380,
-            content=ft.ListView(controls=[title, rules, deadline, ft.Text('Приём до конца указанного дня по Москве.'), error])),
+            content=ft.ListView(spacing=14,controls=[title, theme, rules, starts, deadline, ft.Container(content=resultMode,padding=6), ft.Text('Приём до конца указанного дня по Москве.'), error])),
             actions=[ft.TextButton('Отмена', on_click=lambda e: page.close(dialog)), ft.ElevatedButton('Создать задание', on_click=save)])
         page.open(dialog)
 
@@ -135,7 +142,7 @@ def createChallengeView(page):
                     controls.append(ft.Card(content=ft.Container(padding=14, content=ft.Column(controls=[
                         ft.Text(item['title'], size=20, weight=ft.FontWeight.BOLD),
                         ft.Text(f"{LABELS[item['status']]} · заявок: {item['entriesCount']}"),
-                        ft.Text('Срок: ' + item['deadline'] + ' включительно (Москва)'),
+                        ft.Text(('Начало: '+item['startsOn']+' · ' if item['startsOn'] else '')+'Срок: ' + item['deadline'] + ' включительно (Москва)'),
                         button('Открыть задание', lambda e, i=item['challengeId']: openDetail(i))]))))
                 if not items: controls.append(ft.Text('Заданий пока нет.'))
                 controls.append(pagination(len(items)))
@@ -144,12 +151,16 @@ def createChallengeView(page):
                 cid = item['challengeId']
                 controls.extend([button('К списку заданий', openList), ft.Text(item['title'], size=24, weight=ft.FontWeight.BOLD),
                     ft.Text(LABELS[item['status']]), ft.Text('Приём до ' + item['deadline'] + ' включительно, Москва (UTC+3)'),
+                    ft.Text('Тематика: '+(item['theme'] or 'Свободная')), ft.Text('Начало: '+(item['startsOn'] or 'С момента создания')),
+                    ft.Text('Итоги: автоматический топ-3' if item['resultMode']=='votes' else 'Итоги выбирает администратор'),
                     ft.Text(item['rules']), ft.Text(f"Участников: {item['entriesCount']}")])
                 if item['state'] != 'open':
                     controls.append(ft.Text('Решение: ' + item['result']))
                     winner = item['winner']
                     controls.append(ft.Text('Победитель: ' + winner['nickname'] + ' — ' + winner['titleText'] if winner else
                                             'Победитель не выбран или его публикация удалена.'))
+                for award in item['awards']:
+                    controls.append(ft.Text(f"{award['place']} место · {award['nickname'] or 'Участник недоступен'} · {award['titleText'] or 'Работа удалена'} · голосов на момент итогов: {award['votes']}",weight=ft.FontWeight.BOLD))
                 if item['myPostId']:
                     controls.append(ft.Text('Ваша работа участвует в задании'))
                     if item['status'] == 'open':

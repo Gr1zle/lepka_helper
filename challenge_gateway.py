@@ -13,9 +13,9 @@ class ChallengeClient(ModerationClient):
         return self.call('GET', f'/community/challenges/{challengeId}?' + urlencode(dict(offset=offset, sort=sort)),
                          local=lambda actor: service.detail(actor, challengeId, offset, sort))
 
-    def create(self, title, rules, deadline):
-        return self.call('POST', '/admin/challenges', dict(title=title, rules=rules, deadline=deadline),
-                         lambda actor: service.create(actor, title, rules, deadline))
+    def create(self, title, rules, deadline, startsOn=None, theme='', resultMode='manual'):
+        return self.call('POST', '/admin/challenges', dict(title=title, rules=rules, deadline=deadline, startsOn=startsOn, theme=theme, resultMode=resultMode),
+                         lambda actor: service.create(actor, title, rules, deadline, startsOn, theme, resultMode))
 
     def submit(self, challengeId, postId):
         return self.call('PUT', f'/community/challenges/{challengeId}/entry', dict(postId=postId),
@@ -32,3 +32,12 @@ class ChallengeClient(ModerationClient):
     def vote(self, challengeId, postId, liked):
         return self.call('PUT', f'/community/challenges/{challengeId}/votes/{postId}', dict(liked=liked),
                          lambda actor: service.vote(actor, challengeId, postId, liked))
+
+    def profile(self):
+        return self.call('GET','/community/challenge-profile',local=lambda actor:service.profile(actor))
+
+    def notices(self,offset=0):
+        return self.call('GET',f'/community/notices?offset={offset}',local=lambda actor:service.notices(actor,offset))
+
+    def readNotice(self,noticeId):
+        return self.call('PUT',f'/community/notices/{noticeId}/read',local=lambda actor:service.readNotice(actor,noticeId))
