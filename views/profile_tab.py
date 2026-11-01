@@ -100,9 +100,9 @@ def createProfileTab(page, nickname, email):
         userProjectItems = getUserProjects(currentUser["userId"])
         userProjectsCount = len(userProjectItems)
 
-        for postItem in CommunityClient(currentUser).getPosts(mine=True):
-            userPostsCount += 1
-            userLikesCount += postItem["likesCount"]
+        stats = CommunityClient(currentUser).userStats()
+        userPostsCount = stats['posts']
+        userLikesCount = stats['likes']
 
     nicknameField = ft.TextField(
         label="Никнейм",

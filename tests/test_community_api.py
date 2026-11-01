@@ -52,6 +52,16 @@ class CommunityApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()['data']
 
+    def test_profile_statistics_are_owner_scoped_without_loading_posts(self):
+        first=self.publish()
+        self.client.post(f'/community/posts/{first}/like',headers=self.reader)
+        self.publish(headers=self.reader)
+        self.assertEqual(self.client.get('/community/my-stats',headers=self.headers).json()['data'],{'posts':1,'likes':1})
+        self.assertEqual(self.client.get('/community/my-stats',headers=self.reader).json()['data'],{'posts':1,'likes':0})
+        self.assertEqual(self.client.get('/community/my-stats').status_code,401)
+        self.client.delete(f'/community/posts/{first}',headers=self.headers)
+        self.assertEqual(self.client.get('/community/my-stats',headers=self.headers).json()['data'],{'posts':0,'likes':0})
+
     def test_public_feed_photos_and_viewer_ownership(self):
         postId = self.publish()
         guest = self.client.get('/community/posts').json()['data']['items'][0]

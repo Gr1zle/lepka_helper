@@ -265,6 +265,38 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         like.on_click(None)
         self.assertEqual(like.text,'❤️ 1');self.assertEqual(refresh,[])
 
+    async def test_personal_center_opens_saved_lesson_and_saves_source_settings(self):
+        from lesson_service import saveUserLessonState
+        from views.community_notices import createNoticeButton
+        from personal_notices import settings
+        saveUserLessonState(self.user['userId'],1,dict(lastStep=1,completedSteps=[0],checkedMaterials=[]))
+        with database.openDatabase() as c:
+            c.execute("UPDATE lessonProgress SET updatedAt='2020-01-01 00:00:00' WHERE userId=?",(self.user['userId'],))
+        view=self.mount(ft.View('/home',controls=[createNoticeButton(self.page,self.user)]))
+        find(view,ft.OutlinedButton,text='Центр уведомлений').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        source=find(dialog,ft.Dropdown,label='Источник уведомлений');source.value='learning';source.on_change(None)
+        self.assertIsNotNone(find(dialog,ft.TextButton,text='Напомнить завтра'))
+        navigated=[];self.page.session.set('navigateHomeTab',lambda i:navigated.append(i))
+        find(dialog,ft.TextButton,text='Открыть урок').on_click(None)
+        self.assertEqual(navigated,[1]);self.assertEqual(self.page.session.get('openBuiltinLesson'),1)
+        find(view,ft.OutlinedButton,text='Центр уведомлений').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.TextButton,text='Настроить личные уведомления').on_click(None)
+        editor=next(c for c in reversed(self.page.overlay) if isinstance(c,ft.AlertDialog) and c.open)
+        find(editor,ft.Switch,data='lessons').value=False
+        find(editor,ft.TextButton,text='Сохранить настройки уведомлений').on_click(None)
+        self.assertFalse(settings(self.user['userId'])['lessonsEnabled'])
+
+    async def test_color_wheel_uses_one_coordinate_handler_without_background_search(self):
+        from views.home_view import createColorsTab
+        with patch('views.home_view.threading.Thread.start') as start:
+            view=self.openToolsTab(createColorsTab)
+        start.assert_not_called()
+        gestures=[c for c in walk(view) if isinstance(c,ft.GestureDetector) and c.on_tap_down]
+        self.assertEqual(len(gestures),1)
+        self.assertLess(len(list(walk(view))),350)
+
     async def test_notice_filters_and_read_all_clear_both_filtered_and_other_events(self):
         from views.community_notices import createNoticeButton
         import post_service as posts
@@ -274,7 +306,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         posts.togglePostLike(pid,other);posts.savePostComment(pid,other,'Какая красивая работа')
         view=self.mount(ft.View('/home',controls=[createNoticeButton(self.page,self.user)]))
         self.assertIsNotNone(find(view,ft.Text,value='Непрочитанных: 2'))
-        find(view,ft.OutlinedButton,text='Уведомления сообщества').on_click(None)
+        find(view,ft.OutlinedButton,text='Центр уведомлений').on_click(None)
         dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
         kind=find(dialog,ft.Dropdown,label='Тип уведомлений');kind.value='comment';kind.on_change(None)
         self.assertIsNotNone(find(dialog,ft.Text,value='Какая красивая работа'))
@@ -317,7 +349,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         with database.openDatabase() as c:c.execute("UPDATE challenges SET deadline='2000-01-01' WHERE challengeId=?",(cid,))
         view=self.mount(ft.View('/profile',controls=[createChallengeProfile(self.page,self.user)]))
         self.assertIsNotNone(find(view,ft.Text,value='1 место: Конкурс наград'))
-        find(view,ft.OutlinedButton,text='Уведомления сообщества').on_click(None)
+        find(view,ft.OutlinedButton,text='Центр уведомлений').on_click(None)
         dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
         find(dialog,ft.TextButton,text='Прочитано').on_click(None)
         self.assertTrue(challenges.notices(self.user['userId'])[0]['isRead'])
@@ -910,6 +942,8 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         find(view, ft.ElevatedButton, text='Сохранить смесь').on_click(None)
         saved = getUserColorMixtures(self.user['userId'])
         self.assertEqual(len(saved), 1)
+        self.assertIsNotNone(find(view, ft.Text, value='Моя новая смесь'))
+        self.assertFalse(next(c for c in walk(view) if isinstance(c, ft.ListView)).build_controls_on_demand)
         self.assertEqual(saved[0]['resultHex'], '#808080')
         find(view, ft.IconButton, tooltip='Открыть рецепт').on_click(None)
         self.assertEqual(float(weight.value), 100.25)

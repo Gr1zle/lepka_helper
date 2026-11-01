@@ -28,13 +28,23 @@ class WifiConnectionTests(unittest.TestCase):
             self.assertEqual(api_client.getApiUrl(), '')
 
     def test_lan_requests_ignore_proxy_and_do_not_redirect(self):
-        with patch('api_client.getApiUrl', return_value='http://192.168.1.2:8000'), patch('api_client.requests.Session') as factory:
-            session = factory.return_value.__enter__.return_value
+        with patch('api_client.getApiUrl', return_value='http://192.168.1.2:8000'), patch('api_client.requests.Session') as factory, patch('api_client._transports', type('Pool', (), {})()):
+            session = factory.return_value
             session.request.return_value.status_code = 200
             session.request.return_value.json.return_value = {'data': {'ok': True}}
             self.assertEqual(api_client.apiRequest('GET', '/health'), {'data': {'ok': True}})
             self.assertFalse(session.trust_env)
             self.assertFalse(session.request.call_args.kwargs['allow_redirects'])
+
+    def test_lan_pool_reuses_same_thread_address_without_saving_authorization(self):
+        with patch('api_client.requests.Session') as factory, patch('api_client._transports', type('Pool', (), {})()):
+            from api_client import lanTransport
+            first=lanTransport('http://192.168.1.2:8000')
+            self.assertIs(lanTransport('http://192.168.1.2:8000'),first)
+            factory.assert_called_once()
+            lanTransport('http://192.168.1.3:8000')
+            first.close.assert_called_once()
+            self.assertEqual(factory.call_count,2)
 
 
 class WifiUiTests(unittest.IsolatedAsyncioTestCase):
