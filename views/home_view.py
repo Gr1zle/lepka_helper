@@ -1905,6 +1905,8 @@ def createHomeView(page: ft.Page):
         email = "guest@example.com"
 
     content_area = ft.Container(expand=True)
+    from views.offline_controls import createConnectionBanner
+    connectionBanner=createConnectionBanner(page,currentUser)
 
     @serverAction(page)
     def loadTab(index):
@@ -1964,6 +1966,7 @@ def createHomeView(page: ft.Page):
                 expand=True,
                 bgcolor=ft.Colors.SURFACE,
                 content=ft.Column([
+                    connectionBanner,
                     ft.Container(expand=True, content=content_area),
                     nav_bar
                 ], expand=True)

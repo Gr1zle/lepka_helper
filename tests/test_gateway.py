@@ -260,6 +260,21 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
         find(view, ft.OutlinedButton, text='Убрать аватар').on_click(None)
         self.assertEqual(gateway.getUserProfile(user['userId'], user['sessionToken'])['avatarImage'], '')
 
+    async def test_private_color_screen_remains_usable_with_verified_offline_session(self):
+        from views.home_view import createColorsTab
+        from color_service import getUserColorMixtures
+        user=self.login();self.stopServer()
+        offline=getCurrentUser(self.page);self.assertTrue(offline['offline'])
+        view=ft.View('/colors',controls=[createColorsTab(self.page,offline)])
+        self.page.views[:]=[view];self.page.update()
+        from test_startup import walk
+        for name in ('Белый','Чёрный'):
+            gesture=next(c for c in walk(view) if isinstance(c,ft.GestureDetector) and any(isinstance(t,ft.Text) and t.value==name for t in walk(c)))
+            gesture.on_tap(None)
+        find(view,ft.ElevatedButton,text='Сохранить смесь').on_click(None)
+        self.assertEqual(len(getUserColorMixtures(user['userId'])),1)
+        self.assertEqual(getUserColorMixtures(self.localId),[])
+
     async def test_server_unavailable_never_falls_back_to_local_password(self):
         self.assertTrue(auth_service.loginUser('local@example.com', 'LocalPass123')[0])
         self.assertFalse(gateway.loginUser('local@example.com', 'LocalPass123')[0])
@@ -271,7 +286,8 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
         def write():
             called.append(True)
         write()
-        self.assertEqual(called, [])
+        self.assertEqual(called, [True])
+        self.assertTrue(self.page.session.get('currentUser')['offline'])
         self.assertEqual(self.page.session.get('currentUser')['sessionToken'], user['sessionToken'])
         self.assertIsNotNone(database.getUserByEmail('local@example.com'))
 

@@ -23,10 +23,12 @@ def makePublicUser(userRecord):
 def createSession(connection, userRecord):
     token = secrets.token_urlsafe(32)
     connection.execute('DELETE FROM accountSessions WHERE expiresAt <= ?', (time.time(),))
+    expiresAt=time.time()+SESSION_SECONDS
     connection.execute('INSERT INTO accountSessions VALUES (?, ?, ?)',
-                       (hashToken(token), userRecord['userId'], time.time() + SESSION_SECONDS))
+                       (hashToken(token), userRecord['userId'], expiresAt))
     userData = makePublicUser(userRecord)
     userData['sessionToken'] = token
+    userData['sessionExpiresAt'] = expiresAt
     return userData
 
 
@@ -35,7 +37,7 @@ def getSessionUser(token):
         return None
     with openDatabase() as connection:
         record = connection.execute(
-            """SELECT u.* FROM accountSessions AS s JOIN users AS u ON u.userId = s.userId
+            """SELECT u.*,s.expiresAt AS sessionExpiresAt FROM accountSessions AS s JOIN users AS u ON u.userId = s.userId
             WHERE s.tokenHash = ? AND s.expiresAt > ? AND u.isBlocked = 0 AND u.emailVerified = 1""",
             (hashToken(token), time.time()),
         ).fetchone()
@@ -43,6 +45,7 @@ def getSessionUser(token):
             return None
         userData = makePublicUser(record)
         userData['sessionToken'] = token
+        userData['sessionExpiresAt'] = record['sessionExpiresAt']
         return userData
 
 

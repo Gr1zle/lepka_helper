@@ -59,6 +59,8 @@ def getCurrentUser(page):
     currentUser = page.session.get('currentUser')
     if currentUser is None:
         return None
+    if currentUser.get('apiUrl') and currentUser.get('sessionExpiresAt') is not None and currentUser['sessionExpiresAt']<=__import__('time').time():
+        forgetDeviceSession(page);page.session.clear();return None
     verifiedUser = getSessionUser(currentUser.get('sessionToken'))
     if verifiedUser is None or verifiedUser['userId'] != currentUser.get('userId'):
         forgetDeviceSession(page)

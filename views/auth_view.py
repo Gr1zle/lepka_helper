@@ -18,6 +18,8 @@ SECONDARY_COLOR = "#4ECDC4"
 def createAuthView(page):
     dialog = None
     remoteMode = bool(getApiUrl())
+    from device_session import nativeClient
+    rememberSession=ft.Switch(label='Запомнить вход на этом устройстве',value=True,visible=nativeClient(page))
     from views.server_connection import openServerConnection
 
     loginEmailField = ft.TextField(label="Email", value="" if remoteMode else "test@email.com", prefix_icon=ft.Icons.EMAIL, keyboard_type=ft.KeyboardType.EMAIL, border_radius=12)
@@ -66,7 +68,7 @@ def createAuthView(page):
         page.session.set("currentUser", userData)
         profileData = getUserProfile(userData["userId"], userData.get("sessionToken"))
         page.theme_mode = ft.ThemeMode.DARK if profileData and profileData["themeMode"] == "dark" else ft.ThemeMode.LIGHT
-        sessionSaved = saveDeviceSession(page, userData)
+        sessionSaved = saveDeviceSession(page, userData,rememberSession.value)
         showMessage(messageText)
         page.go("/home")
         if not sessionSaved:
@@ -294,6 +296,7 @@ def createAuthView(page):
                             ft.Container(height=28),
                             ft.Container(width=360, alignment=ft.alignment.center, content=authTabs),
                             ft.TextButton("Подключение к серверу / Wi-Fi", on_click=lambda e: openServerConnection(page)),
+                            rememberSession,
                             activeFormContainer,
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,

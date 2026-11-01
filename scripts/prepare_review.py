@@ -10,15 +10,15 @@ from zipfile import ZipFile, ZIP_DEFLATED
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from app_info import APP_VERSION, REVIEW_DATE
-from scripts.prepare_android import MODULES, VIEWS, ASSETS
+from scripts.prepare_android import MODULES, VIEWS, ASSETS,NATIVE_FILES
 
 DOCS = ('ТЗ', 'Plan', 'day1_requirements_audit.md', 'day2_stabilization.md', 'day3_tools.md',
         'day4_community_android.md', 'account_backend_validation.md', 'avatar_stage_photos.md',
-        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md', 'development_backlog.md', 'project_calendar_reminders.md', 'model_import_fullscreen.md', 'community_moderation.md', 'community_challenges.md','challenge_results.md','community_complete_batch.md','roles_admin_server.md','wifi_server.md','personal_notices_performance.md','personal_vault_sync.md','remaining_work.md')
+        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md', 'development_backlog.md', 'project_calendar_reminders.md', 'model_import_fullscreen.md', 'community_moderation.md', 'community_challenges.md','challenge_results.md','community_complete_batch.md','roles_admin_server.md','wifi_server.md','personal_notices_performance.md','personal_vault_sync.md','remaining_work.md','offline_session_outbox.md')
 TESTS = ('accounts', 'android_package', 'backend', 'clay_tools', 'community', 'community_api',
          'community_gateway', 'gateway', 'profile_stage_media', 'project_sharing', 'projects',
-         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library', 'models', 'project_planner', 'model_import', 'moderation', 'challenges','challenge_results','community_batch','roles_admin','server_package','wifi_connection','personal_notices','personal_sync')
-SCREENSHOTS = ('sync-device-a.png','sync-device-b.png','sync-download-confirm.png','sync-conflict-320.png','personal-colors-immediate.png','personal-notices-390.png','personal-settings-320.png','roles-editor.png','roles-scoped-panel-320.png','roles-my-report.png','roles-delete-confirm.png','roles-audit.png','community-center.png','community-reply.png','community-reply-notice.png','community-grid-wide.png','community-grid-320.png','community-publish-contest.png','results-awards-320.png','results-notice-320.png','results-profile-320.png','results-scheduled-320.png','challenges-list-320.png','challenges-entry-320.png','challenges-create.png','day4-community-form.png', 'day4-community-post.png', 'profile-avatar.png',
+         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library', 'models', 'project_planner', 'model_import', 'moderation', 'challenges','challenge_results','community_batch','roles_admin','server_package','wifi_connection','personal_notices','personal_sync','offline_outbox')
+SCREENSHOTS = ('offline-draft-390.png','offline-queue-320.png','offline-delivered-320.png','sync-device-a.png','sync-device-b.png','sync-download-confirm.png','sync-conflict-320.png','personal-colors-immediate.png','personal-notices-390.png','personal-settings-320.png','roles-editor.png','roles-scoped-panel-320.png','roles-my-report.png','roles-delete-confirm.png','roles-audit.png','community-center.png','community-reply.png','community-reply-notice.png','community-grid-wide.png','community-grid-320.png','community-publish-contest.png','results-awards-320.png','results-notice-320.png','results-profile-320.png','results-scheduled-320.png','challenges-list-320.png','challenges-entry-320.png','challenges-create.png','day4-community-form.png', 'day4-community-post.png', 'profile-avatar.png',
                'moderation-panel-320.png','moderation-confirm-delete.png','moderation-user-blocked.png','moderation-audit.png',
                'projects-edit-fixed-wide.png', 'projects-edit-fixed-320.png', 'import-full-portrait.png', 'import-full-landscape.png', 'import-full-320.png', 'import-personal-library.png',
                'planner-calendar.png', 'planner-320.png', 'planner-reminders.png', 'planner-project.png',
@@ -32,6 +32,7 @@ SCREENSHOTS = ('sync-device-a.png','sync-device-b.png','sync-download-confirm.pn
 
 def getReviewFiles():
     return ['README.md', 'REVIEW_START.md', 'requirements.txt', '.gitignore', 'main.py', 'web_app.py',
+             *['native/lepka_platform/'+name for name in NATIVE_FILES],
              *[name + '.py' for name in MODULES], *['views/' + name + '.py' for name in VIEWS],
              *['assets/' + name for name in ASSETS], 'assets/logo.png', 'assets/lessons/README.md', 'assets/models/README.md',
              'backend/__init__.py', 'backend/main.py', 'backend/community.py', 'backend/moderation.py', 'backend/challenges.py','backend/personal.py', 'backend/requirements.txt',

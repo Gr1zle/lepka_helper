@@ -19,7 +19,23 @@ class ModerationClient:
         if not self.user:raise ApiError('Выполните вход',401)
         if self.remote:
             requireCachedUser(self.user['userId'],self.user.get('sessionToken'))
-            return apiRequest(method,path,payload,self.user.get('sessionToken'))['data']
+            from community_cache import readCache,writeCache
+            cacheable=method=='GET' and path.startswith('/community/') and path!='/community/access'
+            from offline_access import coolingDown,cachedUser,noteUnavailable
+            if cacheable and coolingDown() and cachedUser(self.user.get('sessionToken')):
+                cached=readCache(self.user['userId'],self.apiUrl,path)
+                if cached is not None:return cached
+                raise ApiError('Оффлайн: эти события ещё не сохранены')
+            try:
+                data=apiRequest(method,path,payload,self.user.get('sessionToken'))['data']
+                if cacheable:writeCache(self.user['userId'],self.apiUrl,path,data)
+                return data
+            except ApiError as error:
+                if cacheable and (error.statusCode==0 or error.statusCode>=500):
+                    noteUnavailable()
+                    cached=readCache(self.user['userId'],self.apiUrl,path)
+                    if cached is not None:return cached
+                raise
         current=accounts.getSessionUser(self.user.get('sessionToken'))
         if not current or current['userId']!=self.user['userId']:raise ApiError('Сессия завершена. Выполните вход снова',401)
         try:return local(current['userId'])

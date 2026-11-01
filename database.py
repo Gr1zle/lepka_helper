@@ -96,6 +96,24 @@ def initializeDatabase():
         FOREIGN KEY (localUserId) REFERENCES users(userId)
     )""")
 
+    cursor.execute("""CREATE TABLE IF NOT EXISTS communityCache (
+        userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,cacheKey TEXT NOT NULL,contentJson TEXT NOT NULL,updatedAt REAL NOT NULL,
+        PRIMARY KEY(userId,apiUrl,cacheKey),FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS publicationDrafts (
+        draftId TEXT PRIMARY KEY,userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,payloadJson TEXT NOT NULL,updatedAt REAL NOT NULL,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS communityOutbox (
+        requestId TEXT PRIMARY KEY,userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,serverUserId INTEGER NOT NULL,
+        kind TEXT NOT NULL,payloadJson TEXT NOT NULL,payloadHash TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,
+        nextAttemptAt REAL NOT NULL DEFAULT 0,leaseUntil REAL NOT NULL DEFAULT 0,leaseToken TEXT NOT NULL DEFAULT '',
+        lastError TEXT NOT NULL DEFAULT '',resultJson TEXT,createdAt REAL NOT NULL,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS communityActionReceipts (
+        userId INTEGER NOT NULL,requestId TEXT NOT NULL,kind TEXT NOT NULL,payloadHash TEXT NOT NULL,resultJson TEXT NOT NULL,
+        PRIMARY KEY(userId,requestId),FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS remoteProfileCache (
+        userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,profileJson TEXT NOT NULL,
+        PRIMARY KEY(userId,apiUrl),FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)""")
     cursor.execute("""CREATE TABLE IF NOT EXISTS lessonProgress (
         userId INTEGER NOT NULL, lessonId INTEGER NOT NULL, stateJson TEXT NOT NULL,
         updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -889,9 +907,9 @@ def erasePost(connection,postId):
     connection.execute('DELETE FROM posts WHERE postId = ?', (postId,))
 
 
-def createPostComment(postId, userId, commentText, replyToId=None):
-    with openDatabase() as connection:
-        connection.execute('BEGIN IMMEDIATE')
+def createPostComment(postId, userId, commentText, replyToId=None,existingConnection=None):
+    with (nullcontext(existingConnection) if existingConnection is not None else openDatabase()) as connection:
+        if not connection.in_transaction:connection.execute('BEGIN IMMEDIATE')
         if replyToId is not None:
             if type(replyToId) is not int or not 1<=replyToId<=9223372036854775807 or not connection.execute(
                 'SELECT 1 FROM postComments WHERE commentId=? AND postId=?',(replyToId,postId)).fetchone():

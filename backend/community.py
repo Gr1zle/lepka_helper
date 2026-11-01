@@ -27,14 +27,15 @@ class CommunityBodyLimit:
         challenge=scope['path'].startswith(('/admin/challenges','/community/challenges','/community/notices','/community/notice-summary'))
         moderation=scope['path'].startswith('/admin/') or scope['path']=='/community/reports'
         private=scope['path'].startswith('/personal/')
-        limit=(20*1024*1024+32768) if private else 32768 if challenge else (8192 if moderation else MAX_COMMUNITY_BODY)
+        action=scope['path']=='/community/actions'
+        limit=(20*1024*1024+32768) if private else 32768 if (challenge or action) else (8192 if moderation else MAX_COMMUNITY_BODY)
         body = bytearray()
         while True:
             event = await receive()
             if event['type'] == 'http.disconnect':
                 return
             if len(body) + len(event.get('body', b'')) > limit:
-                detail='Личный снимок слишком большой (до 20 МБ)' if private else 'Запрос задания слишком большой (до 32 КБ)' if challenge else 'Запрос модерации слишком большой (до 8 КБ)' if moderation else 'Публикация слишком большая (до 48 МБ)'
+                detail='Личный снимок слишком большой (до 20 МБ)' if private else 'Действие очереди слишком большое (до 32 КБ)' if action else 'Запрос задания слишком большой (до 32 КБ)' if challenge else 'Запрос модерации слишком большой (до 8 КБ)' if moderation else 'Публикация слишком большая (до 48 МБ)'
                 return await JSONResponse({'detail': detail}, status_code=413)(scope, receive, send)
             body.extend(event.get('body', b''))
             if not event.get('more_body', False):
@@ -78,6 +79,12 @@ class CommentInput(CommentTextInput):
     replyToId: int | None = Field(default=None,gt=0,le=9223372036854775807)
 
 
+class ActionInput(CommunityInput):
+    requestId:str=Field(pattern=r'^[a-f0-9]{32}$')
+    kind:str=Field(pattern=r'^(like|comment)$')
+    payload:dict
+
+
 class ProgressInput(CommunityInput):
     lastStep: int
     completedSteps: list[int] = Field(max_length=100)
@@ -93,6 +100,14 @@ def requirePost(postId):
 
 def installCommunityRoutes(application, currentUser, optionalUser):
     application.add_middleware(CommunityBodyLimit)
+
+    @application.post('/community/actions')
+    def applyAction(body:ActionInput,user=Depends(currentUser)):
+        import offline_mutations
+        try:return {'data':offline_mutations.applyAction(user['userId'],body.requestId,body.kind,body.payload)}
+        except offline_mutations.ActionRateLimit as error:raise HTTPException(429,str(error)) from None
+        except offline_mutations.ActionConflict as error:raise HTTPException(409,str(error)) from None
+        except ValueError as error:raise HTTPException(400,str(error)) from None
 
     @application.get('/community/my-stats')
     def myStats(user=Depends(currentUser)):
@@ -146,6 +161,10 @@ def installCommunityRoutes(application, currentUser, optionalUser):
         payloadHash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
         with db.openDatabase() as connection:
             connection.execute('BEGIN IMMEDIATE')
+            durable=connection.execute('SELECT * FROM communityActionReceipts WHERE userId=? AND requestId=?',(user['userId'],body.requestId)).fetchone()
+            if durable:
+                if durable['kind']!='publication' or durable['payloadHash']!=payloadHash:raise HTTPException(409,'Идентификатор отправки уже использован')
+                return {'message':'Работа уже обработана','data':json.loads(durable['resultJson'])['postId']}
             existing = connection.execute('SELECT payloadHash, postId FROM communityRequests WHERE userId = ? AND requestId = ?',
                                            (user['userId'], body.requestId)).fetchone()
             if existing:
@@ -167,6 +186,7 @@ def installCommunityRoutes(application, currentUser, optionalUser):
                 raise HTTPException(400, message)
             connection.execute('INSERT INTO communityRequests VALUES (?, ?, ?, ?)',
                                (user['userId'], body.requestId, payloadHash, postId))
+            connection.execute('INSERT INTO communityActionReceipts VALUES (?,?,?,?,?)',(user['userId'],body.requestId,'publication',payloadHash,json.dumps({'postId':postId})))
         return {'message': message, 'data': postId}
 
     @application.get('/community/photos/{photoId}')

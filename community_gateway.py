@@ -36,12 +36,45 @@ class CommunityClient:
             if self.user is None:
                 raise ApiError('Выполните вход', 401)
             requireCachedUser(self.user['userId'], self.user.get('sessionToken'))
-        return apiRequest(method, '/community' + path, payload,
-                          self.user.get('sessionToken') if self.user else None)['data']
+        from community_cache import readCache,writeCache
+        uid=self.user['userId'] if self.user else None
+        from offline_access import coolingDown,cachedUser,noteUnavailable
+        if method=='GET' and self.user and coolingDown() and cachedUser(self.user.get('sessionToken')):
+            cached=readCache(uid,self.apiUrl,path)
+            if cached is not None:return cached
+            raise ApiError('Оффлайн: эти данные ещё не сохранены')
+        try:
+            data=apiRequest(method,'/community'+path,payload,self.user.get('sessionToken') if self.user else None)['data']
+            if method=='GET':writeCache(uid,self.apiUrl,path,data)
+            return data
+        except ApiError as error:
+            if method=='GET' and (error.statusCode==0 or error.statusCode>=500):
+                noteUnavailable()
+                cached=readCache(uid,self.apiUrl,path)
+                if cached is not None:return cached
+            raise
 
     def getPostsPage(self,mine=False,query='',category='Все',sort='new',offset=0,limit=12):
         if self.remote:
-            return self.request('GET','/feed?'+urlencode(dict(mine=str(mine).lower(),query=query,category=category,sort=sort,offset=offset,limit=limit)),personal=mine)
+            try:
+                batch=self.request('GET','/feed?'+urlencode(dict(mine=str(mine).lower(),query=query,category=category,sort=sort,offset=offset,limit=limit)),personal=mine)
+            except ApiError as error:
+                if error.statusCode!=0 and error.statusCode<500:raise
+                batch={'items':[],'hasMore':False,'offline':True}
+            from offline_access import coolingDown
+            if coolingDown():batch={**batch,'offline':True}
+            from community_cache import writeCache
+            from community_outbox import lastLike
+            items=[]
+            for raw in batch['items']:
+                item=dict(raw)
+                if self.user:
+                    writeCache(self.user['userId'],self.apiUrl,'like:'+str(item['postId']),dict(isLiked=item['isLiked'],likesCount=item['likesCount']))
+                    desired=lastLike(self.user,self.apiUrl,item['postId'])
+                    if desired is not None:
+                        item['likesCount']=max(0,item['likesCount']+int(desired)-int(item['isLiked']));item['isLiked']=desired
+                items.append(item)
+            return {**batch,'items':items}
         import feed_service
         return feed_service.page(self.user['userId'] if self.user else None,mine,query,category,sort,offset,limit)
 
@@ -50,6 +83,7 @@ class CommunityClient:
         if self.remote:
             try:return self.request('GET','/my-stats',personal=True)
             except ApiError as error:
+                if error.statusCode==0 or error.statusCode>=500:return {'posts':'—','likes':'—','offline':True}
                 if error.statusCode!=404:raise
                 items=self.getPosts(mine=True)  # Совместимость с сервером 0.7.0.
                 return {'posts':len(items),'likes':sum(p['likesCount'] for p in items)}
@@ -103,7 +137,7 @@ class CommunityClient:
         if self.remote:
             try:return self.request('GET',f'/posts/{postId}/comments-page?'+urlencode(dict(offset=offset,limit=limit)))
             except ApiError as error:
-                if error.statusCode==404:return {'items':[],'hasMore':False}
+                if error.statusCode==404 or error.statusCode==0 or error.statusCode>=500:return {'items':[],'hasMore':False}
                 raise
         rows=posts.getPostComments(postId,offset,limit+1,True)
         return {'items':rows[:limit],'hasMore':len(rows)>limit}
@@ -114,7 +148,7 @@ class CommunityClient:
         try:
             return base64.b64decode(self.request('GET', f'/photos/{photoId}')['imageBase64'], validate=True)
         except ApiError as error:
-            if error.statusCode == 404:
+            if error.statusCode == 404 or error.statusCode==0 or error.statusCode>=500:
                 return None
             raise
 
@@ -122,7 +156,7 @@ class CommunityClient:
         if self.remote:
             try:return base64.b64decode(self.request('GET',f'/photos/{photoId}?thumbnail=true')['imageBase64'],validate=True)
             except ApiError as error:
-                if error.statusCode==404:return None
+                if error.statusCode==404 or error.statusCode==0 or error.statusCode>=500:return None
                 raise
         from photo_service import photoThumbnail
         data=db.getPostPhoto(photoId)
@@ -136,8 +170,24 @@ class CommunityClient:
     def toggleLike(self, postId):
         if not self.remote:
             return posts.togglePostLike(postId, self.user['userId'])
-        result = self.request('POST', f'/posts/{postId}/like', personal=True)
-        return result['isLiked'], result['likesCount']
+        from community_cache import readCache,writeCache
+        from community_outbox import lastLike
+        from deferred_community import submit
+        state=readCache(self.user['userId'],self.apiUrl,'like:'+str(postId))
+        if state is None:
+            item=self.getPost(postId)
+            if not item:return False,None
+            state={'isLiked':item.get('isLiked',False),'likesCount':item['likesCount']}
+            writeCache(self.user['userId'],self.apiUrl,'like:'+str(postId),state)
+        pending=lastLike(self.user,self.apiUrl,postId)
+        current=state['isLiked'] if pending is None else pending
+        desired=not current
+        success,message,response=submit(self.user,self.apiUrl,'like',dict(postId=postId,isLiked=desired))
+        if not success:raise ApiError(message,400)
+        if response:
+            writeCache(self.user['userId'],self.apiUrl,'like:'+str(postId),response)
+            return response['isLiked'],response['likesCount']
+        return desired,max(0,state['likesCount']+int(desired)-int(state['isLiked']))
 
     def deletePost(self, postId):
         return self.request('DELETE', f'/posts/{postId}', personal=True) if self.remote else posts.removePost(postId, self.user['userId'])
@@ -145,8 +195,11 @@ class CommunityClient:
     def saveComment(self, postId, text,replyToId=None):
         if not self.remote:
             return posts.savePostComment(postId, self.user['userId'], text,replyToId)
-        commentId = self.request('POST', f'/posts/{postId}/comments', {'commentText': text,'replyToId':replyToId}, personal=True)
-        return True, 'Комментарий добавлен', commentId
+        from deferred_community import submit
+        try:
+            success,message,response=submit(self.user,self.apiUrl,'comment',dict(postId=postId,commentText=text,replyToId=replyToId))
+            return success,message,response['commentId'] if response else None
+        except ValueError as error:return False,str(error),None
 
     def editComment(self, commentId, text):
         if not self.remote:
@@ -157,12 +210,14 @@ class CommunityClient:
     def deleteComment(self, commentId):
         return self.request('DELETE', f'/comments/{commentId}', personal=True) if self.remote else posts.removePostComment(commentId, self.user['userId'])
 
-    def sendPublication(self, payload):
-        payloadKey = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
-        requestId = self.publicationKeys.setdefault(payloadKey, uuid.uuid4().hex)
-        postId = self.request('POST', '/posts', {**payload, 'requestId': requestId}, personal=True)
-        self.publicationKeys.pop(payloadKey, None)
-        return True, 'Работа опубликована на сервере', postId
+    def sendPublication(self,payload):
+        from deferred_community import submit
+        payloadKey=hashlib.sha256(json.dumps(payload,sort_keys=True).encode()).hexdigest()
+        requestId=self.publicationKeys.setdefault(payloadKey,uuid.uuid4().hex)
+        try:success,message,postId=submit(self.user,self.apiUrl,'publication',payload,requestId)
+        except ValueError as error:return False,str(error),None
+        if success and postId is not None:self.publicationKeys.pop(payloadKey,None)
+        return success,message,postId
 
     def publishPost(self, titleText, descriptionText, categoryName, tagsText, photoFiles, challengeId=None):
         if not self.remote:
