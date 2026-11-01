@@ -14,11 +14,11 @@ from scripts.prepare_android import MODULES, VIEWS, ASSETS
 
 DOCS = ('ТЗ', 'Plan', 'day1_requirements_audit.md', 'day2_stabilization.md', 'day3_tools.md',
         'day4_community_android.md', 'account_backend_validation.md', 'avatar_stage_photos.md',
-        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md', 'development_backlog.md', 'project_calendar_reminders.md', 'model_import_fullscreen.md', 'community_moderation.md')
+        'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md', 'development_backlog.md', 'project_calendar_reminders.md', 'model_import_fullscreen.md', 'community_moderation.md', 'community_challenges.md')
 TESTS = ('accounts', 'android_package', 'backend', 'clay_tools', 'community', 'community_api',
          'community_gateway', 'gateway', 'profile_stage_media', 'project_sharing', 'projects',
-         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library', 'models', 'project_planner', 'model_import', 'moderation')
-SCREENSHOTS = ('day4-community-form.png', 'day4-community-post.png', 'profile-avatar.png',
+         'startup', 'workshops', 'review_release', 'device_session', 'project_batch', 'lesson_library', 'models', 'project_planner', 'model_import', 'moderation', 'challenges')
+SCREENSHOTS = ('challenges-list-320.png','challenges-entry-320.png','challenges-create.png','day4-community-form.png', 'day4-community-post.png', 'profile-avatar.png',
                'moderation-panel-320.png','moderation-confirm-delete.png','moderation-user-blocked.png','moderation-audit.png',
                'projects-edit-fixed-wide.png', 'projects-edit-fixed-320.png', 'import-full-portrait.png', 'import-full-landscape.png', 'import-full-320.png', 'import-personal-library.png',
                'planner-calendar.png', 'planner-320.png', 'planner-reminders.png', 'planner-project.png',
@@ -34,7 +34,7 @@ def getReviewFiles():
     return ['README.md', 'REVIEW_START.md', 'requirements.txt', '.gitignore', 'main.py', 'web_app.py',
              *[name + '.py' for name in MODULES], *['views/' + name + '.py' for name in VIEWS],
              *['assets/' + name for name in ASSETS], 'assets/logo.png', 'assets/lessons/README.md', 'assets/models/README.md',
-             'backend/__init__.py', 'backend/main.py', 'backend/community.py', 'backend/moderation.py', 'backend/requirements.txt',
+             'backend/__init__.py', 'backend/main.py', 'backend/community.py', 'backend/moderation.py', 'backend/challenges.py', 'backend/requirements.txt',
              'backend/README.md', 'scripts/prepare_android.py', 'scripts/prepare_review.py',
              'scripts/create_server_demo.py', 'scripts/generate_learning_models.py', 'scripts/manage_admin.py', 'tests/image_fixtures.py',
              *['tests/test_' + name + '.py' for name in TESTS], *['docs/' + name for name in DOCS],

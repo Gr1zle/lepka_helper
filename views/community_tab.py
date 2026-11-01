@@ -309,6 +309,8 @@ def createHomeTab(page, currentUser, nickname):
     return ft.ListView(expand=True, padding=16, spacing=12, controls=[
         ft.Text(f'Привет, {nickname}!', size=22, weight=ft.FontWeight.BOLD),
         createDeadlineSummary(page,currentUser),
+        ft.OutlinedButton('Задания сообщества', icon=ft.Icons.EMOJI_EVENTS, disabled=currentUser is None,
+            on_click=authenticatedAction(page,currentUser)(lambda event:page.go('/challenges'))),
         ft.Text('Работы пользователей сервера' if client.remote else
                 'Работы на этом устройстве. Для общего сообщества подключите сервер.', size=12),
         ft.Container(padding=18, border_radius=18, bgcolor=PRIMARY_COLOR, content=ft.Column(controls=[

@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
+from backend.challenges import installChallengeRoutes
 from backend.community import installCommunityRoutes
 from backend.moderation import installModerationRoutes
 
@@ -236,6 +237,7 @@ def createApp(dataDirectory=None):
         return resultResponse(accounts.deleteUserAccount(user['userId'], body.password))
 
     installCommunityRoutes(application, currentUser, optionalUser)
+    installChallengeRoutes(application, currentUser)
     installModerationRoutes(application,currentUser)
     return application
 

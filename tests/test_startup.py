@@ -176,6 +176,40 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.page.session.get('plannerProject'))
         self.assertTrue(all(not r['isRead'] for r in syncProjectReminders(self.user['userId'])))
 
+    async def test_challenge_create_submit_view_and_finish(self):
+        from views.challenge_view import createChallengeView
+        from post_service import savePost
+        import challenge_service as challenges
+        with database.openDatabase() as c:
+            c.execute("UPDATE users SET roleName='admin' WHERE userId=?",(self.user['userId'],))
+        post=savePost(self.user['userId'],'Мой конкурсный кот','Подробное описание фигурки','Животные','кот',[photo()])[2]
+        view=self.mount(createChallengeView(self.page))
+        find(view,ft.OutlinedButton,text='Создать задание').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.TextField,label='Название задания').value='Лепим котика'
+        find(dialog,ft.TextField,label='Правила и критерии выбора победителя').value='Покажите готовую фигурку котика'
+        find(dialog,ft.TextField,label='Дедлайн').value='не дата'
+        find(dialog,ft.ElevatedButton,text='Создать задание').on_click(None)
+        self.assertTrue(dialog.open)
+        find(dialog,ft.TextField,label='Дедлайн').value=__import__('datetime').date.fromisoformat(challenges.today()).strftime('%d.%m.%Y')
+        find(dialog,ft.ElevatedButton,text='Создать задание').on_click(None)
+        self.assertFalse(dialog.open)
+        find(view,ft.OutlinedButton,text='Участвовать: отправить свою работу').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.Dropdown,label='Моя опубликованная работа').value=str(post)
+        find(dialog,ft.ElevatedButton,text='Отправить заявку').on_click(None)
+        find(view,ft.OutlinedButton,text='Посмотреть работу').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        self.assertIsNotNone(find(dialog,ft.Text,value='Мой конкурсный кот'))
+        self.page.close(dialog)
+        with patch('challenge_service.today',return_value='2099-01-01'):
+            find(view,ft.OutlinedButton,text='Обновить задания').on_click(None)
+            find(view,ft.OutlinedButton,text='Выбрать победителем').on_click(None)
+            dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+            find(dialog,ft.TextField,label='Причина').value='Выбрана самая аккуратная фигурка'
+            find(dialog,ft.ElevatedButton,text='Подтвердить решение').on_click(None)
+        self.assertTrue(any(isinstance(c,ft.Text) and (c.value or '').startswith('Победитель:') for c in walk(view)))
+
     async def test_report_form_requires_reason_and_submits_for_current_user(self):
         from views.moderation_actions import createReportButton
         from post_service import savePost

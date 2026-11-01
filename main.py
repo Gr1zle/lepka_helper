@@ -18,6 +18,7 @@ from views.model_gallery import createModelGallery
 from views.model_view import createModelView
 from views.project_planner import createProjectPlanner
 from views.admin_view import createAdminView
+from views.challenge_view import createChallengeView
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -77,6 +78,10 @@ def main(page: ft.Page):
                 page.session.set('openBuiltinLesson',returning)
                 page.session.set('homeTab',1)
             view = createHomeView(page)
+        elif page.route == '/challenges':
+            root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
+            page.views[:]=[root,createChallengeView(page)]
+            page.update();return
         elif page.route == '/admin':
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             page.views[:]=[root,createAdminView(page)]
