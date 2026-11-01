@@ -1,3 +1,17 @@
+# Android 0.7.1 — скорость, смеси и личные уведомления
+
+[Скачать APK 0.7.1](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.7.1-personal-arm64.apk)
+
+Android 9+, ARM64, около 32 МБ. Установить поверх 0.7.0 без удаления приложения: подпись совпадает, versionCode 2004. Исходный код: feature/personal-notices-performance, cba1a4d, PR №23. 391 тест GitHub Actions прошёл; проверены актуальные исходники в APK, подпись и отсутствие личных баз/сессий/секретов. Физическая проверка ожидается от пользователя.
+
+Исправлено появление смеси после сохранения без смены вкладки. Вкладка «Цвета» облегчена: один обработчик круга, кеш изображения, подбор рецепта только по запросу. LAN-соединения переиспользуются. Центр уведомлений объединяет сообщество, дедлайны и обучение; есть фильтры, чтение, переходы, интервал 1–30 дней и «Напомнить завтра». Это уведомления внутри приложения при его открытии, без фоновых push/почты.
+
+[Сервер 0.7.1](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.7.1.zip): остановите прежний сервер, распакуйте новую папку и запустите с прежним --data-dir. Сохраните каталог LepkaHelperServer/accounts.db. Новая версия ускоряет счётчик профиля; клиент совместим и с сервером 0.7.0. Настройка Wi-Fi в приложении сохраняется.
+
+[Отчёт блока №23](https://github.com/Gr1zle/lepka_helper/blob/feature/personal-notices-performance/docs/personal_notices_performance.md).
+
+---
+
 # Android 0.7.0 — локальный режим и сервер через Wi-Fi
 
 [Скачать APK 0.7.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.7.0-wifi-arm64.apk)
