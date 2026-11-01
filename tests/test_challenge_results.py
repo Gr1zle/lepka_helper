@@ -77,6 +77,8 @@ class ResultTests(unittest.TestCase):
         self.assertEqual(service.detail(self.author,cid)['status'],'scheduled')
         with self.assertRaises(ValueError):service.submit(self.author,cid,self.post)
         with patch('challenge_service.today',return_value=start):
+            with self.assertRaises(ValueError):service.submit(self.author,cid,self.post)
+            with db.openDatabase() as c:c.execute('UPDATE posts SET createdAt=? WHERE postId=?',(start+' 12:00:00',self.post))
             self.assertTrue(service.submit(self.author,cid,self.post))
         with self.assertRaises(ValueError):service.create(self.admin,'Конкурс','Правила конкурса',end,'2099-01-01')
         with self.assertRaises(ValueError):service.create(self.admin,'Конкурс','Правила конкурса',end,theme='x'*81)

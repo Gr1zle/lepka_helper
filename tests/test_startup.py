@@ -176,6 +176,79 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.page.session.get('plannerProject'))
         self.assertTrue(all(not r['isRead'] for r in syncProjectReminders(self.user['userId'])))
 
+    async def test_contest_new_publication_shortcut_prefills_picker_and_preserves_identity(self):
+        from views.challenge_view import createChallengeView
+        from views.community_tab import createHomeTab
+        import challenge_service as challenges
+        with database.openDatabase() as c:c.execute("UPDATE users SET roleName='admin' WHERE userId=?",(self.user['userId'],))
+        cid=challenges.create(self.user['userId'],'Быстрая публикация','Правила конкурсной публикации',challenges.today())
+        self.page.session.set('openChallengeId',cid)
+        view=self.mount(createChallengeView(self.page))
+        find(view,ft.OutlinedButton,text='Опубликовать новую работу в конкурс').on_click(None)
+        view=self.mount(ft.View('/home',controls=[createHomeTab(self.page,self.user,self.user['nickname'])]))
+        self.assertEqual(find(view,ft.Dropdown,label='Участие в конкурсе').value,str(cid))
+        self.assertIsNone(self.page.session.get('publicationChallenge'))
+
+    async def test_reply_button_and_like_keep_card_and_target_correct_comment(self):
+        from views.community_tab import createPostCard
+        from community_gateway import CommunityClient
+        import post_service as posts
+        from challenge_service import notices
+        other=database.createUser('reply@example.com','','','Читатель')
+        pid=posts.savePost(self.user['userId'],'Работа для обсуждения','Описание готовой работы','Животные','кот',[photo()])[2]
+        parent=posts.savePostComment(pid,other,'Какой материал вы выбрали?')[2]
+        refresh=[]
+        card=createPostCard(self.page,CommunityClient(self.user).getPost(pid),self.user,lambda:refresh.append(True))
+        view=self.mount(ft.View('/home',controls=[card]))
+        find(view,ft.TextButton,text='Ответить').on_click(None)
+        find(view,ft.TextField,label='Ответ на комментарий').value='Я использовал мягкую глину'
+        find(view,ft.ElevatedButton,text='Отправить комментарий').on_click(None)
+        self.assertEqual(posts.getPostComments(pid)[-1]['replyToId'],parent)
+        self.assertEqual(notices(other)[0]['kind'],'reply')
+        like=find(view,ft.TextButton,tooltip='Поставить или снять лайк')
+        like.on_click(None)
+        self.assertEqual(like.text,'❤️ 1');self.assertEqual(refresh,[])
+
+    async def test_notice_filters_and_read_all_clear_both_filtered_and_other_events(self):
+        from views.community_notices import createNoticeButton
+        import post_service as posts
+        import challenge_service as challenges
+        other=database.createUser('notice@example.com','','','Читатель')
+        pid=posts.savePost(self.user['userId'],'Работа для событий','Описание готовой работы','Животные','кот',[photo()])[2]
+        posts.togglePostLike(pid,other);posts.savePostComment(pid,other,'Какая красивая работа')
+        view=self.mount(ft.View('/home',controls=[createNoticeButton(self.page,self.user)]))
+        self.assertIsNotNone(find(view,ft.Text,value='Непрочитанных: 2'))
+        find(view,ft.OutlinedButton,text='Уведомления сообщества').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        kind=find(dialog,ft.Dropdown,label='Тип уведомлений');kind.value='comment';kind.on_change(None)
+        self.assertIsNotNone(find(dialog,ft.Text,value='Какая красивая работа'))
+        find(dialog,ft.TextButton,text='Прочитать все уведомления').on_click(None)
+        self.assertEqual(challenges.noticeSummary(self.user['userId'])['unread'],0)
+        unread=find(dialog,ft.Checkbox,label='Только непрочитанные');unread.value=True;unread.on_change(None)
+        self.assertIsNotNone(find(dialog,ft.Text,value='Уведомлений по этому фильтру нет.'))
+
+    async def test_home_publication_selects_contest_and_feed_loads_next_page(self):
+        from views.community_tab import createHomeTab
+        import challenge_service as challenges
+        import post_service as posts
+        with database.openDatabase() as c:c.execute("UPDATE users SET roleName='admin' WHERE userId=?",(self.user['userId'],))
+        cid=challenges.create(self.user['userId'],'Конкурс из формы','Правила конкурса из формы',challenges.today())
+        for i in range(12):posts.savePost(self.user['userId'],f'Старая работа {i}','Описание готовой работы','Животные','кот',[photo()])
+        view=self.mount(ft.View('/home',controls=[createHomeTab(self.page,self.user,self.user['nickname'])]))
+        find(view,ft.Dropdown,label='Участие в конкурсе').value=str(cid)
+        find(view,ft.TextField,label='Название работы').value='Новая конкурсная работа'
+        find(view,ft.TextField,label='Описание').value='Описание конкурсной фигурки'
+        path=Path(self.temp.name)/'contest.png';data=photo()['data'];path.write_bytes(data)
+        with patch('flet.FilePicker.pick_files'):
+            find(view,ft.OutlinedButton,text='Добавить фото').on_click(None)
+        picker=next(c for c in self.page.overlay if isinstance(c,ft.FilePicker))
+        picker.on_result(SimpleNamespace(files=[SimpleNamespace(name='contest.png',path=str(path),size=len(data))]))
+        find(view,ft.ElevatedButton,text='Опубликовать').on_click(None)
+        self.assertIsNotNone(challenges.detail(self.user['userId'],cid)['myPostId'])
+        self.assertTrue(find(view,ft.OutlinedButton,text='Показать ещё работы').visible)
+        find(view,ft.OutlinedButton,text='Показать ещё работы').on_click(None)
+        self.assertFalse(find(view,ft.OutlinedButton,text='Показать ещё работы').visible)
+
     async def test_prize_notice_profile_read_and_open_correct_challenge(self):
         import challenge_service as challenges
         from views.community_notices import createChallengeProfile

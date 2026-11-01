@@ -73,7 +73,7 @@ def normalizeTags(tagsText):
 
 
 def savePost(userId, titleText, descriptionText, categoryName, tagsText, photoFiles=None,
-             projectDetailsJson='', existingConnection=None):
+             projectDetailsJson='', existingConnection=None, challengeId=None):
     if not isinstance(titleText, str) or not isinstance(descriptionText, str):
         return False, 'Введите название и описание работы', None
     titleText = titleText.strip()
@@ -116,15 +116,18 @@ def savePost(userId, titleText, descriptionText, categoryName, tagsText, photoFi
             details['formatVersion'] = 2
         projectDetailsJson = json.dumps(details, ensure_ascii=False)
 
-    postId = createPostWithPhotos(
-        userId,
-        titleText,
-        descriptionText,
-        categoryName,
-        tagsText,
-        photos,
-        projectDetailsJson, existingConnection=existingConnection,
-    )
+    try:
+        postId = createPostWithPhotos(
+            userId,
+            titleText,
+            descriptionText,
+            categoryName,
+            tagsText,
+            photos,
+            projectDetailsJson, existingConnection=existingConnection, challengeId=challengeId,
+        )
+    except ValueError as error:
+        return False,str(error),None
     if postId is None:
         return False, 'Аккаунт недоступен', None
     return True, "Работа опубликована", postId
@@ -203,7 +206,7 @@ def validateCommentText(commentText):
     return None
 
 
-def savePostComment(postId, userId, commentText):
+def savePostComment(postId, userId, commentText, replyToId=None):
     if not isinstance(commentText, str):
         return False, 'Введите текст комментария', None
     cleanCommentText = (commentText or "").strip()
@@ -214,7 +217,7 @@ def savePostComment(postId, userId, commentText):
         return False, commentError, None
 
     try:
-        commentId = createPostComment(postId, userId, cleanCommentText)
+        commentId = createPostComment(postId, userId, cleanCommentText,replyToId)
     except ValueError as error:
         return False, str(error), None
 
@@ -223,8 +226,8 @@ def savePostComment(postId, userId, commentText):
     return True, "Комментарий добавлен", commentId
 
 
-def getPostComments(postId):
-    commentRecords = getCommentsByPostId(postId)
+def getPostComments(postId,offset=0,limit=None,newest=False):
+    commentRecords = getCommentsByPostId(postId,offset,limit,newest)
     commentItems = []
 
     for commentRecord in commentRecords:
@@ -234,6 +237,7 @@ def getPostComments(postId):
                 "postId": commentRecord["postId"],
                 "userId": commentRecord["userId"],
                 "commentText": commentRecord["commentText"],
+                "replyToId":commentRecord["replyToId"], "replyNickname":commentRecord["replyNickname"],
                 "createdAt": commentRecord["createdAt"],
                 "nickname": commentRecord["nickname"],
             }

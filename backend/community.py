@@ -24,7 +24,7 @@ class CommunityBodyLimit:
         if (scope['type'] != 'http' or not scope['path'].startswith(('/community/','/admin/'))
                 or scope['method'] not in ('POST', 'PUT')):
             return await self.app(scope, receive, send)
-        challenge=scope['path'].startswith(('/admin/challenges','/community/challenges'))
+        challenge=scope['path'].startswith(('/admin/challenges','/community/challenges','/community/notices','/community/notice-summary'))
         moderation=scope['path'].startswith('/admin/') or scope['path']=='/community/reports'
         limit=32768 if challenge else (8192 if moderation else MAX_COMMUNITY_BODY)
         body = bytearray()
@@ -65,11 +65,16 @@ class PostInput(CommunityInput):
     tagsText: str = Field(max_length=320)
     photos: list[PhotoInput] = Field(min_length=1, max_length=10)
     projectDetailsJson: str = Field(default='', max_length=131072)
+    challengeId: int | None = Field(default=None,gt=0,le=9223372036854775807)
     requestId: str = Field(min_length=16, max_length=80, pattern=r'^[a-zA-Z0-9-]+$')
 
 
-class CommentInput(CommunityInput):
+class CommentTextInput(CommunityInput):
     commentText: str = Field(max_length=1000)
+
+
+class CommentInput(CommentTextInput):
+    replyToId: int | None = Field(default=None,gt=0,le=9223372036854775807)
 
 
 class ProgressInput(CommunityInput):
@@ -87,6 +92,14 @@ def requirePost(postId):
 
 def installCommunityRoutes(application, currentUser, optionalUser):
     application.add_middleware(CommunityBodyLimit)
+
+    @application.get('/community/feed')
+    def pagedFeed(mine: bool=False,query: str=Query('',max_length=120),category: str='Все',
+                  sort: str=Query('new',pattern='^(new|popular)$'),offset: int=Query(0,ge=0),limit: int=Query(12,ge=1,le=50),user=Depends(optionalUser)):
+        if mine and not user:raise HTTPException(401,'Выполните вход')
+        import feed_service
+        try:return {'data':feed_service.page(user['userId'] if user else None,mine,query,category,sort,offset,limit)}
+        except ValueError as error:raise HTTPException(400,str(error)) from error
 
     @application.get('/community/posts')
     def feed(user=Depends(optionalUser), mine: bool = False, searchMode: bool = False, offset: int = Query(0, ge=0),
@@ -123,7 +136,7 @@ def installCommunityRoutes(application, currentUser, optionalUser):
 
     @application.post('/community/posts')
     def publish(body: PostInput, user=Depends(currentUser)):
-        payload = body.model_dump(exclude={'requestId'})
+        payload = body.model_dump(exclude={'requestId'},exclude_none=True)
         payloadHash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
         with db.openDatabase() as connection:
             connection.execute('BEGIN IMMEDIATE')
@@ -143,7 +156,7 @@ def installCommunityRoutes(application, currentUser, optionalUser):
             except (ValueError, binascii.Error):
                 raise HTTPException(400, 'Некорректные данные фотографии') from None
             success, message, postId = posts.savePost(user['userId'], body.titleText, body.descriptionText,
-                body.categoryName, body.tagsText, photos, body.projectDetailsJson, existingConnection=connection)
+                body.categoryName, body.tagsText, photos, body.projectDetailsJson, existingConnection=connection, challengeId=body.challengeId)
             if not success:
                 raise HTTPException(400, message)
             connection.execute('INSERT INTO communityRequests VALUES (?, ?, ?, ?)',
@@ -151,10 +164,13 @@ def installCommunityRoutes(application, currentUser, optionalUser):
         return {'message': message, 'data': postId}
 
     @application.get('/community/photos/{photoId}')
-    def photo(photoId: int):
+    def photo(photoId: int,thumbnail: bool = False):
         image = db.getPostPhoto(photoId)
         if image is None:
             raise HTTPException(404, 'Фото не найдено')
+        if thumbnail:
+            from photo_service import photoThumbnail
+            image=photoThumbnail(image)
         return {'data': {'imageBase64': base64.b64encode(image).decode()}}
 
     @application.delete('/community/posts/{postId}')
@@ -178,15 +194,22 @@ def installCommunityRoutes(application, currentUser, optionalUser):
             item['isOwn'] = bool(user and item['userId'] == user['userId'])
         return {'data': items}
 
+    @application.get('/community/posts/{postId}/comments-page')
+    def commentsPage(postId: int,offset: int=Query(0,ge=0),limit: int=Query(20,ge=1,le=50),user=Depends(optionalUser)):
+        requirePost(postId)
+        items=posts.getPostComments(postId,offset,limit+1,True)
+        for item in items:item['isOwn']=bool(user and item['userId']==user['userId'])
+        return {'data':{'items':items[:limit],'hasMore':len(items)>limit}}
+
     @application.post('/community/posts/{postId}/comments')
     def comment(postId: int, body: CommentInput, user=Depends(currentUser)):
-        success, message, commentId = posts.savePostComment(postId, user['userId'], body.commentText)
+        success, message, commentId = posts.savePostComment(postId, user['userId'], body.commentText,body.replyToId)
         if not success:
             raise HTTPException(400, message)
         return {'message': message, 'data': commentId}
 
     @application.put('/community/comments/{commentId}')
-    def editComment(commentId: int, body: CommentInput, user=Depends(currentUser)):
+    def editComment(commentId: int, body: CommentTextInput, user=Depends(currentUser)):
         success, message = posts.editPostComment(commentId, user['userId'], body.commentText)
         if not success:
             raise HTTPException(400, message)

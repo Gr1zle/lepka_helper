@@ -52,3 +52,14 @@ def prepareAvatar(name, data):
         output = BytesIO()
         image.save(output, format='PNG')
         return output.getvalue()
+
+
+def photoThumbnail(data):
+    """Небольшой JPEG для сетки, без записи на диск."""
+    from io import BytesIO
+    from PIL import Image
+    with Image.open(BytesIO(data)) as image:
+        image=image.convert('RGB')
+        image.thumbnail((400,300))
+        output=BytesIO();image.save(output,format='JPEG',quality=78)
+        return output.getvalue()

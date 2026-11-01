@@ -321,6 +321,10 @@ def initializeDatabase():
         FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE,
         FOREIGN KEY(postId) REFERENCES posts(postId) ON DELETE CASCADE)''')
 
+    cursor.execute('''CREATE TABLE IF NOT EXISTS challengeOptOuts (
+        challengeId INTEGER NOT NULL,userId INTEGER NOT NULL,PRIMARY KEY(challengeId,userId),
+        FOREIGN KEY(challengeId) REFERENCES challenges(challengeId) ON DELETE CASCADE,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS challengeVotes (
         challengeId INTEGER NOT NULL, postId INTEGER NOT NULL, userId INTEGER NOT NULL,
         PRIMARY KEY(challengeId,postId,userId),
@@ -356,6 +360,19 @@ def initializeDatabase():
         )
         """
     )
+
+    addColumnIfNotExists(cursor,'postComments','replyToId',
+        'replyToId INTEGER REFERENCES postComments(commentId) ON DELETE SET NULL')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS activityNotices (
+        noticeId INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER NOT NULL, actorId INTEGER NOT NULL,
+        kind TEXT NOT NULL, postId INTEGER NOT NULL, commentId INTEGER, eventKey TEXT NOT NULL,
+        isRead INTEGER NOT NULL DEFAULT 0, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(userId,eventKey),
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE,
+        FOREIGN KEY(actorId) REFERENCES users(userId) ON DELETE CASCADE,
+        FOREIGN KEY(postId) REFERENCES posts(postId) ON DELETE CASCADE,
+        FOREIGN KEY(commentId) REFERENCES postComments(commentId) ON DELETE CASCADE)''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS activityRecipient ON activityNotices(userId,noticeId)')
 
     cursor.execute(
         """
@@ -845,9 +862,13 @@ def erasePost(connection,postId):
     connection.execute('DELETE FROM posts WHERE postId = ?', (postId,))
 
 
-def createPostComment(postId, userId, commentText):
+def createPostComment(postId, userId, commentText, replyToId=None):
     with openDatabase() as connection:
         connection.execute('BEGIN IMMEDIATE')
+        if replyToId is not None:
+            if type(replyToId) is not int or not 1<=replyToId<=9223372036854775807 or not connection.execute(
+                'SELECT 1 FROM postComments WHERE commentId=? AND postId=?',(replyToId,postId)).fetchone():
+                raise ValueError('Комментарий для ответа уже недоступен')
         recent = connection.execute("""SELECT COUNT(*) FROM commentEvents
             WHERE userId = ? AND createdAt > datetime('now', '-1 minute')""", (userId,)).fetchone()[0]
         if recent >= 5:
@@ -861,6 +882,9 @@ def createPostComment(postId, userId, commentText):
         if not cursor.rowcount:
             return None
         commentId = cursor.lastrowid
+        connection.execute('UPDATE postComments SET replyToId=? WHERE commentId=?',(replyToId,commentId))
+        from activity_service import comment
+        comment(connection,postId,userId,commentId,replyToId)
         connection.execute('INSERT INTO commentEvents (userId) VALUES (?)', (userId,))
         connection.execute("DELETE FROM commentEvents WHERE createdAt < datetime('now', '-1 day')")
         return commentId
@@ -880,31 +904,38 @@ def togglePostLikeForUser(postId, userId):
         isLiked = cursor.rowcount == 0
         if isLiked:
             connection.execute('INSERT INTO postLikes (postId, userId) VALUES (?, ?)', (postId, userId))
+        if isLiked:
+            from activity_service import record
+            owner=connection.execute('SELECT userId FROM posts WHERE postId=?',(postId,)).fetchone()[0]
+            record(connection,owner,userId,'like',postId)
         likesCount = connection.execute('SELECT COUNT(*) FROM postLikes WHERE postId = ?', (postId,)).fetchone()[0]
         connection.execute('UPDATE posts SET likesCount = ? WHERE postId = ?', (likesCount, postId))
         return isLiked, likesCount
 
 
-def getCommentsByPostId(postId):
+def getCommentsByPostId(postId, offset=0, limit=None, newest=False):
     connection = getConnection()
     cursor = connection.cursor()
 
+    direction='DESC' if newest else 'ASC'
     cursor.execute(
-        """
+        f"""
         SELECT
             postComments.commentId,
             postComments.postId,
             postComments.userId,
             postComments.commentText,
             postComments.createdAt,
+            postComments.replyToId,
+            (SELECT pu.nickname FROM postComments parent JOIN users pu ON pu.userId=parent.userId WHERE parent.commentId=postComments.replyToId) AS replyNickname,
             COALESCE(remoteAccounts.displayNickname, users.nickname) AS nickname
         FROM postComments
         INNER JOIN users ON postComments.userId = users.userId
         LEFT JOIN remoteAccounts ON remoteAccounts.localUserId = users.userId
         WHERE postComments.postId = ?
-        ORDER BY postComments.createdAt ASC
+        ORDER BY postComments.commentId {direction} LIMIT ? OFFSET ?
         """,
-        (postId,),
+        (postId, -1 if limit is None else limit, offset),
     )
 
     commentRecords = cursor.fetchall()
@@ -1017,6 +1048,7 @@ def deleteUserDataById(userId, existingConnection=None):
             (SELECT postId FROM posts WHERE userId = ?)''', (userId, userId))
         ownedPosts = connection.execute('SELECT postId FROM posts WHERE userId = ?', (userId,)).fetchall()
         if ownedPosts:
+            connection.execute('DELETE FROM activityNotices WHERE postId IN (SELECT postId FROM posts WHERE userId=?)',(userId,))
             deletedAuthor = connection.execute(
                 "SELECT userId FROM users WHERE roleName = 'deleted' LIMIT 1"
             ).fetchone()
@@ -1139,19 +1171,31 @@ def updateProjectStepDescription(projectId, stepId, userId, description):
 
 
 def createPostWithPhotos(userId, titleText, descriptionText, categoryName, tagsText, photos,
-                         projectDetailsJson='', existingConnection=None):
+                         projectDetailsJson='', existingConnection=None, challengeId=None):
     context = openDatabase() if existingConnection is None else nullcontext(existingConnection)
     with context as connection:
-        cursor = connection.execute("""INSERT INTO posts
-            (userId, titleText, descriptionText, categoryName, tagsText, projectDetailsJson)
-            SELECT userId, ?, ?, ?, ?, ? FROM users WHERE userId = ? AND isBlocked = 0""",
-            (titleText, descriptionText, categoryName, tagsText, projectDetailsJson, userId))
-        if not cursor.rowcount:
-            return None
-        postId = cursor.lastrowid
-        connection.executemany('INSERT INTO postPhotos (postId, position, imageData) VALUES (?, ?, ?)',
-                               [(postId, index, data) for index, data in enumerate(photos)])
-        return postId
+        if not connection.in_transaction:connection.execute('BEGIN IMMEDIATE')
+        connection.execute('SAVEPOINT publication')
+        try:
+            from contest_entry import publicationTags,enroll
+            tagsText=publicationTags(connection,userId,tagsText,challengeId)
+            cursor = connection.execute("""INSERT INTO posts
+                (userId, titleText, descriptionText, categoryName, tagsText, projectDetailsJson)
+                SELECT userId, ?, ?, ?, ?, ? FROM users WHERE userId = ? AND isBlocked = 0""",
+                (titleText, descriptionText, categoryName, tagsText, projectDetailsJson, userId))
+            if not cursor.rowcount:
+                connection.execute('RELEASE publication')
+                return None
+            postId = cursor.lastrowid
+            connection.executemany('INSERT INTO postPhotos (postId, position, imageData) VALUES (?, ?, ?)',
+                                   [(postId, index, data) for index, data in enumerate(photos)])
+            enroll(connection,postId,strict=True)
+            connection.execute('RELEASE publication')
+            return postId
+        except Exception:
+            connection.execute('ROLLBACK TO publication')
+            connection.execute('RELEASE publication')
+            raise
 
 
 def getPostPhotoIds(postId):

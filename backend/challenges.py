@@ -42,12 +42,20 @@ def installChallengeRoutes(app, currentUser):
         return invoke(lambda: service.profile(user['userId']))
 
     @app.get('/community/notices')
-    def notices(offset: int = Query(0,ge=0),user=Depends(currentUser)):
-        return invoke(lambda: service.notices(user['userId'],offset))
+    def notices(offset: int = Query(0,ge=0),kind: str = Query('all',pattern='^(all|award|like|comment|reply)$'),unread: bool = False,user=Depends(currentUser)):
+        return invoke(lambda: service.notices(user['userId'],offset,kind,unread))
 
     @app.put('/community/notices/{noticeId}/read')
-    def read(noticeId: int = Path(gt=0),user=Depends(currentUser)):
+    def read(noticeId: int = Path(),user=Depends(currentUser)):
         return invoke(lambda: service.readNotice(user['userId'],noticeId))
+
+    @app.get('/community/notice-summary')
+    def summary(user=Depends(currentUser)):
+        return invoke(lambda: service.noticeSummary(user['userId']))
+
+    @app.put('/community/notices-read-all')
+    def readAll(user=Depends(currentUser)):
+        return invoke(lambda: service.readAllNotices(user['userId']))
 
     @app.get('/community/challenges/{challengeId}')
     def detail(challengeId: int = Path(gt=0), offset: int = Query(0, ge=0), sort: str = Query('new', pattern='^(new|votes)$'), user=Depends(currentUser)):
