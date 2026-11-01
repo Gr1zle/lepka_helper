@@ -1,3 +1,5 @@
+[Оставшиеся блоки приложения](docs/remaining_work.md) · [№24: личные данные и синхронизация](docs/personal_vault_sync.md).
+
 [Блок №23: личные уведомления и ускорение «Цветов»](docs/personal_notices_performance.md).
 
 [Сервер через домашний Wi-Fi без Docker и хостинга](docs/wifi_server.md).

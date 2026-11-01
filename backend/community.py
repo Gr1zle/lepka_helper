@@ -21,19 +21,20 @@ class CommunityBodyLimit:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if (scope['type'] != 'http' or not scope['path'].startswith(('/community/','/admin/'))
+        if (scope['type'] != 'http' or not scope['path'].startswith(('/community/','/admin/','/personal/'))
                 or scope['method'] not in ('POST', 'PUT')):
             return await self.app(scope, receive, send)
         challenge=scope['path'].startswith(('/admin/challenges','/community/challenges','/community/notices','/community/notice-summary'))
         moderation=scope['path'].startswith('/admin/') or scope['path']=='/community/reports'
-        limit=32768 if challenge else (8192 if moderation else MAX_COMMUNITY_BODY)
+        private=scope['path'].startswith('/personal/')
+        limit=(20*1024*1024+32768) if private else 32768 if challenge else (8192 if moderation else MAX_COMMUNITY_BODY)
         body = bytearray()
         while True:
             event = await receive()
             if event['type'] == 'http.disconnect':
                 return
             if len(body) + len(event.get('body', b'')) > limit:
-                detail='Запрос задания слишком большой (до 32 КБ)' if challenge else 'Запрос модерации слишком большой (до 8 КБ)' if moderation else 'Публикация слишком большая (до 48 МБ)'
+                detail='Личный снимок слишком большой (до 20 МБ)' if private else 'Запрос задания слишком большой (до 32 КБ)' if challenge else 'Запрос модерации слишком большой (до 8 КБ)' if moderation else 'Публикация слишком большая (до 48 МБ)'
                 return await JSONResponse({'detail': detail}, status_code=413)(scope, receive, send)
             body.extend(event.get('body', b''))
             if not event.get('more_body', False):

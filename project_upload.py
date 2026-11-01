@@ -12,7 +12,8 @@ _uploads = {}
 _lock = threading.Lock()
 
 
-def createProjectUpload(user):
+def createProjectUpload(user,kind="project"):
+    if kind not in ("project","personal"):raise ValueError("Неизвестный тип архива")
     with _lock:
         for key in list(_uploads):
             if _uploads[key]['expires'] <= time.monotonic():
@@ -20,7 +21,7 @@ def createProjectUpload(user):
         if len(_uploads) >= 10:
             raise ValueError('Слишком много ожидающих файлов. Отмените загрузку или повторите через 10 минут')
         token = secrets.token_urlsafe(32)
-        _uploads[token] = dict(expires=time.monotonic()+600, userId=user['userId'], sessionToken=user['sessionToken'], state='pending', content=None)
+        _uploads[token] = dict(expires=time.monotonic()+600, userId=user['userId'], sessionToken=user['sessionToken'], state='pending', content=None,kind=kind)
         return token
 
 
@@ -56,7 +57,10 @@ async def uploadProject(request):
             if len(content)+len(chunk) > MAX_ARCHIVE_BYTES:
                 return Response('Файл больше 20 МБ', status_code=413)
             content.extend(chunk)
-        await run_in_threadpool(decodeProject, bytes(content))
+        if record.get('kind')=='personal':
+            from personal_snapshot import decodeSnapshot
+            await run_in_threadpool(decodeSnapshot,bytes(content))
+        else:await run_in_threadpool(decodeProject, bytes(content))
         with _lock:
             if _uploads.get(token) is not record or record['expires'] <= time.monotonic():
                 return Response(status_code=404)

@@ -85,12 +85,15 @@ def lanTransport(baseUrl):
     return _transports.lan[1]
 
 
-def apiRequest(method, path, payload=None, sessionToken=None, imageData=None):
+def apiRequest(method, path, payload=None, sessionToken=None, imageData=None, jsonContent=None):
     baseUrl = getApiUrl()
     if not baseUrl:
         raise ApiError('Адрес сервера не задан')
     headers = {'Authorization': f'Bearer {sessionToken}'} if sessionToken else {}
     body = {'json': payload}
+    if jsonContent is not None:
+        headers['Content-Type'] = 'application/json'
+        body = {'data': jsonContent}
     if imageData is not None:
         headers['Content-Type'] = 'image/png'
         body = {'data': imageData}

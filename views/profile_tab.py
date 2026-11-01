@@ -1,6 +1,7 @@
 from views.community_notices import createChallengeProfile
 """Профиль, настройки и действия с аккаунтом — отдельно от ленты и инструментов."""
 import flet as ft
+from views.personal_data import createPersonalDataButton
 from api_client import getApiUrl
 
 from account_gateway import (deleteUserAccount, requestEmailChange, confirmEmailChange,
@@ -623,6 +624,7 @@ def createProfileTab(page, nickname, email):
                                 size=18,
                                 weight=ft.FontWeight.BOLD,
                             ),
+                            createPersonalDataButton(page,currentUser),
                             createMyWorksButton(page, currentUser, refreshPostStats),
                             createLocalWorksButton(page, currentUser),
                             createProfileLessonLibrary(page,currentUser),

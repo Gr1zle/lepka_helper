@@ -265,6 +265,38 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         like.on_click(None)
         self.assertEqual(like.text,'❤️ 1');self.assertEqual(refresh,[])
 
+    async def test_full_personal_copy_restores_only_owner_after_explicit_confirmation(self):
+        from views.personal_data import createPersonalDataButton
+        from personal_checkpoints import listCheckpoints
+        view=self.mount(ft.View('/profile',controls=[createPersonalDataButton(self.page,self.user)]))
+        find(view,ft.TextButton,text='Личные данные и синхронизация').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.TextButton,text='Создать полную личную копию').on_click(None)
+        self.assertEqual(len(listCheckpoints(self.user['userId'])),1)
+        other=database.createUser('privateother@example.com','','','Другой')
+        projects.saveProject(other,'Чужой личный проект','Другое','','')
+        projects.saveProject(self.user['userId'],'Новая локальная работа','Другое','','')
+        find(dialog,ft.TextButton,text='Восстановить копию').on_click(None)
+        confirm=next(c for c in reversed(self.page.overlay) if isinstance(c,ft.AlertDialog) and c.open)
+        self.assertEqual(len(projects.getUserProjects(self.user['userId'])),1)
+        find(confirm,ft.TextButton,text='Заменить личные данные').on_click(None)
+        self.assertEqual(projects.getUserProjects(self.user['userId']),[])
+        self.assertEqual(len(projects.getUserProjects(other)),1)
+        self.assertEqual(len(listCheckpoints(self.user['userId'])),2)
+
+    async def test_private_sync_queues_offline_request_without_faking_server_success(self):
+        from views.personal_data import createPersonalDataButton
+        from api_client import ApiError
+        with patch('personal_sync.getApiUrl',return_value='https://offline.example'),patch('personal_sync.requireCachedUser'),patch('personal_sync.apiRequest',side_effect=ApiError('Нет связи')):
+            view=self.mount(ft.View('/profile',controls=[createPersonalDataButton(self.page,self.user)]))
+            find(view,ft.TextButton,text='Личные данные и синхронизация').on_click(None)
+            dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+            find(dialog,ft.ElevatedButton,text='Сравнить и синхронизировать').on_click(None)
+            from personal_sync import PersonalSync
+            self.assertTrue(PersonalSync(self.user).base()['pending'])
+            find(dialog,ft.TextButton,text='Отменить отложенный запрос').on_click(None)
+            self.assertFalse(PersonalSync(self.user).base()['pending'])
+
     async def test_personal_center_opens_saved_lesson_and_saves_source_settings(self):
         from lesson_service import saveUserLessonState
         from views.community_notices import createNoticeButton
