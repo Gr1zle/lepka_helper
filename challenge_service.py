@@ -18,7 +18,7 @@ def activeUser(c, userId):
 
 
 def identifier(value):
-    if type(value) is not int or value < 1:
+    if type(value) is not int or not 1<=value<=9223372036854775807:
         raise ValueError('Некорректный идентификатор')
     return value
 
@@ -112,6 +112,11 @@ def detail(userId, challengeId, offset=0, sort='new'):
             e.userId=? AS isOwn
             FROM challengeEntries e JOIN posts p ON p.postId=e.postId JOIN users u ON u.userId=e.userId
             WHERE e.challengeId=? ORDER BY {order} LIMIT 50 OFFSET ?''', (userId, userId, challengeId, offset))]
+        from contest_entry import tag
+        item['tag']=tag(challengeId)
+        for entry in item['entries']:
+            photo=c.execute('SELECT photoId FROM postPhotos WHERE postId=? ORDER BY position LIMIT 1',(entry['postId'],)).fetchone()
+            entry['photoId']=photo[0] if photo else None
         winner = c.execute('SELECT p.titleText,u.nickname FROM posts p JOIN users u ON u.userId=p.userId WHERE p.postId=? AND p.isDeleted=0', (item['winnerPostId'],)).fetchone()
         item['winner'] = dict(winner) if winner else None
         return item
@@ -132,6 +137,14 @@ def submit(userId, challengeId, postId):
             if existing[0] == postId:
                 return False
             raise ValueError('Одна работа на участника. Сначала отзовите текущую заявку')
+        from contest_entry import inPeriod,tag,tokens
+        post=c.execute('SELECT createdAt,tagsText FROM posts WHERE postId=?',(postId,)).fetchone()
+        if not inPeriod(c,item,post['createdAt']):raise ValueError('Публикация должна быть создана в период конкурса')
+        from post_service import normalizeTags
+        values=tokens(post['tagsText'])
+        if tag(challengeId) not in values:values.append(tag(challengeId))
+        c.execute('DELETE FROM challengeOptOuts WHERE challengeId=? AND userId=?',(challengeId,userId))
+        c.execute('UPDATE posts SET tagsText=? WHERE postId=?',(normalizeTags(', '.join(values)),postId))
         c.execute('INSERT INTO challengeEntries(challengeId,userId,postId) VALUES(?,?,?)', (challengeId, userId, postId))
         return True
 
@@ -142,6 +155,12 @@ def withdraw(userId, challengeId):
         activeUser(c, userId)
         if status(getChallenge(c, challengeId)) != 'open':
             raise ValueError('После срока отозвать заявку нельзя')
+        from contest_entry import tokens,tag
+        row=c.execute('SELECT postId FROM challengeEntries WHERE challengeId=? AND userId=?',(challengeId,userId)).fetchone()
+        if row:
+            c.execute('INSERT OR IGNORE INTO challengeOptOuts VALUES(?,?)',(challengeId,userId))
+            text=c.execute('SELECT tagsText FROM posts WHERE postId=?',(row['postId'],)).fetchone()[0]
+            c.execute('UPDATE posts SET tagsText=? WHERE postId=?',(', '.join(v for v in tokens(text) if v!=tag(challengeId)),row['postId']))
         return bool(c.execute('DELETE FROM challengeEntries WHERE challengeId=? AND userId=?', (challengeId, userId)).rowcount)
 
 
@@ -208,6 +227,8 @@ def settle(c):
     """Вызывать в транзакции: фиксация итогов и уведомлений атомарна."""
     if not c.in_transaction:
         c.execute('BEGIN IMMEDIATE')
+    from contest_entry import sync
+    sync(c)
     rows=c.execute("SELECT challengeId FROM challenges WHERE state='open' AND resultMode='votes' AND deadline<?",(today(),)).fetchall()
     for row in rows:
         cid=row['challengeId']
@@ -243,18 +264,32 @@ def profile(userId):
             WHERE e.userId=? ORDER BY h.challengeId DESC LIMIT 20''',(userId,))]
 
 
-def notices(userId, offset=0):
-    if type(offset) is not int or offset<0:raise ValueError('Некорректная страница')
+def notices(userId, offset=0, kind='all', unread=False):
+    import social_feed
     with db.openDatabase() as c:
         activeUser(c,userId)
         settle(c)
-        return [dict(r) for r in c.execute('''SELECT n.*,h.title FROM communityNotices n
-            JOIN challenges h ON h.challengeId=n.challengeId WHERE n.userId=?
-            ORDER BY n.noticeId DESC LIMIT 50 OFFSET ?''',(userId,offset))]
+        return social_feed.listing(c,userId,offset,kind,unread)
 
 
 def readNotice(userId, noticeId):
-    identifier(noticeId)
+    import social_feed
     with db.openDatabase() as c:
         activeUser(c,userId)
-        return bool(c.execute('UPDATE communityNotices SET isRead=1 WHERE noticeId=? AND userId=?',(noticeId,userId)).rowcount)
+        return social_feed.read(c,userId,noticeId)
+
+
+def noticeSummary(userId):
+    import social_feed
+    with db.openDatabase() as c:
+        activeUser(c,userId)
+        settle(c)
+        return social_feed.summary(c,userId)
+
+
+def readAllNotices(userId):
+    import social_feed
+    with db.openDatabase() as c:
+        c.execute('BEGIN IMMEDIATE')
+        activeUser(c,userId)
+        return social_feed.readAll(c,userId)

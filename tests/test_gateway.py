@@ -94,6 +94,47 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
         self.page.session.set('currentUser', user)
         return user
 
+    async def test_remote_contest_publication_replies_and_notice_center_keep_ids_on_server(self):
+        from scripts.manage_admin import grantAdmin
+        from challenge_gateway import ChallengeClient
+        from community_gateway import CommunityClient
+        from image_fixtures import photo
+        import challenge_service
+        grantAdmin(self.root/'server'/'accounts.db','server@example.com')
+        user=self.login();contest=ChallengeClient(user);community=CommunityClient(user)
+        self.assertNotEqual(user['userId'],user['serverUserId'])
+        cid=contest.create('Серверный конкурс','Правила серверного конкурса',challenge_service.today(),resultMode='votes')
+        success,message,pid=community.publishPost('Конкурсный кот','Описание готового кота','Животные','кот',[photo()],challengeId=cid)
+        self.assertTrue(success,message)
+        self.assertEqual(contest.detail(cid)['myPostId'],pid)
+        reader=gateway.loginUser('second@example.com','ServerPass123')[2]
+        other=CommunityClient(reader)
+        self.assertTrue(other.toggleLike(pid)[0])
+        parent=other.saveComment(pid,'Какой материал вы использовали?')[2]
+        community.saveComment(pid,'Для котика использована мягкая глина',parent)
+        events=contest.notices()
+        self.assertEqual({r['kind'] for r in events},{'like','comment'})
+        self.assertEqual(ChallengeClient(reader).notices()[0]['kind'],'reply')
+        self.assertEqual(contest.noticeSummary()['unread'],2)
+        self.assertEqual(contest.readAllNotices(),2)
+        self.assertEqual(contest.notices(unread=True),[])
+        self.assertEqual(community.getPostsPage(query='КОНКУРСНЫЙ')['items'][0]['postId'],pid)
+        detail=contest.detail(cid)
+        self.assertTrue(community.getThumbnail(detail['entries'][0]['photoId']))
+        with database.openDatabase() as c:
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM challengeEntries').fetchone()[0],0)
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM activityNotices').fetchone()[0],0)
+            self.assertEqual(c.execute('SELECT roleName FROM users WHERE userId=?',(self.localId,)).fetchone()[0],'user')
+        import post_service as posts
+        localPost=posts.savePost(user['userId'],'Местная работа','Локальная публикация до подключения API','Животные','кот',[photo()])[2]
+        with database.openDatabase() as c:c.execute('UPDATE posts SET tagsText=? WHERE postId=?',(f'кот, #challenge-{cid}',localPost))
+        success,message,exported=community.exportLocalPost(localPost)
+        self.assertTrue(success,message)
+        self.assertNotIn('#challenge-',community.getPost(exported)['tagsText'])
+        self.assertIn('#challenge-',posts.getUserPosts(user['userId'])[0]['tagsText'])
+        self.assertEqual(contest.detail(cid)['myPostId'],pid)
+
+
     async def test_login_keeps_server_and_local_ids_separate_and_preserves_old_data(self):
         project = database.createProject(self.localId, 'Локальный проект', 'Животные', '', '')
         user = self.login()

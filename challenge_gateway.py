@@ -36,8 +36,14 @@ class ChallengeClient(ModerationClient):
     def profile(self):
         return self.call('GET','/community/challenge-profile',local=lambda actor:service.profile(actor))
 
-    def notices(self,offset=0):
-        return self.call('GET',f'/community/notices?offset={offset}',local=lambda actor:service.notices(actor,offset))
+    def notices(self,offset=0,kind='all',unread=False):
+        return self.call('GET','/community/notices?'+urlencode(dict(offset=offset,kind=kind,unread=str(unread).lower())),local=lambda actor:service.notices(actor,offset,kind,unread))
 
     def readNotice(self,noticeId):
         return self.call('PUT',f'/community/notices/{noticeId}/read',local=lambda actor:service.readNotice(actor,noticeId))
+
+    def noticeSummary(self):
+        return self.call('GET','/community/notice-summary',local=lambda actor:service.noticeSummary(actor))
+
+    def readAllNotices(self):
+        return self.call('PUT','/community/notices-read-all',local=lambda actor:service.readAllNotices(actor))

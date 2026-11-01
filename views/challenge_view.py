@@ -153,7 +153,7 @@ def createChallengeView(page):
                     ft.Text(LABELS[item['status']]), ft.Text('Приём до ' + item['deadline'] + ' включительно, Москва (UTC+3)'),
                     ft.Text('Тематика: '+(item['theme'] or 'Свободная')), ft.Text('Начало: '+(item['startsOn'] or 'С момента создания')),
                     ft.Text('Итоги: автоматический топ-3' if item['resultMode']=='votes' else 'Итоги выбирает администратор'),
-                    ft.Text(item['rules']), ft.Text(f"Участников: {item['entriesCount']}")])
+                    ft.Text(item['rules']), ft.Text('Тег конкурса: '+item['tag']), ft.Text(f"Участников: {item['entriesCount']}")])
                 if item['state'] != 'open':
                     controls.append(ft.Text('Решение: ' + item['result']))
                     winner = item['winner']
@@ -166,22 +166,32 @@ def createChallengeView(page):
                     if item['status'] == 'open':
                         controls.append(button('Отозвать мою заявку', lambda e: (client.withdraw(cid), render())))
                 elif item['status'] == 'open':
+                    def publishNew(event):
+                        page.session.set('publicationChallenge',dict(challengeId=cid,userId=user['userId'],sessionToken=user['sessionToken']))
+                        page.session.set('homeTab',0);page.go('/home')
+                    controls.append(button('Опубликовать новую работу в конкурс',publishNew))
                     controls.append(button('Участвовать: отправить свою работу', lambda e: submitDialog(cid)))
                 if user.get('roleName') == 'admin' and item['state'] == 'open':
                     controls.append(button('Отменить задание', lambda e: decide(cid, 'cancelled')))
                     if item['status'] == 'judging':
                         controls.append(button('Завершить без победителя', lambda e: decide(cid, 'finished')))
                 controls.extend([ft.Text('Работы участников', size=20), ft.Container(content=sort, padding=ft.padding.symmetric(vertical=6))])
+                cards=[]
                 for entry in item['entries']:
                     entryControls = [ft.Text(entry['titleText'], weight=ft.FontWeight.BOLD), ft.Text(entry['nickname']),
                         button('Посмотреть работу', lambda e, pid=entry['postId']: openPost(pid))]
+                    if entry['photoId']:
+                        import base64
+                        data=community.getThumbnail(entry['photoId'])
+                        if data:entryControls.insert(0,ft.Image(src_base64=base64.b64encode(data).decode(),height=150,fit=ft.ImageFit.CONTAIN))
                     entryControls.append(ft.Text(f"Голосов в задании: {entry['votes']}"))
                     if item['status']=='open' and not entry['isOwn']:
                         entryControls.append(button('Убрать голос' if entry['isVoted'] else 'Голосовать за работу',
                             lambda e, pid=entry['postId'], liked=not bool(entry['isVoted']): (client.vote(cid,pid,liked),render())))
                     if user.get('roleName') == 'admin' and item['status'] == 'judging':
                         entryControls.append(button('Выбрать победителем', lambda e, pid=entry['postId']: decide(cid, 'finished', pid)))
-                    controls.append(ft.Card(content=ft.Container(padding=12, content=ft.Column(controls=entryControls))))
+                    cards.append(ft.Card(col={'xs':12,'sm':6,'md':4,'lg':3},content=ft.Container(padding=12, content=ft.Column(controls=entryControls))))
+                controls.append(ft.ResponsiveRow(controls=cards,spacing=12,run_spacing=12))
                 if not item['entries']: controls.append(ft.Text('Работ пока нет.'))
                 controls.append(pagination(len(item['entries']), True))
             content.controls = controls

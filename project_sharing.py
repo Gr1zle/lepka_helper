@@ -167,14 +167,17 @@ def prepareProjectPublication(projectId, userId, titleText, descriptionText, cat
 
 
 def publishProject(projectId, userId, titleText, descriptionText, categoryName, tagsText,
-                   resultStepId, otherStepIds, projectMixtureIds, workshopInfo=None):
+                   resultStepId, otherStepIds, projectMixtureIds, workshopInfo=None, challengeId=None):
     with openDatabase() as connection:
         connection.execute('BEGIN IMMEDIATE')
         success, message, payload = prepareProjectPublication(projectId, userId, titleText, descriptionText,
             categoryName, tagsText, resultStepId, otherStepIds, projectMixtureIds, workshopInfo, connection)
         if not success:
             return False, message, None
-        postId = createPostWithPhotos(userId, **payload, existingConnection=connection)
+        try:
+            postId = createPostWithPhotos(userId, **payload, existingConnection=connection,challengeId=challengeId)
+        except ValueError as error:
+            return False,str(error),None
     return True, 'Проект опубликован в сообществе', postId
 
 

@@ -39,6 +39,12 @@ class CommunityClient:
         return apiRequest(method, '/community' + path, payload,
                           self.user.get('sessionToken') if self.user else None)['data']
 
+    def getPostsPage(self,mine=False,query='',category='Все',sort='new',offset=0,limit=12):
+        if self.remote:
+            return self.request('GET','/feed?'+urlencode(dict(mine=str(mine).lower(),query=query,category=category,sort=sort,offset=offset,limit=limit)),personal=mine)
+        import feed_service
+        return feed_service.page(self.user['userId'] if self.user else None,mine,query,category,sort,offset,limit)
+
     def getPosts(self, mine=False, search=None):
         if not self.remote:
             if search is not None:
@@ -82,6 +88,15 @@ class CommunityClient:
                 return []
             raise
 
+    def getCommentsPage(self,postId,offset=0,limit=20):
+        if self.remote:
+            try:return self.request('GET',f'/posts/{postId}/comments-page?'+urlencode(dict(offset=offset,limit=limit)))
+            except ApiError as error:
+                if error.statusCode==404:return {'items':[],'hasMore':False}
+                raise
+        rows=posts.getPostComments(postId,offset,limit+1,True)
+        return {'items':rows[:limit],'hasMore':len(rows)>limit}
+
     def getPhoto(self, photoId):
         if not self.remote:
             return db.getPostPhoto(photoId)
@@ -91,6 +106,16 @@ class CommunityClient:
             if error.statusCode == 404:
                 return None
             raise
+
+    def getThumbnail(self,photoId):
+        if self.remote:
+            try:return base64.b64decode(self.request('GET',f'/photos/{photoId}?thumbnail=true')['imageBase64'],validate=True)
+            except ApiError as error:
+                if error.statusCode==404:return None
+                raise
+        from photo_service import photoThumbnail
+        data=db.getPostPhoto(photoId)
+        return photoThumbnail(data) if data else None
 
     def isLiked(self, item):
         if self.remote:
@@ -106,10 +131,10 @@ class CommunityClient:
     def deletePost(self, postId):
         return self.request('DELETE', f'/posts/{postId}', personal=True) if self.remote else posts.removePost(postId, self.user['userId'])
 
-    def saveComment(self, postId, text):
+    def saveComment(self, postId, text,replyToId=None):
         if not self.remote:
-            return posts.savePostComment(postId, self.user['userId'], text)
-        commentId = self.request('POST', f'/posts/{postId}/comments', {'commentText': text}, personal=True)
+            return posts.savePostComment(postId, self.user['userId'], text,replyToId)
+        commentId = self.request('POST', f'/posts/{postId}/comments', {'commentText': text,'replyToId':replyToId}, personal=True)
         return True, 'Комментарий добавлен', commentId
 
     def editComment(self, commentId, text):
@@ -128,23 +153,24 @@ class CommunityClient:
         self.publicationKeys.pop(payloadKey, None)
         return True, 'Работа опубликована на сервере', postId
 
-    def publishPost(self, titleText, descriptionText, categoryName, tagsText, photoFiles):
+    def publishPost(self, titleText, descriptionText, categoryName, tagsText, photoFiles, challengeId=None):
         if not self.remote:
-            return posts.savePost(self.user['userId'], titleText, descriptionText, categoryName, tagsText, photoFiles)
-        payload = {'titleText': titleText, 'descriptionText': descriptionText, 'categoryName': categoryName, 'tagsText': tagsText,
+            return posts.savePost(self.user['userId'], titleText, descriptionText, categoryName, tagsText, photoFiles,challengeId=challengeId)
+        payload = {'challengeId':challengeId,'titleText': titleText, 'descriptionText': descriptionText, 'categoryName': categoryName, 'tagsText': tagsText,
                    'photos': [{'name': photo['name'], 'imageBase64': base64.b64encode(photo['data']).decode()} for photo in photoFiles]}
         return self.sendPublication(payload)
 
     def publishProject(self, projectId, titleText, descriptionText, categoryName, tagsText,
-                       resultStepId, otherStepIds, projectMixtureIds, workshopInfo=None):
+                       resultStepId, otherStepIds, projectMixtureIds, workshopInfo=None,challengeId=None):
         args = (projectId, self.user['userId'], titleText, descriptionText, categoryName, tagsText,
                 resultStepId, otherStepIds, projectMixtureIds, workshopInfo)
         if not self.remote:
-            return sharing.publishProject(*args)
+            return sharing.publishProject(*args,challengeId=challengeId)
         requireCachedUser(self.user['userId'], self.user.get('sessionToken'))
         success, message, payload = sharing.prepareProjectPublication(*args)
         if not success:
             return False, message, None
+        payload['challengeId']=challengeId
         payload['photos'] = [{'name': f'Этап-{index}.jpg', 'imageBase64': base64.b64encode(image).decode()}
                              for index, image in enumerate(payload['photos'])]
         return self.sendPublication(payload)
@@ -196,6 +222,9 @@ class CommunityClient:
             if source is None:
                 return False, 'Локальная работа недоступна', None
             payload = {key: source[key] or '' for key in ('titleText', 'descriptionText', 'categoryName', 'tagsText', 'projectDetailsJson')}
+            # Служебный ID локального конкурса не принадлежит серверному пространству ID.
+            from contest_entry import tokens,TAG
+            payload['tagsText']=', '.join(v for v in tokens(payload['tagsText']) if not TAG.fullmatch(v))
             payload['photos'] = [{'name': f'Фото-{index}.jpg', 'imageBase64': base64.b64encode(record['imageData']).decode()}
                 for index, record in enumerate(connection.execute('SELECT imageData FROM postPhotos WHERE postId = ? ORDER BY position', (localPostId,)))]
             if not payload['photos']:

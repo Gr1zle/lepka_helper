@@ -91,6 +91,8 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
         category = ft.Dropdown(label='Категория работы', value=projectItem['categoryName'],
             options=[ft.dropdown.Option(item) for item in POST_CATEGORIES])
         tags = ft.TextField(label='Теги через запятую')
+        from views.contest_picker import createContestPicker
+        contest,contestControls=createContestPicker(page,currentUser)
         level = ft.Dropdown(label='Сложность мастер-класса', value=IDEA_LEVELS[0],
                             options=[ft.dropdown.Option(item) for item in IDEA_LEVELS])
         minutes = ft.TextField(label='Время выполнения (минут)', keyboard_type=ft.KeyboardType.NUMBER)
@@ -129,7 +131,8 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
                 [check.data for check in mixtureChoices if check.value], workshopInfo={
                     'level': level.value, 'timeMinutes': minutes.value,
                     'materials': [entry.strip() for entry in (materials.value or '').splitlines() if entry.strip()],
-                    'tools': [entry.strip() for entry in (tools.value or '').splitlines() if entry.strip()]})
+                    'tools': [entry.strip() for entry in (tools.value or '').splitlines() if entry.strip()]},
+                challengeId=int(contest.value) if contest.value else None)
             if success:
                 page.close(dialog)
                 refreshCallback()
@@ -140,7 +143,7 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
             content=ft.Column(width=340, height=450, tight=True, scroll=ft.ScrollMode.AUTO, spacing=10, controls=[
                 ft.Text('Выбранные фото, подписи этапов и рецепты будут видны в сообществе. '
                         'Личные заметки и дедлайн останутся в проекте.'),
-                title, description, category, level, minutes, materials, tools, tags, result,
+                title, description, category, level, minutes, materials, tools, tags, contestControls, result,
                 ft.Text('Шаги мастер-класса в порядке проекта. Итоговый этап включается автоматически. '
                         'Можно выбрать текстовые шаги без фото; фотографий всего до 10.'), *photoControls,
                 ft.Text('Поделиться рецептами смесей'), *mixtureChoices,
