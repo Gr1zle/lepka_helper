@@ -176,6 +176,28 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.page.session.get('plannerProject'))
         self.assertTrue(all(not r['isRead'] for r in syncProjectReminders(self.user['userId'])))
 
+    async def test_prize_notice_profile_read_and_open_correct_challenge(self):
+        import challenge_service as challenges
+        from views.community_notices import createChallengeProfile
+        from views.challenge_view import createChallengeView
+        from post_service import savePost
+        with database.openDatabase() as c:c.execute("UPDATE users SET roleName='admin' WHERE userId=?",(self.user['userId'],))
+        cid=challenges.create(self.user['userId'],'Конкурс наград','Правила конкурса наград',challenges.today(),resultMode='votes')
+        pid=savePost(self.user['userId'],'Призовая работа','Подробное описание фигурки','Животные','кот',[photo()])[2]
+        challenges.submit(self.user['userId'],cid,pid)
+        with database.openDatabase() as c:c.execute("UPDATE challenges SET deadline='2000-01-01' WHERE challengeId=?",(cid,))
+        view=self.mount(ft.View('/profile',controls=[createChallengeProfile(self.page,self.user)]))
+        self.assertIsNotNone(find(view,ft.Text,value='1 место: Конкурс наград'))
+        find(view,ft.OutlinedButton,text='Уведомления сообщества').on_click(None)
+        dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
+        find(dialog,ft.TextButton,text='Прочитано').on_click(None)
+        self.assertTrue(challenges.notices(self.user['userId'])[0]['isRead'])
+        find(dialog,ft.TextButton,text='Открыть итоги').on_click(None)
+        self.assertEqual(self.page.session.get('openChallengeId'),cid)
+        view=self.mount(createChallengeView(self.page))
+        self.assertIsNotNone(find(view,ft.Text,value='Конкурс наград'))
+        self.assertIsNone(self.page.session.get('openChallengeId'))
+
     async def test_challenge_create_submit_view_and_finish(self):
         from views.challenge_view import createChallengeView
         from post_service import savePost
@@ -187,6 +209,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         find(view,ft.OutlinedButton,text='Создать задание').on_click(None)
         dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
         find(dialog,ft.TextField,label='Название задания').value='Лепим котика'
+        find(dialog,ft.Dropdown,label='Подведение итогов').value='manual'
         find(dialog,ft.TextField,label='Правила и критерии выбора победителя').value='Покажите готовую фигурку котика'
         find(dialog,ft.TextField,label='Дедлайн').value='не дата'
         find(dialog,ft.ElevatedButton,text='Создать задание').on_click(None)

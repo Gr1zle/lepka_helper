@@ -10,6 +10,9 @@ class ChallengeInput(BaseModel):
     title: str = Field(min_length=3, max_length=100)
     rules: str = Field(min_length=10, max_length=2000)
     deadline: str = Field(pattern=r'^\d{4}-\d{2}-\d{2}$')
+    startsOn: str | None = Field(default=None, pattern=r'^\d{4}-\d{2}-\d{2}$')
+    theme: str = Field(default='', max_length=80)
+    resultMode: str = Field(default='manual', pattern='^(manual|votes)$')
 
 
 class EntryInput(BaseModel):
@@ -33,6 +36,18 @@ def installChallengeRoutes(app, currentUser):
     @app.get('/community/challenges')
     def listing(mode: str = Query('active', pattern='^(active|finished|mine)$'), offset: int = Query(0, ge=0), user=Depends(currentUser)):
         return invoke(lambda: service.listing(user['userId'], mode, offset))
+
+    @app.get('/community/challenge-profile')
+    def profile(user=Depends(currentUser)):
+        return invoke(lambda: service.profile(user['userId']))
+
+    @app.get('/community/notices')
+    def notices(offset: int = Query(0,ge=0),user=Depends(currentUser)):
+        return invoke(lambda: service.notices(user['userId'],offset))
+
+    @app.put('/community/notices/{noticeId}/read')
+    def read(noticeId: int = Path(gt=0),user=Depends(currentUser)):
+        return invoke(lambda: service.readNotice(user['userId'],noticeId))
 
     @app.get('/community/challenges/{challengeId}')
     def detail(challengeId: int = Path(gt=0), offset: int = Query(0, ge=0), sort: str = Query('new', pattern='^(new|votes)$'), user=Depends(currentUser)):

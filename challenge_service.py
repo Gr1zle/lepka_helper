@@ -31,10 +31,12 @@ def getChallenge(c, challengeId):
 
 
 def status(item):
+    if item['state']=='open' and item.get('startsOn','')>today():
+        return 'scheduled'
     return 'judging' if item['state'] == 'open' and item['deadline'] < today() else item['state']
 
 
-def create(userId, title, rules, deadline):
+def create(userId, title, rules, deadline, startsOn=None, theme='', resultMode='manual'):
     if not isinstance(title, str) or not 3 <= len(title.strip()) <= 100:
         raise ValueError('Название: от 3 до 100 символов')
     if not isinstance(rules, str) or not 10 <= len(rules.strip()) <= 2000:
@@ -45,13 +47,23 @@ def create(userId, title, rules, deadline):
             raise ValueError()
     except (ValueError, TypeError):
         raise ValueError('Срок: дата ГГГГ-ММ-ДД от сегодня до года вперёд') from None
+    startsOn = today() if startsOn is None else startsOn
+    try:
+        if date.fromisoformat(startsOn).isoformat()!=startsOn or not today()<=startsOn<=deadline:
+            raise ValueError()
+    except (ValueError,TypeError):
+        raise ValueError('Начало: дата от сегодня до дедлайна') from None
+    if not isinstance(theme,str) or len(theme.strip())>80:
+        raise ValueError('Тематика: до 80 символов')
+    if resultMode not in ('manual','votes'):
+        raise ValueError('Выберите способ подведения итогов')
     with db.openDatabase() as c:
         c.execute('BEGIN IMMEDIATE')
         actor = requireAdmin(c, userId)
         if c.execute("SELECT COUNT(*) FROM challenges WHERE state='open' AND deadline>=?", (today(),)).fetchone()[0] >= 30:
             raise ValueError('Одновременно можно открыть до 30 заданий')
-        newId = c.execute('INSERT INTO challenges(title,rules,deadline,createdBy) VALUES(?,?,?,?)',
-                          (title.strip(), rules.strip(), deadline, userId)).lastrowid
+        newId = c.execute('INSERT INTO challenges(title,rules,deadline,createdBy,startsOn,theme,resultMode) VALUES(?,?,?,?,?,?,?)',
+                          (title.strip(), rules.strip(), deadline, userId, startsOn, theme.strip(), resultMode)).lastrowid
         audit(c, actor, 'challenge.create', 'challenge', newId, title.strip())
         return newId
 
@@ -61,6 +73,7 @@ def listing(userId, mode='active', offset=0):
         raise ValueError('Некорректный фильтр')
     with db.openDatabase() as c:
         activeUser(c, userId)
+        settle(c)
         where = "state='open'" if mode == 'active' else "state!='open'"
         args = []
         if mode == 'mine':
@@ -83,7 +96,11 @@ def detail(userId, challengeId, offset=0, sort='new'):
         raise ValueError('Некорректная страница')
     with db.openDatabase() as c:
         activeUser(c, userId)
+        settle(c)
         item = getChallenge(c, challengeId)
+        item['awards'] = [dict(r) for r in c.execute('''SELECT a.place,a.postId,a.votes,p.titleText,u.nickname FROM challengeAwards a
+            LEFT JOIN posts p ON p.postId=a.postId AND p.isDeleted=0 LEFT JOIN users u ON u.userId=a.userId AND u.roleName!='deleted'
+            WHERE a.challengeId=? ORDER BY a.place''',(challengeId,))]
         item['status'] = status(item)
         item['entriesCount'] = c.execute('SELECT COUNT(*) FROM challengeEntries WHERE challengeId=?', (challengeId,)).fetchone()[0]
         item['myPostId'] = c.execute('SELECT postId FROM challengeEntries WHERE challengeId=? AND userId=?', (challengeId, userId)).fetchone()
@@ -140,6 +157,10 @@ def finish(userId, challengeId, state, reason, winnerPostId=None):
         item = getChallenge(c, challengeId)
         if item['state'] != 'open':
             raise ValueError('Итоги уже опубликованы')
+        if state=='cancelled' and item['resultMode']=='votes' and status(item)=='judging':
+            raise ValueError('Срок конкурса завершён: автоматические итоги уже нельзя отменить')
+        if state == 'finished' and item['resultMode']=='votes':
+            raise ValueError('Для этого задания итоги определяются автоматически по голосам')
         if state == 'finished' and status(item) != 'judging':
             raise ValueError('Итоги можно подвести после срока приёма работ')
         if winnerPostId is not None:
@@ -148,6 +169,10 @@ def finish(userId, challengeId, state, reason, winnerPostId=None):
                 AND u.isBlocked=0 AND u.emailVerified=1 AND u.roleName!='deleted' ''', (challengeId, winnerPostId)).fetchone() is None:
                 raise ValueError('Победитель должен быть доступным участником задания')
         c.execute('UPDATE challenges SET state=?,winnerPostId=?,result=? WHERE challengeId=?', (state, winnerPostId, reason, challengeId))
+        if winnerPostId is not None:
+            awardUser=c.execute('SELECT userId FROM challengeEntries WHERE challengeId=? AND postId=?',(challengeId,winnerPostId)).fetchone()[0]
+            votes=c.execute('SELECT COUNT(*) FROM challengeVotes WHERE challengeId=? AND postId=?',(challengeId,winnerPostId)).fetchone()[0]
+            saveAward(c,challengeId,1,winnerPostId,awardUser,votes)
         audit(c, actor, 'challenge.' + state, 'challenge', challengeId, reason)
         return True
 
@@ -171,3 +196,65 @@ def vote(userId, challengeId, postId, liked):
         else:
             c.execute('DELETE FROM challengeVotes WHERE challengeId=? AND postId=? AND userId=?', (challengeId, postId, userId))
         return c.execute('SELECT COUNT(*) FROM challengeVotes WHERE challengeId=? AND postId=?', (challengeId, postId)).fetchone()[0]
+
+
+def saveAward(c, challengeId, place, postId, userId, votes):
+    c.execute('INSERT INTO challengeAwards VALUES(?,?,?,?,?)',(challengeId,place,postId,userId,votes))
+    if c.execute('SELECT notificationsEnabled FROM users WHERE userId=?',(userId,)).fetchone()[0]:
+        c.execute('INSERT OR IGNORE INTO communityNotices(userId,challengeId,place) VALUES(?,?,?)',(userId,challengeId,place))
+
+
+def settle(c):
+    """Вызывать в транзакции: фиксация итогов и уведомлений атомарна."""
+    if not c.in_transaction:
+        c.execute('BEGIN IMMEDIATE')
+    rows=c.execute("SELECT challengeId FROM challenges WHERE state='open' AND resultMode='votes' AND deadline<?",(today(),)).fetchall()
+    for row in rows:
+        cid=row['challengeId']
+        ranked=c.execute('''SELECT e.postId,e.userId,
+            (SELECT COUNT(*) FROM challengeVotes v JOIN users voter ON voter.userId=v.userId
+             WHERE v.challengeId=e.challengeId AND v.postId=e.postId AND voter.isBlocked=0
+             AND voter.emailVerified=1 AND voter.roleName!='deleted') AS votes
+            FROM challengeEntries e JOIN posts p ON p.postId=e.postId JOIN users u ON u.userId=e.userId
+            WHERE e.challengeId=? AND p.isDeleted=0 AND u.isBlocked=0 AND u.emailVerified=1 AND u.roleName!='deleted'
+            ORDER BY votes DESC,e.createdAt,e.postId LIMIT 3''',(cid,)).fetchall()
+        for place,entry in enumerate(ranked,1):
+            saveAward(c,cid,place,entry['postId'],entry['userId'],entry['votes'])
+        reason='Автоматический топ-3 по голосам. При равенстве — более ранняя заявка.' if ranked else 'Конкурс завершён: доступных участников нет.'
+        c.execute("UPDATE challenges SET state='finished',winnerPostId=?,result=? WHERE challengeId=?",
+                  (ranked[0]['postId'] if ranked else None,reason,cid))
+        c.execute('''INSERT INTO adminAudit(actorNickname,action,targetType,targetId,reason)
+            VALUES('Система','challenge.auto','challenge',?,?)''',(cid,reason))
+    return len(rows)
+
+
+def settleDue():
+    with db.openDatabase() as c:
+        return settle(c)
+
+
+def profile(userId):
+    with db.openDatabase() as c:
+        activeUser(c,userId)
+        settle(c)
+        return [dict(r) for r in c.execute('''SELECT h.challengeId,h.title,h.state,h.deadline,
+            a.place FROM challengeEntries e JOIN challenges h ON h.challengeId=e.challengeId
+            LEFT JOIN challengeAwards a ON a.challengeId=e.challengeId AND a.userId=e.userId
+            WHERE e.userId=? ORDER BY h.challengeId DESC LIMIT 20''',(userId,))]
+
+
+def notices(userId, offset=0):
+    if type(offset) is not int or offset<0:raise ValueError('Некорректная страница')
+    with db.openDatabase() as c:
+        activeUser(c,userId)
+        settle(c)
+        return [dict(r) for r in c.execute('''SELECT n.*,h.title FROM communityNotices n
+            JOIN challenges h ON h.challengeId=n.challengeId WHERE n.userId=?
+            ORDER BY n.noticeId DESC LIMIT 50 OFFSET ?''',(userId,offset))]
+
+
+def readNotice(userId, noticeId):
+    identifier(noticeId)
+    with db.openDatabase() as c:
+        activeUser(c,userId)
+        return bool(c.execute('UPDATE communityNotices SET isRead=1 WHERE noticeId=? AND userId=?',(noticeId,userId)).rowcount)

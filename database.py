@@ -326,6 +326,22 @@ def initializeDatabase():
         PRIMARY KEY(challengeId,postId,userId),
         FOREIGN KEY(challengeId,postId) REFERENCES challengeEntries(challengeId,postId) ON DELETE CASCADE,
         FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)''')
+    addColumnIfNotExists(cursor, 'challenges', 'startsOn', "startsOn TEXT NOT NULL DEFAULT ''")
+    addColumnIfNotExists(cursor, 'challenges', 'theme', "theme TEXT NOT NULL DEFAULT ''")
+    addColumnIfNotExists(cursor, 'challenges', 'resultMode', "resultMode TEXT NOT NULL DEFAULT 'manual'")
+    cursor.execute('''CREATE TABLE IF NOT EXISTS challengeAwards (
+        challengeId INTEGER NOT NULL, place INTEGER NOT NULL, postId INTEGER, userId INTEGER,
+        votes INTEGER NOT NULL, PRIMARY KEY(challengeId,place),
+        FOREIGN KEY(challengeId) REFERENCES challenges(challengeId) ON DELETE CASCADE,
+        FOREIGN KEY(postId) REFERENCES posts(postId) ON DELETE SET NULL,
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE SET NULL)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS communityNotices (
+        noticeId INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER NOT NULL,
+        challengeId INTEGER NOT NULL, place INTEGER NOT NULL, isRead INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(userId,challengeId,place),
+        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE,
+        FOREIGN KEY(challengeId) REFERENCES challenges(challengeId) ON DELETE CASCADE)''')
+
 
     cursor.execute(
         """
