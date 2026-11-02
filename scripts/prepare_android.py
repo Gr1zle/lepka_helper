@@ -121,10 +121,10 @@ build_args = ["--target-platform=android-arm64"]
 
 # Compatible with Flutter 3.29 / Android SDK 35; avoid unbounded native upgrades.
 [tool.flet.flutter.pubspec.dependency_overrides]
-media_kit = "1.1.11"
-media_kit_video = "1.2.5"
-media_kit_libs_video = "1.0.4"
-media_kit_libs_android_video = "1.3.6"
+media_kit = "1.2.0"
+media_kit_video = "1.3.0"
+media_kit_libs_video = "1.0.5"
+media_kit_libs_android_video = "1.3.7"
 ''').replace('APP_VERSION_PLACEHOLDER', APP_VERSION).replace('DEPS_PLACEHOLDER',json.dumps([
     'flet==0.28.3','flet-video==0.1.1','requests==2.32.3','Pillow==12.3.0','starlette==0.46.2',
     'lepka-platform @ '+wheel.as_uri()])), encoding='utf-8')
