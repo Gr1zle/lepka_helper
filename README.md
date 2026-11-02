@@ -1,3 +1,5 @@
+[№30: новая главная, поиск, создание и проекты](docs/discovery_navigation.md) · [Актуальная очередь переделки](docs/remaining_work.md).
+
 [Скачать APK 0.13.0 — редизайн, Android 9+ / ARM64](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.13.0-design-arm64.apk) · [Изменения №29](https://github.com/Gr1zle/lepka_helper/pull/29).
 
 [№29: редизайн, адаптивная навигация и иконка](docs/design_system.md) · [№28: камера, экспорт и референсы](docs/color_camera_references.md).

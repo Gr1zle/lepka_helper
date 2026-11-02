@@ -193,9 +193,12 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
     return ft.Card(content=ft.Container(padding=14, content=ft.Column(controls=controls, spacing=10)))
 
 
-def createHomeTab(page, currentUser, nickname):
+def createHomeTab(page, currentUser, nickname, mode="all", onPublished=None):
     client = CommunityClient(currentUser)
-    posts = ft.Column(spacing=12)
+    from views.discovery import Masonry
+    posts = Masonry(page) if mode=="feed" else ft.Column(spacing=12)
+    feedCards=[]
+    if mode=="feed":page.session.set("resizeDiscovery",posts.reflow)
     title = ft.TextField(label='Название работы', max_length=100)
     description = ft.TextField(label='Описание', multiline=True, min_lines=3, max_lines=5, max_length=2000)
     category = ft.Dropdown(label='Категория', value=POST_CATEGORIES[0],
@@ -223,8 +226,12 @@ def createHomeTab(page, currentUser, nickname):
         offset=feedOffset['value'] if append else 0
         batch=client.getPostsPage(mine=bool(onlyMine.value and currentUser),query=feedQuery.value or '',
             category=feedCategory.value,sort=feedSort.value,offset=offset)
-        cards=[createPostCard(page,item,currentUser,refreshPosts) for item in batch['items']]
-        posts.controls=([*posts.controls,*cards] if append else cards) or [ft.Text('Оффлайн: сохранённых публикаций по этим фильтрам пока нет.' if batch.get('offline') else 'Публикаций по этим фильтрам нет.')]
+        from views.discovery import createPostTile
+        cards=[(createPostTile(page,item,currentUser,lambda:(refreshPosts(),page.update())) if mode=="feed" else createPostCard(page,item,currentUser,refreshPosts)) for item in batch['items']]
+        feedCards[:]=([*feedCards,*cards] if append else cards)
+        display=feedCards or [ft.Text('Оффлайн: сохранённых публикаций по этим фильтрам пока нет.' if batch.get('offline') else 'Публикаций по этим фильтрам нет.')]
+        if mode=='feed':posts.setItems(display)
+        else:posts.controls=display
         feedOffset['value']=offset+len(batch['items']);more.visible=batch['hasMore']
 
     @feedAction
@@ -337,24 +344,55 @@ def createHomeTab(page, currentUser, nickname):
         if pending:
             showMessage(page, 'Дождитесь загрузки всех фотографий', True)
             return
-        success, message, _ = client.publishPost(title.value, description.value,
-                                       category.value, tags.value, photos,challengeId=int(contest.value) if contest.value else None)
+        success,message,_=client.publishPost(title.value,description.value,category.value,tags.value,photos,
+            challengeId=int(contest.value) if contest.value else None)
         if success:
             draftFields['clearDraft']()
-            title.value, description.value, tags.value = '', '', ''
-            photos.clear()
-            refreshPhotos()
-            refreshPosts()
-        showMessage(page, message, not success)
-        page.update()
+            title.value,description.value,tags.value='','',''
+            photos.clear();refreshPhotos()
+            if mode=='compose':
+                if onPublished:onPublished()
+            else:refreshPosts()
+        showMessage(page,message,not success);page.update()
 
-    pick = ft.OutlinedButton('Добавить фото', icon=ft.Icons.ADD_PHOTO_ALTERNATE, on_click=choose)
-    publish = ft.ElevatedButton('Опубликовать', icon=ft.Icons.PUBLISH, on_click=publishPost, height=48)
-    onlyMine.on_change = lambda event: (refreshPosts(), page.update())
+    pick=ft.OutlinedButton('Добавить фото',icon=ft.Icons.ADD_PHOTO_ALTERNATE,on_click=choose)
+    publish=ft.ElevatedButton('Опубликовать',icon=ft.Icons.PUBLISH,on_click=publishPost,height=48)
+    onlyMine.on_change=lambda event:(refreshPosts(),page.update())
     from views.offline_controls import createDraftTools
     draftTools=createDraftTools(page,currentUser,draftFields,photos,refreshPhotos)
+    if mode=='compose':
+        from design_system import polish
+        form=ft.Column(spacing=14,controls=[title,description,category,tags,contestControls,draftTools,pick,status,previews,
+            ft.TextButton('Отменить загрузку',on_click=cancel),publish])
+        return polish(ft.ListView(expand=True,padding=ft.padding.only(left=4,right=4,top=12,bottom=4),build_controls_on_demand=False,controls=[form]))
     page.session.set('refreshCommunityFeed',lambda:(refreshPosts(),page.update()))
     refreshPosts()
+    if mode=='feed':
+        from views.discovery import openSearch,openBuiltinCatalog
+        from design_system import disclosure,polish
+        from pull_refresh import refreshable
+        from views.project_transfer import androidClient
+        search=ft.Row([ft.OutlinedButton('Поиск идей, уроков и работ',expand=True,icon=ft.Icons.SEARCH,
+            style=ft.ButtonStyle(alignment=ft.alignment.center_left),on_click=lambda e:openSearch(page,currentUser))])
+        def shortcut(label,icon,callback):
+            return ft.TextButton(expand=True,height=76,on_click=callback,
+                style=ft.ButtonStyle(bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,padding=8,shape=ft.RoundedRectangleBorder(radius=12)),
+                content=ft.Column(tight=True,spacing=4,alignment=ft.MainAxisAlignment.CENTER,horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[ft.Icon(icon,size=22,color=ft.Colors.PRIMARY),ft.Text(label,size=12,text_align=ft.TextAlign.CENTER,max_lines=2)]))
+        shortcuts=ft.Row(spacing=8,controls=[
+            shortcut('3D-галерея',ft.Icons.VIEW_IN_AR_OUTLINED,lambda e:page.go('/models')),
+            shortcut('Задания сообщества',ft.Icons.EMOJI_EVENTS_OUTLINED,lambda e:page.go('/challenges')),
+            shortcut('Учебный каталог',ft.Icons.SCHOOL_OUTLINED,lambda e:openBuiltinCatalog(page,currentUser))])
+        def refresh(event=None):refreshPosts();page.update()
+        def openFilters(event):
+            filters=ft.AlertDialog(title=ft.Text('Фильтры ленты'),content=ft.Column(width=min(400,max(240,(page.width or 390)-64)),tight=True,spacing=14,controls=[feedCategory,feedSort,onlyMine]),
+                actions=[ft.TextButton('Готово',on_click=lambda e:page.close(filters))])
+            page.open(polish(filters))
+        heading=ft.Row([ft.Text('Лента',size=22,weight=ft.FontWeight.W_600,expand=True),
+            ft.TextButton('Фильтры',icon=ft.Icons.TUNE,on_click=openFilters),
+            ft.IconButton(ft.Icons.REFRESH,tooltip='Обновить ленту',visible=not androidClient(page),on_click=refresh)])
+        offline=ft.Text('Здесь пока работы этого устройства. Подключите Wi-Fi-сервер в профиле, чтобы видеть других участников.',size=12,color=ft.Colors.ON_SURFACE_VARIANT,visible=not client.remote)
+        return polish(refreshable(page,[search,shortcuts,heading,offline,posts,more],refresh))
     layout = ft.ListView(expand=True, build_controls_on_demand=False, padding=16, spacing=12, controls=[
         ft.Text(f'Привет, {nickname}!', size=22, weight=ft.FontWeight.BOLD),
         createDeadlineSummary(page,currentUser),

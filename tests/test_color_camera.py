@@ -142,7 +142,7 @@ class CameraUiTests(unittest.IsolatedAsyncioTestCase):
         from views.color_scan import openColorScan
         from test_startup import find,walk
         selected=[];apply=Mock()
-        def picker(page,user,fn,label):selected.append(fn);return ft.Container()
+        def picker(page,user,fn,label,notifySuccess=True):selected.append(fn);return ft.Container()
         with patch('views.color_scan.createPhotoPicker',side_effect=picker):openColorScan(self.page,self.user,apply,Mock())
         dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog))
         self.assertTrue(selected[0](dict(data=pngBytes(Image.new('RGBA',(100,50),'#FF3B30'))))[0])
@@ -176,7 +176,7 @@ class CameraUiTests(unittest.IsolatedAsyncioTestCase):
         from test_startup import find
         from reference_service import listReferences
         captured=[]
-        def picker(page,user,fn,label):captured.append(fn);return ft.Container()
+        def picker(page,user,fn,label,notifySuccess=True):captured.append(fn);return ft.Container()
         with patch('views.reference_gallery.createPhotoPicker',side_effect=picker),patch('reference_service.getApiUrl',return_value=''):
             view=createReferenceGallery(self.page);self.page.views[:]=[view];self.page.update()
             image=Image.new('RGBA',(30,30),'white');image.putpixel((15,15),(255,0,0,255))

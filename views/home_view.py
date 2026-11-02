@@ -59,8 +59,9 @@ DARK_TEXT_COLOR = "#222222"
 def getPageBackgroundColor(page):
     return ft.Colors.SURFACE
 
-def createSearchTab(page, currentUser):
+def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
     resultColumn = ft.ResponsiveRow(spacing=12,run_spacing=12)
+    resultHeading=ft.Text('Результаты поиска',size=18,weight=ft.FontWeight.BOLD,visible=not startEmpty)
     ideaContainer = ft.Container()
     mainContentColumn = ft.Column(spacing=14)
 
@@ -480,6 +481,7 @@ def createSearchTab(page, currentUser):
         )
 
     def refreshSearchResults():
+        resultHeading.visible=True
         searchVersion['value'] += 1
         version = searchVersion['value']
         query = normalizeSearchQuery(searchField.value or '')
@@ -492,7 +494,7 @@ def createSearchTab(page, currentUser):
         lessonItems = lessonSearchResults(lessonItems,query,currentUser['userId'] if currentUser else None,
             favoritesCheckbox.value,progressCheckbox.value,sortDropdown.value)
         controls = [createLessonCard(item) for item in lessonItems]
-        if not favoritesCheckbox.value and not progressCheckbox.value and not videoCheckbox.value:
+        if not catalogMode and not favoritesCheckbox.value and not progressCheckbox.value and not videoCheckbox.value:
             models=searchModels(query,categoryDropdown.value,levelDropdown.value,
                 None if timeDropdown.value=='Любое' else timeDropdown.value,userId=currentUser['userId'] if currentUser else None)
             if models:
@@ -505,7 +507,8 @@ def createSearchTab(page, currentUser):
                     'maxTime':None if timeDropdown.value=='Любое' else timeDropdown.value,'onlyVideo':videoCheckbox.value})
                 if works:
                     controls.append(ft.Text('Работы сообщества',size=18,weight=ft.FontWeight.BOLD))
-                    controls.extend(createPostCard(page,item,currentUser,refreshSearchResults) for item in works)
+                    from views.discovery import createPostTile
+                    controls.extend(createPostTile(page,item,currentUser,lambda:(refreshSearchResults(),page.update())) for item in works)
             except ApiError as error:
                 if error.statusCode==401:
                     if (page.session.get('currentUser') or {}).get('sessionToken')==owner:
@@ -520,7 +523,8 @@ def createSearchTab(page, currentUser):
         if searchVersion['value']==version and (page.session.get('currentUser') or {}).get('sessionToken')==owner:
             from design_system import polish
             for control in controls:
-                control.col={"xs":12,"md":6} if isinstance(control,ft.Card) else 12
+                if isinstance(control,ft.Card):control.col={'xs':12,'md':6}
+                elif not isinstance(control,ft.Container):control.col=12
                 polish(control)
             resultColumn.controls = controls
 
@@ -684,7 +688,7 @@ def createSearchTab(page, currentUser):
                 searchField,
                 ft.Row(wrap=True,controls=[
                     ft.OutlinedButton('3D-галерея',icon=ft.Icons.VIEW_IN_AR_OUTLINED,on_click=lambda event:page.go('/models')),
-                    ft.OutlinedButton('Учебный каталог',icon=ft.Icons.SCHOOL_OUTLINED,on_click=lambda event:page.go('/catalog'))]),
+                    ft.OutlinedButton('Материалы преподавателей' if catalogMode else 'Учебный каталог',icon=ft.Icons.SCHOOL_OUTLINED,on_click=lambda event:page.go('/catalog') if catalogMode else __import__('views.discovery',fromlist=['openBuiltinCatalog']).openBuiltinCatalog(page,currentUser))]),
                 ft.Row(wrap=True,controls=[ft.ElevatedButton('Найти',icon=ft.Icons.SEARCH,on_click=submitSearch),
                                            ft.TextButton('Сбросить фильтры',on_click=resetFilters)]),
                 suggestionBox,
@@ -692,7 +696,7 @@ def createSearchTab(page, currentUser):
                 favoritesCheckbox,
                 ft.ExpansionTile(title=ft.Text('Фильтры уроков'),initially_expanded=False,
                     controls=[categoryDropdown,levelDropdown,timeDropdown,videoCheckbox,progressCheckbox,offlineCheckbox,sortDropdown]),
-                ft.Text('Результаты поиска',size=18,weight=ft.FontWeight.BOLD),
+                resultHeading,
                 resultColumn,
                 ft.ExpansionTile(title=ft.Text('Генератор идей'),initially_expanded=False,controls=[
                 ideaThemeDropdown,
@@ -715,6 +719,9 @@ def createSearchTab(page, currentUser):
             ]
         )
 
+        if startEmpty or catalogMode:
+            mainContentColumn.controls=[c for c in mainContentColumn.controls if not (isinstance(c,ft.Text) and c.value=='Поиск и идеи')]
+
     @lessonAction
     def resetFilters(event):
         searchField.value = ''
@@ -722,6 +729,7 @@ def createSearchTab(page, currentUser):
         timeDropdown.value = 'Любое'
         videoCheckbox.value = favoritesCheckbox.value = progressCheckbox.value = offlineCheckbox.value = False
         sortDropdown.value = 'Релевантность'
+        if catalogMode:offlineCheckbox.value=True
         handleSearchChange(None)
 
     searchField.on_change = handleSearchChange
@@ -735,13 +743,17 @@ def createSearchTab(page, currentUser):
     offlineCheckbox.on_change = handleSearchChange
     sortDropdown.on_change = handleSearchChange
 
+    if catalogMode:
+        offlineCheckbox.value=True
+        offlineCheckbox.disabled=True
+        searchField.label='Поиск в учебном каталоге'
     refreshHistory()
     pendingLesson = page.session.get('openBuiltinLesson')
     page.session.set('openBuiltinLesson',None)
     if type(pendingLesson) is int and getLessonById(pendingLesson):
         showLessonDetail(pendingLesson)
     else:
-        refreshSearchResults()
+        if not startEmpty:refreshSearchResults()
         refreshMainContent()
 
     return ft.ListView(
@@ -1341,12 +1353,6 @@ def createColorsTab(page, currentUser):
     colorGrid = ft.Row(wrap=True,spacing=8,run_spacing=8)
     for color in BASE_COLORS:
         colorGrid.controls.append(createPaletteButton(color, handleColorClick))
-    paletteSearch=ft.TextField(label='Поиск базового цвета по названию или HEX',max_length=120)
-    def filterPalette(event):
-        query=(paletteSearch.value or '').strip().casefold().replace('ё','е').lstrip('#')
-        colorGrid.controls=[createPaletteButton(c,handleColorClick) for c in BASE_COLORS if query in c['name'].casefold().replace('ё','е') or query in c['hex'].casefold().lstrip('#')]
-        page.update()
-    paletteSearch.on_change=colorAction(filterPalette)
     mixtureSearch.on_change=colorAction(lambda e:(refreshSavedMixtures(),page.update()))
 
     targetColorWheel = createRealColorWheel()
@@ -1370,7 +1376,6 @@ def createColorsTab(page, currentUser):
 
             ft.Text("Базовая палитра", size=18, weight=ft.FontWeight.BOLD),
             ft.Text("Нажмите на цвет, чтобы добавить его в смесь.", size=13, color=ft.Colors.ON_SURFACE_VARIANT),
-            paletteSearch,
             colorGrid,
 
             ft.Row(
@@ -1454,20 +1459,20 @@ def createColorsTab(page, currentUser):
     mix=controls[2:pick-1]
     tools=disclosure('Инструменты мастерской',[controls[1]],ft.Icons.HANDYMAN_OUTLINED)
     mixing=ft.ResponsiveRow(spacing=20,run_spacing=16,controls=[
-        ft.Column(mix[1:5],spacing=12,col={'xs':12,'md':6}),
-        ft.Column([mix[0],*mix[5:],tools],spacing=12,col={'xs':12,'md':6})])
+        ft.Column(mix[1:4],spacing=12,col={'xs':12,'md':6}),
+        ft.Column([mix[0],*mix[4:],tools],spacing=12,col={'xs':12,'md':6})])
     layout=workspace(page,'Цвета', [('Смешать',[mixing]),('Подобрать',controls[pick+1:saved-1]),('Мои смеси',controls[saved+1:])])
     page.session.set('showColorMix',lambda:layout.select_workspace(0))
     return polish(layout)
 
 
-def createProjectsTab(page, currentUser):
+def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=None, onChanged=None):
     projectListColumn = ft.Column(spacing=10)
-    statisticsCard = createProjectStatistics(page, currentUser) if currentUser else ft.Container()
+    statisticsCard = createProjectStatistics(page, currentUser) if currentUser and mode!='create' else ft.Container()
     deadlineSummary = ft.Container()
     requested = page.session.get('plannerProject') or {}
     page.session.set('plannerProject', None)
-    projectTarget = {'id': requested.get('projectId') if currentUser and requested.get('owner')==currentUser.get('sessionToken') else None}
+    projectTarget = {'id': projectId if mode=='detail' else requested.get('projectId') if currentUser and requested.get('owner')==currentUser.get('sessionToken') else None}
     @authenticatedAction(page,currentUser)
     def showAllProjects(event):
         projectTarget['id']=None
@@ -1512,6 +1517,7 @@ def createProjectsTab(page, currentUser):
         descriptionField.value = ""
 
     def refreshProjectList():
+        if mode=='create':return
         # Собираем замену вне живого дерева. Промежуточный page.update() с пустым
         # списком портил размеры ленивых элементов после закрытия редактора.
         newProjectControls = []
@@ -1526,7 +1532,10 @@ def createProjectsTab(page, currentUser):
             projectListColumn.controls = newProjectControls
             return
 
-        projectItems = getUserProjects(currentUser["userId"])
+        if mode=='list':
+            from database import getProjectsByUserId
+            projectItems=[dict(row) for row in getProjectsByUserId(currentUser["userId"])]
+        else:projectItems = getUserProjects(currentUser["userId"])
         statisticsCard.data()
         deadlineSummary.content = createDeadlineSummary(page,currentUser)
         showAllButton.visible = projectTarget['id'] is not None
@@ -1549,6 +1558,18 @@ def createProjectsTab(page, currentUser):
             return
 
         for projectItem in projectItems:
+            if mode=='list':
+                from views.discovery import creationDialog
+                @authenticatedAction(page,currentUser)
+                def openProject(event,pid=projectItem['projectId']):
+                    body=createProjectsTab(page,currentUser,mode='detail',projectId=pid,
+                        onChanged=lambda:(refreshProjectList(),page.update()))
+                    creationDialog(page,'Проект',body)
+                newProjectControls.append(ft.Card(data=projectItem['projectId'],content=ft.ListTile(
+                    title=ft.Text(projectItem['projectName'],weight=ft.FontWeight.W_600),
+                    subtitle=ft.Text(projectItem['categoryName']+' · '+(projectItem['deadlineDate'] or 'Без дедлайна')),
+                    trailing=ft.Icon(ft.Icons.CHEVRON_RIGHT),on_click=openProject)))
+                continue
             deadlineText = projectItem["deadlineDate"]
 
             if not deadlineText:
@@ -1751,8 +1772,7 @@ def createProjectsTab(page, currentUser):
                 spacing=6,
             )
 
-            newProjectControls.append(
-                ft.Card(
+            detailCard = ft.Card(
                     elevation=2,
                     content=ft.Container(
                         padding=14,
@@ -1822,9 +1842,10 @@ def createProjectsTab(page, currentUser):
                         ),
                     ),
                 )
-            )
+            newProjectControls.append(detailCard)
 
         projectListColumn.controls = newProjectControls
+        if onChanged:onChanged()
 
     @authenticatedAction(page, currentUser)
     def handleCreateProject(event):
@@ -1846,6 +1867,7 @@ def createProjectsTab(page, currentUser):
 
         clearProjectForm()
         refreshProjectList()
+        if onCreated:onCreated(projectId)
         showMessage(messageText)
         page.update()
 
@@ -1911,11 +1933,13 @@ def createProjectsTab(page, currentUser):
     controls=layout.controls
     createIndex=next(i for i,c in enumerate(controls) if isinstance(c,ft.Card) and isinstance(c.content,ft.Container) and isinstance(c.content.content,ft.Column) and any(isinstance(t,ft.Text) and t.value=='Создание проекта' for t in c.content.content.controls))
     form=controls[createIndex].content.content.controls[1:]
-    overview=controls[2:createIndex] if projectTarget['id'] is None else controls[3:createIndex]
-    header=controls[:2]
-    layout.controls=[*header,disclosure('Новый проект',form,ft.Icons.ADD),
-        *([projectListColumn] if projectTarget['id'] is not None else []),
-        *controls[createIndex+1:],disclosure('Обзор и перенос проектов',overview,ft.Icons.INSIGHTS_OUTLINED)]
+    if mode=='create':layout.controls=[ft.Column(form,spacing=14)]
+    elif mode=='detail':layout.controls=[projectListColumn]
+    elif mode=='all':return polish(layout)
+    else:
+        overview=controls[2:createIndex] if projectTarget['id'] is None else controls[3:createIndex]
+        layout.controls=[ft.Column(spacing=14,controls=[ft.Text('Мои проекты',size=24,weight=ft.FontWeight.W_600),projectListColumn,
+            disclosure('Обзор и перенос проектов',overview,ft.Icons.INSIGHTS_OUTLINED)])]
     return polish(layout)
 
 def createHomeView(page: ft.Page):
@@ -1934,12 +1958,14 @@ def createHomeView(page: ft.Page):
         email = "guest@example.com"
 
     content_area = ft.Container(expand=True)
+    from views.community_notices import createNoticeButton
     from views.offline_controls import createConnectionBanner
     connectionBanner=createConnectionBanner(page,currentUser)
 
     @serverAction(page)
     def loadTab(index):
         try:
+            page.session.set('resizeDiscovery',None)
             if currentUser is not None:
                 sessionUser = getCurrentUser(page)
                 if sessionUser is None:
@@ -1947,9 +1973,10 @@ def createHomeView(page: ft.Page):
                     return
                 if sessionUser['sessionToken'] != currentUser['sessionToken']:
                     return
-            factories = [lambda: createHomeTab(page, currentUser, nickname),
+            factories = [lambda: createHomeTab(page, currentUser, nickname, mode="feed"),
                          lambda: createSearchTab(page, currentUser), lambda: createColorsTab(page, currentUser),
-                         lambda: createProjectsTab(page, currentUser), lambda: createProfileTab(page, nickname, email)]
+                         lambda: createProjectsTab(page, currentUser, mode="list"), lambda: createProfileTab(page, nickname, email),
+                         lambda: createNoticeButton(page,currentUser,asTab=True)]
             if not 0 <= index < len(factories):
                 return
             page.session.set('homeTab',index)
@@ -1965,14 +1992,14 @@ def createHomeView(page: ft.Page):
         loadTab(event.control.selected_index)
 
     initialTab = page.session.get('homeTab')
-    if type(initialTab) is not int or not 0 <= initialTab < 5:
+    if type(initialTab) is not int or not 0 <= initialTab < 6:
         initialTab = 0
     nav_bar = ft.NavigationBar(
-        selected_index=initialTab,
+        selected_index=1 if initialTab==5 else (0 if initialTab==1 else initialTab),
         on_change=update_tab,
         destinations=[
             ft.NavigationBarDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label="Главная"),
-            ft.NavigationBarDestination(icon=ft.Icons.SEARCH, selected_icon=ft.Icons.SEARCH, label="Поиск"),
+            ft.NavigationBarDestination(icon=ft.Icons.NOTIFICATIONS_OUTLINED, selected_icon=ft.Icons.NOTIFICATIONS, label="Входящие"),
             ft.NavigationBarDestination(icon=ft.Icons.PALETTE_OUTLINED, selected_icon=ft.Icons.PALETTE, label="Цвета"),
             ft.NavigationBarDestination(icon=ft.Icons.FOLDER_OUTLINED, selected_icon=ft.Icons.FOLDER, label="Проекты"),
             ft.NavigationBarDestination(icon=ft.Icons.PERSON_OUTLINE, selected_icon=ft.Icons.PERSON, label="Профиль"),
@@ -1980,13 +2007,15 @@ def createHomeView(page: ft.Page):
     )
 
     from design_system import ICON
-    labels=['Главная','Поиск','Цвета','Проекты','Профиль']
-    icons=[ft.Icons.HOME_OUTLINED,ft.Icons.SEARCH,ft.Icons.PALETTE_OUTLINED,ft.Icons.FOLDER_OUTLINED,ft.Icons.PERSON_OUTLINE]
-    rail=ft.NavigationRail(expand=True,selected_index=initialTab,extended=False,
+    labels=['Главная','Уведомления','Цвета','Проекты','Профиль']
+    icons=[ft.Icons.HOME_OUTLINED,ft.Icons.NOTIFICATIONS_OUTLINED,ft.Icons.PALETTE_OUTLINED,ft.Icons.FOLDER_OUTLINED,ft.Icons.PERSON_OUTLINE]
+    rail=ft.NavigationRail(expand=True,selected_index=nav_bar.selected_index,extended=False,
         min_width=80,min_extended_width=210,label_type=ft.NavigationRailLabelType.ALL,
         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
         destinations=[ft.NavigationRailDestination(icon=icon,label=label) for icon,label in zip(icons,labels)])
-    brand=ft.Row([ft.Image(src=ICON,width=38,height=38,border_radius=12),
+    from views.discovery import openCreate
+    createButton=ft.IconButton(ft.Icons.ADD_CIRCLE_OUTLINE,tooltip='Создать',on_click=authenticatedAction(page,currentUser)(lambda e:openCreate(page,currentUser)))
+    brand=ft.Row([createButton,ft.Image(src=ICON,width=30,height=30,border_radius=10),
         ft.Text('Лепка',size=20,weight=ft.FontWeight.W_600)])
     sidebar=ft.Container(width=80,padding=ft.padding.only(top=16,bottom=16),
         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
@@ -1995,10 +2024,10 @@ def createHomeView(page: ft.Page):
     main_column=ft.Column([ft.Container(content=brand,padding=ft.padding.only(left=16,top=10,bottom=4)),connectionBanner,content_frame],expand=True,spacing=0)
     body=ft.Row([sidebar,ft.Container(content=main_column,expand=True)],expand=True,spacing=0)
     def navigateHomeTab(index):
-        nav_bar.selected_index=rail.selected_index=index
+        nav_bar.selected_index=rail.selected_index=1 if index==5 else (0 if index==1 else index)
         loadTab(index)
-    nav_bar.on_change=lambda e:navigateHomeTab(e.control.selected_index)
-    rail.on_change=lambda e:navigateHomeTab(e.control.selected_index)
+    nav_bar.on_change=lambda e:navigateHomeTab(5 if e.control.selected_index==1 else e.control.selected_index)
+    rail.on_change=lambda e:navigateHomeTab(5 if e.control.selected_index==1 else e.control.selected_index)
     def resize(event=None):
         width=page.width or 390
         wide=width>=760
@@ -2012,6 +2041,8 @@ def createHomeView(page: ft.Page):
         content_area.width=min(1040,available)
         content_area.expand=False
         content_frame.alignment=ft.alignment.top_center
+        discoveryResize=page.session.get('resizeDiscovery')
+        if callable(discoveryResize):discoveryResize()
         if event:page.update()
     page.session.set('navigateHomeTab',navigateHomeTab)
     page.session.set('resizeHomeView',resize)

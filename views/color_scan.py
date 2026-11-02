@@ -16,21 +16,56 @@ def openColorScan(page,user,onColor,onBaseColor):
     def deliver(content):
         image=readImage(content);state['image']=image;state['sample']=None
         from color_photo import pngBytes
-        preview.src_base64=base64.b64encode(pngBytes(image)).decode();preview.visible=True
+        preview.src_base64=base64.b64encode(pngBytes(image)).decode();preview.visible=True;fullButton.visible=True
         resultText.value='Коснитесь объекта на фото. Прозрачные области не учитываются.';page.update()
     def selected(photo):
         try:deliver(photo['data']);return True,'Фото готово к выбору цвета'
         except ValueError as error:return False,str(error)
+    def choosePoint(x,y,width,height):
+        if state['image'] is None:return
+        sample=sampleColor(state['image'],x,y,width,height)
+        if not sample:return
+        state['sample']=sample;sampleBox.bgcolor=sample['hex']
+        resultText.value=f"{sample['hex']} · RGB {sample['rgb']}\nБлижайший пластилин: {sample['nearest']['name']} ({sample['nearest']['hex']})"
+        page.update()
     @authenticatedAction(page,user)
     def tap(event):
-        if state['image'] is None:return
-        try:
-            sample=sampleColor(state['image'],event.local_x,event.local_y,min(scanWidth,max(1,(page.width or 390)-48)),scanWidth)
-            if not sample:return
-            state['sample']=sample;sampleBox.bgcolor=sample['hex']
-            resultText.value=f"{sample['hex']} · RGB {sample['rgb']}\nБлижайший пластилин: {sample['nearest']['name']} ({sample['nearest']['hex']})"
-            page.update()
+        try:choosePoint(event.local_x,event.local_y,min(scanWidth,max(1,(page.width or 390)-48)),scanWidth)
         except ValueError as error:showMessage(page,str(error),True)
+    @authenticatedAction(page,user)
+    def fullPhoto(event):
+        if state['image'] is None:return
+        from views.discovery import openPage
+        width=max(240,(page.width or 390)-24);height=max(220,(page.height or 780)-240)
+        fullResult=ft.Text(resultText.value)
+        def choose(event):
+            try:
+                choosePoint(event.local_x,event.local_y,width,height)
+                fullResult.value=resultText.value;page.update()
+            except ValueError as error:showMessage(page,str(error),True)
+        image=ft.Image(src_base64=preview.src_base64,width=width,height=height,fit=ft.ImageFit.CONTAIN,
+            semantics_label='Увеличенное фото для выбора цвета')
+        viewer=ft.InteractiveViewer(content=ft.GestureDetector(on_tap_up=choose,
+            content=ft.Container(content=image,width=width,height=height)),constrained=False,min_scale=1,max_scale=10,
+            expand=True,trackpad_scroll_causes_scale=True)
+        def done(event):
+            page.views.pop();page.open(dialog);page.update()
+        body=ft.Column(expand=True,controls=[viewer,fullResult,
+            ft.Text('Разведите пальцы для увеличения, перемещайте фото и коснитесь нужного оттенка.',size=12),
+            ft.Row(wrap=True,controls=[ft.TextButton('Сбросить масштаб',on_click=lambda e:viewer.reset()),
+                ft.FilledButton('Готово',on_click=done)])])
+        @authenticatedAction(page,user)
+        def dismissed(event):
+            dialog.on_dismiss=None
+            fullButton.disabled=False
+            view=openPage(page,'Выбрать цвет',ft.SafeArea(expand=True,content=body),'/discovery/color-photo')
+            view.appbar.leading.on_click=done
+            page.session.set('restoreColorScan',lambda:page.open(dialog))
+        # Wait for Flutter's modal-dismiss acknowledgement before changing pages.
+        # Otherwise Flet 0.28 can pop the newly added page while closing the modal.
+        fullButton.disabled=True
+        dialog.on_dismiss=dismissed
+        page.close(dialog)
     @authenticatedAction(page,user)
     def camera(event):
         from views.project_transfer import androidClient,webAddress
@@ -68,10 +103,11 @@ def openColorScan(page,user,onColor,onBaseColor):
     def close(event):
         if state['ticket']:cancelPhotoUpload(state['ticket'],user['userId']);state['ticket']=None
         page.close(dialog)
+    fullButton=ft.TextButton('Открыть фото во весь экран',icon=ft.Icons.FULLSCREEN,visible=False,on_click=fullPhoto)
     takeButton=ft.TextButton('Использовать снимок браузера',visible=False,on_click=take)
     dialog=ft.AlertDialog(inset_padding=ft.padding.all(12),content_padding=ft.padding.all(12),title=ft.Text('Цвет с камеры или фото'),content=ft.Column(width=scanWidth,tight=True,scroll=ft.ScrollMode.AUTO,controls=[
-        ft.FilledButton('Сделать снимок камерой',on_click=camera),takeButton,createPhotoPicker(page,user,selected,'Выбрать фото для цвета'),
-        ft.GestureDetector(content=preview,on_tap_down=tap),sampleBox,resultText,
+        ft.FilledButton('Сделать снимок камерой',on_click=camera),takeButton,createPhotoPicker(page,user,selected,'Выбрать фото для цвета',False),
+        ft.GestureDetector(content=preview,on_tap_down=tap),fullButton,sampleBox,resultText,
         ft.Text('Цвет усредняется по небольшому участку. Освещение и баланс белого камеры влияют на результат; пластилин может отличаться.',size=12)]),
         actions=[ft.TextButton('Отмена',on_click=close),ft.TextButton('В целевой HEX',on_click=apply),ft.TextButton('Добавить ближайший цвет',on_click=lambda e:apply(e,base=True))])
     page.open(dialog)

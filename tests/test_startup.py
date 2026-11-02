@@ -559,7 +559,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         await waitRoute('/')
         self.page.go('/home');await waitRoute('/home')
         nav=find(self.page.views[-1],ft.NavigationBar)
-        nav.selected_index=1;nav.on_change(SimpleNamespace(control=nav))
+        self.page.session.get('navigateHomeTab')(1)
         find(self.page.views[-1],ft.TextButton,text='Открыть').on_click(None)
         note=find(self.page.views[-1],ft.TextField,label='Личная заметка к уроку')
         note.value='Черновик при осмотре модели';note.on_change(SimpleNamespace(control=note))
@@ -598,8 +598,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
     async def test_back_to_search_rebuilds_controls_and_ignores_late_search_event(self):
         view=self.mount(createHomeView(self.page))
         nav=find(view,ft.NavigationBar)
-        nav.selected_index=1
-        nav.on_change(SimpleNamespace(control=nav))
+        self.page.session.get('navigateHomeTab')(1)
         field=find(view,ft.TextField,label='Поиск уроков и работ')
         field.value='кот'
         find(view,ft.ElevatedButton,text='Найти').on_click(None)
@@ -637,7 +636,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         find(view,ft.TextButton,text='Избранные уроки').on_click(None)
         dialog=next(c for c in self.page.overlay if isinstance(c,ft.AlertDialog) and c.open)
         find(dialog,ft.TextButton,text='Милый котик из пластилина').on_click(None)
-        self.assertEqual(find(view,ft.NavigationBar).selected_index,1)
+        self.assertEqual(find(view,ft.NavigationBar).selected_index,0)
         self.assertIsNotNone(find(view,ft.TextField,label='Личная заметка к уроку'))
         find(view,ft.TextButton,text='← Назад к поиску').on_click(None)
         self.assertTrue(any(isinstance(c,ft.TextButton) and c.text=='Открыть' for c in walk(view)))

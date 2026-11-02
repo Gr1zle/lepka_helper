@@ -41,6 +41,9 @@ def makeTheme(dark=False):
             label_large=ft.TextStyle(size=14,weight=ft.FontWeight.W_600,color=onSurface),
             label_medium=ft.TextStyle(size=12,color=onSurface),
             label_small=ft.TextStyle(size=11,color=onSurface)),
+        dialog_theme=ft.DialogTheme(bgcolor='#202822' if dark else '#FFFFFF',elevation=0,shape=ft.RoundedRectangleBorder(radius=20),
+            title_text_style=ft.TextStyle(size=22,color=onSurface,weight=ft.FontWeight.W_600),
+            content_text_style=ft.TextStyle(size=14,color=onSurface)),
         card_theme=ft.CardTheme(color='#202822' if dark else '#FFFFFF',elevation=0,shape=shape,margin=0),
         elevated_button_theme=ft.ElevatedButtonTheme(elevation=0,shape=shape,
             padding=ft.padding.symmetric(horizontal=18,vertical=12),minimum_size=ft.Size(48,48)),
@@ -49,7 +52,7 @@ def makeTheme(dark=False):
         text_button_theme=ft.TextButtonTheme(shape=shape,minimum_size=ft.Size(48,44)),
         navigation_bar_theme=ft.NavigationBarTheme(elevation=0,height=72,
             bgcolor='#202822' if dark else '#FFFFFF',indicator_color='#314F3C' if dark else '#DCEAD8',
-            label_text_style=ft.TextStyle(size=12,color=onSurface)),
+            label_padding=ft.padding.all(0),label_text_style=ft.TextStyle(size=12,color=onSurface)),
         appbar_theme=ft.AppBarTheme(bgcolor=surface,elevation=0,
             center_title=False,title_text_style=ft.TextStyle(size=20,weight=ft.FontWeight.W_600,color=onSurface)))
 

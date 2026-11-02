@@ -9,7 +9,7 @@ from photo_upload import createPhotoUpload, cancelPhotoUpload, takePhotoUpload
 from ui_helpers import authenticatedAction, isWebClient, showMessage
 
 
-def createPhotoPicker(page, user, onSelected, label='Добавить фото'):
+def createPhotoPicker(page, user, onSelected, label='Добавить фото', notifySuccess=True):
     pending = {'token': None}
     status = ft.Text('JPG, PNG или WebP, до 10 МБ', size=12)
 
@@ -23,8 +23,8 @@ def createPhotoPicker(page, user, onSelected, label='Добавить фото')
 
     def deliver(photo):
         success, message = onSelected(photo)
-        status.value = 'Фотография сохранена' if success else 'Фотография не сохранена'
-        showMessage(page, message, not success)
+        status.value = ('Фотография сохранена' if notifySuccess else message) if success else 'Фотография не сохранена'
+        if notifySuccess or not success:showMessage(page, message, not success)
 
     @authenticatedAction(page, user)
     def picked(event):
