@@ -1,3 +1,17 @@
+# Android 0.15.0 — проекты, этапы и завершение
+
+[Скачать APK](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.15.0-projects-arm64.apk) · [Wi-Fi-сервер 0.15](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.15.0.zip) · [PR №31](https://github.com/Gr1zle/lepka_helper/pull/31) · [Описание и снимки](https://github.com/Gr1zle/lepka_helper/blob/feature/project-workflow/docs/project_workflow.md).
+
+Android 9+, ARM64, versionCode 2012. Устанавливать поверх предыдущей версии без удаления приложения: package и сертификат прежние. Исходники: f87afe9; серверный manifest содержит точный sourceCommit. SHA-256 — в SHA256SUMS.txt.
+
+Отдельная страница проекта, название и описание этапа, компактные кнопки фото, порядок только перетаскиванием с сохранением/отменой, подтверждение удаления. Личный этап можно выполнять без фото. Завершение требует финальное фото и выполненные этапы; можно вернуть проект в работу. Публикация использует финальное фото как обложку и требует фото выбранных этапов, сохраняет их описания и рецепты. JSON v2, импорт v1, миграция старых проектов и личные снимки сохраняют данные.
+
+Для новых публикаций/снимков обновите сервер. Остановите старый Ctrl+C, распакуйте пакет отдельно, запустите с прежним --data-dir (по умолчанию LepkaHelperServer в домашней папке). Старую базу и настройки не удалять. Docker и хостинг не нужны.
+
+486 автотестов, браузерное перетаскивание с проверкой видимого порядка и SQLite, завершение/фото, публикация, скачанный JSON, отмена удаления, 320/390/820 px и тёмная тема. APK проверен на точное совпадение исходников, версию, подпись, целостность и отсутствие личных баз/ключей/сессий. Физический Android здесь недоступен: сенсорное перетаскивание, установка, системные файлы и системный назад требуют приёмки на телефоне.
+
+Следующий обязательный блок №32: английский интерфейс и проверка общего сообщества с двух устройств. Старые пакеты сохранены ниже.
+
 # Android 0.14.0 — новая главная, карточки и создание
 
 [Скачать APK 0.14.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.14.0-discovery-arm64.apk) · [PR №30](https://github.com/Gr1zle/lepka_helper/pull/30) · [Описание и снимки](https://github.com/Gr1zle/lepka_helper/blob/feature/discovery-navigation/docs/discovery_navigation.md) · [Серверный пакет](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.14.0.zip).
