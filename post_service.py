@@ -269,3 +269,44 @@ def checkPostLikedByUser(postId, userId):
     existingLike = getPostLikeByUser(postId, userId)
 
     return existingLike is not None
+
+
+def getPost(postId,userId=None):
+    """Read one public post without loading every work by its author."""
+    from database import openDatabase
+    with openDatabase() as c:
+        row=c.execute('''SELECT p.postId,p.userId,p.titleText,p.descriptionText,p.categoryName,p.tagsText,
+            p.likesCount,p.isDeleted,p.createdAt,COALESCE(r.displayNickname,u.nickname) AS nickname,
+            p.userId=? AS isOwn,EXISTS(SELECT 1 FROM postLikes l WHERE l.postId=p.postId AND l.userId=?) AS isLiked
+            FROM posts p JOIN users u ON u.userId=p.userId LEFT JOIN remoteAccounts r ON r.localUserId=p.userId
+            WHERE p.postId=? AND p.isDeleted=0''',(userId,userId,postId)).fetchone()
+        if row is None:return None
+        result=dict(row)
+        for key in ('isDeleted','isOwn','isLiked'):result[key]=bool(result[key])
+        result['photoIds']=[r[0] for r in c.execute('SELECT photoId FROM postPhotos WHERE postId=? ORDER BY position',(postId,))]
+        return result
+
+
+def postDetail(postId,user=None):
+    """Bounded initial page: one post, 20 comments and a display-sized first photo."""
+    from io import BytesIO
+    from PIL import Image
+    from database import getPostPhoto
+    from workshop_service import getWorkshop
+    from role_service import access
+    import base64
+    uid=user['userId'] if user else None
+    item=getPost(postId,uid)
+    if item is None:return None
+    rows=getPostComments(postId,0,21,True)
+    for row in rows:row['isOwn']=row['userId']==uid
+    images={}
+    if item['photoIds']:
+        pid=item['photoIds'][0];data=getPostPhoto(pid)
+        if data:
+            with Image.open(BytesIO(data)) as image:
+                image=image.convert('RGB');image.thumbnail((960,960))
+                output=BytesIO();image.save(output,format='JPEG',quality=84)
+                images[str(pid)]=base64.b64encode(output.getvalue()).decode()
+    return dict(post=item,comments=dict(items=rows[:20],hasMore=len(rows)>20),workshop=getWorkshop(postId),
+        photos=images,access=access(uid) if user else {'permissions':[]})

@@ -52,6 +52,29 @@ class CommunityApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()['data']
 
+    def test_detail_bundle_is_bounded_owner_scoped_and_avoids_author_post_scan(self):
+        from unittest.mock import patch
+        from io import BytesIO
+        from PIL import Image
+        pid=self.publish()
+        with db.openDatabase() as c:
+            c.executemany('INSERT INTO postComments(postId,userId,commentText) VALUES(?,?,?)',[(pid,self.other,f'Комментарий номер {i}') for i in range(22)])
+        with patch('post_service.getUserPosts',side_effect=AssertionError('Loaded every author post')):
+            response=self.client.get(f'/community/posts/{pid}/detail',headers=self.reader)
+        self.assertEqual(response.status_code,200,response.text);data=response.json()['data']
+        self.assertFalse(data['post']['isOwn']);self.assertEqual(data['access']['permissions'],[])
+        self.assertEqual(len(data['comments']['items']),20);self.assertTrue(data['comments']['hasMore'])
+        self.assertTrue(all(c['isOwn'] for c in data['comments']['items']))
+        self.assertIsNone(data['workshop'])
+        with Image.open(BytesIO(base64.b64decode(next(iter(data['photos'].values()))))) as image:
+            self.assertLessEqual(max(image.size),960)
+        self.assertEqual(self.client.get(f'/community/posts/{pid}/detail',headers=self.headers).json()['data']['post']['isOwn'],True)
+        public=self.client.get(f'/community/posts/{pid}/detail').json()['data']
+        self.assertFalse(any(c['isOwn'] for c in public['comments']['items']))
+        self.assertNotIn('sessionToken',str(public));self.assertNotIn('owner@example.com',str(public))
+        self.client.delete(f'/community/posts/{pid}',headers=self.headers)
+        self.assertEqual(self.client.get(f'/community/posts/{pid}/detail').status_code,404)
+
     def test_profile_statistics_are_owner_scoped_without_loading_posts(self):
         first=self.publish()
         self.client.post(f'/community/posts/{first}/like',headers=self.reader)

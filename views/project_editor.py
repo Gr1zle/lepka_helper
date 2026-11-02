@@ -92,7 +92,7 @@ def createProjectEditor(page,user,projectId,onChanged=None):
     def publication(event):
         from community_gateway import CommunityClient
         from post_service import POST_CATEGORIES
-        from views.contest_picker import createContestPicker
+        from views.contest_picker import createContestPicker,selectedContest
         project=getProjectById(projectId,uid);steps=getProjectSteps(projectId,uid)
         if not project or not project['finalPhotoImage']:
             showMessage(page,tr(page, 'Перед публикацией добавьте финальное фото'),True);photoEditor(None);return
@@ -120,7 +120,7 @@ def createProjectEditor(page,user,projectId,onChanged=None):
                 result=client.publishProject(projectId,title.value,description.value,category.value,tags.value,None,
                     [c.data for c in choices if c.value],[c.data for c in mixes if c.value],
                     workshopInfo=({'level':level.value,'timeMinutes':minutes.value,'materials':(materials.value or '').splitlines(),'tools':(tools.value or '').splitlines()} if enableInfo.value else None),
-                    challengeId=int(contest.value) if contest.value else None)
+                    challengeId=selectedContest(contest))
                 if result[0]:render()
                 else:busy['value']=False
                 showMessage(page,result[1],not result[0])

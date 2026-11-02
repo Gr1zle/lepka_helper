@@ -30,7 +30,8 @@ def webAddress(page, path):
     return f'{scheme}://{address.netloc}{path}'
 
 
-def createPhotoViewer(page, photoIds, client=None):
+def createPhotoViewer(page, photoIds, client=None,initialPhotos=None):
+    initialPhotos=dict(initialPhotos or {})
     client = client or CommunityClient(None)
     if not photoIds:
         return ft.Text(tr(page, 'Фотография не добавлена в старой версии приложения'), size=12)
@@ -40,8 +41,11 @@ def createPhotoViewer(page, photoIds, client=None):
 
     def render():
         photoId = photoIds[position[0]]
-        if isWebClient(page) and not client.remote:
-            image.src = webAddress(page, f'/post-photos/{photoId}')
+        cached=initialPhotos.pop(str(photoId),None)
+        if cached:
+            image.src=None;image.src_base64=cached
+        elif isWebClient(page) and not client.remote:
+            image.src_base64=None;image.src = webAddress(page, f'/post-photos/{photoId}')
         else:
             data = client.getPhoto(photoId)
             image.src_base64 = base64.b64encode(data).decode() if data else ''
@@ -60,7 +64,9 @@ def createPhotoViewer(page, photoIds, client=None):
                       on_click=lambda event: move(1))])])
 
 
-def createPostCard(page, postItem, currentUser, refreshCallback):
+def createPostCard(page, postItem, currentUser, refreshCallback,initial=None):
+    preloaded=dict(initial or {})
+    access=preloaded.get('access')
     client = CommunityClient(currentUser)
     postId = postItem['postId']
     deleted = postItem['isDeleted']
@@ -76,7 +82,8 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
     commentField = ft.TextField(label=tr(page, 'Комментарий'), multiline=True, max_lines=3, max_length=1000)
 
     def refreshComments(reset=True):
-        batch=client.getCommentsPage(postId,0 if reset else len(commentRows))
+        batch=preloaded.pop('comments',None)
+        if batch is None:batch=client.getCommentsPage(postId,0 if reset else len(commentRows))
         if reset:commentRows.clear()
         commentRows.extend(batch['items'])
         moreComments.visible=batch['hasMore']
@@ -115,7 +122,7 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
                 actions.append(ft.IconButton(icon=ft.Icons.DELETE, tooltip=tr(page, 'Удалить свой комментарий'), on_click=delete))
             if currentUser:
                 actions.append(createReportButton(page,currentUser,'comment',item['commentId']))
-                if 'materials.remove' in panelAccess(page,currentUser)['permissions']:
+                if 'materials.remove' in (access if access is not None else panelAccess(page,currentUser))['permissions']:
                     actions.append(createModerationDelete(page,currentUser,'comment',item['commentId'],lambda:(refreshComments(),page.update())))
             if currentUser and not deleted:
                 @authenticatedAction(page,currentUser)
@@ -167,12 +174,12 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
 
     controls = [ft.Text(postItem['titleText'], size=18, weight=ft.FontWeight.BOLD),
                 ft.Text(tr(page, 'Автор: {v0} · {v1}', v0=postItem['nickname'], v1=term(page,postItem['categoryName'])), size=12),
-                createPhotoViewer(page, postItem.get('photoIds', []), client) if not deleted else ft.Text(tr(page, 'Работа удалена пользователем')),
+                createPhotoViewer(page, postItem.get('photoIds', []), client,preloaded.get('photos')) if not deleted else ft.Text(tr(page, 'Работа удалена пользователем')),
                 ft.Text(postItem['descriptionText'])]
     if postItem['tagsText']:
         controls.append(ft.Text(tr(page, 'Теги: ') + postItem['tagsText'], size=12))
     if not deleted:
-        controls.append(createPublishedProject(page, postId, currentUser))
+        controls.append(createPublishedProject(page, postId, currentUser,details=preloaded['workshop']) if 'workshop' in preloaded else createPublishedProject(page,postId,currentUser))
     if not deleted:
         liked = client.isLiked(postItem)
         likeButton=ft.TextButton(f"{'❤️' if liked else '🤍'} {postItem['likesCount']}",
@@ -182,7 +189,7 @@ def createPostCard(page, postItem, currentUser, refreshCallback):
             actions.append(ft.TextButton(tr(page, 'Удалить'), on_click=deletePost))
         if currentUser:
             actions.append(createReportButton(page,currentUser,'post',postId))
-            if 'materials.remove' in panelAccess(page,currentUser)['permissions']:actions.append(createModerationDelete(page,currentUser,'post',postId,lambda:(refreshCallback(),page.update())))
+            if 'materials.remove' in (access if access is not None else panelAccess(page,currentUser))['permissions']:actions.append(createModerationDelete(page,currentUser,'post',postId,lambda:(refreshCallback(),page.update())))
         controls.append(ft.Row(controls=actions, wrap=True))
     moreComments.on_click=serverAction(page)(lambda e:(refreshComments(False),page.update()))
     refreshComments()
@@ -205,7 +212,7 @@ def createHomeTab(page, currentUser, nickname, mode="all", onPublished=None):
     category = ft.Dropdown(label=tr(page, 'Категория'), value=POST_CATEGORIES[0],
                            options=[ft.dropdown.Option(key=value, text=term(page, value)) for value in POST_CATEGORIES])
     tags = ft.TextField(label=tr(page, 'Теги через запятую'), hint_text=tr(page, 'До 10 тегов, каждый 2–30 символов'))
-    from views.contest_picker import createContestPicker
+    from views.contest_picker import createContestPicker,selectedContest
     contest,contestControls=createContestPicker(page,currentUser)
     photos = []
     pending = {}
@@ -270,7 +277,7 @@ def createHomeTab(page, currentUser, nickname, mode="all", onPublished=None):
         page.update()
 
     @authenticatedAction(page, currentUser)
-    def uploaded(event):
+    def uploadedFinal(event):
         token = pending.get(event.file_name)
         if not token:
             return
@@ -287,6 +294,10 @@ def createHomeTab(page, currentUser, nickname, mode="all", onPublished=None):
                 showMessage(page, str(error), True)
         refreshPhotos()
         page.update()
+
+    def uploaded(event):
+        # Intermediate progress does not read/write account data; authorize completion once.
+        if event.error or event.progress==1:uploadedFinal(event)
 
     @authenticatedAction(page, currentUser)
     def picked(event):
@@ -340,30 +351,41 @@ def createHomeTab(page, currentUser, nickname, mode="all", onPublished=None):
         picker.pick_files(allow_multiple=True, file_type=ft.FilePickerFileType.CUSTOM,
                           allowed_extensions=list(PHOTO_EXTENSIONS))
 
-    @authenticatedAction(page, currentUser)
-    def publishPost(event):
+    # Claim the UI operation before authentication/network; repeated taps do not queue requests.
+    import threading
+    publishLock=threading.Lock()
+    published={'done':False}
+    @authenticatedAction(page,currentUser)
+    def sendPost(event):
         if pending:
-            showMessage(page, tr(page, 'Дождитесь загрузки всех фотографий'), True)
-            return
-        success,message,_=client.publishPost(title.value,description.value,category.value,tags.value,photos,
-            challengeId=int(contest.value) if contest.value else None)
+            showMessage(page,tr(page,'Дождитесь загрузки всех фотографий'),True);return
+        try:challengeId=selectedContest(contest)
+        except ValueError as error:
+            showMessage(page,str(error),True);return
+        success,message,_=client.publishPost(title.value,description.value,category.value,tags.value,photos,challengeId=challengeId)
         if success:
-            draftFields['clearDraft']()
+            published['done']=True
             title.value,description.value,tags.value='','',''
             photos.clear();refreshPhotos()
             if mode=='compose':
                 if onPublished:onPublished()
             else:refreshPosts()
-        showMessage(page,message,not success);page.update()
+        showMessage(page,message,not success)
+    def publishPost(event):
+        if published['done'] or not publishLock.acquire(blocking=False):return
+        publish.disabled=True;status.value=tr(page,'Публикация отправляется…');page.update()
+        try:sendPost(event)
+        finally:
+            publish.disabled=published['done']
+            if not published['done']:status.value=tr(page,'Проверьте поля и повторите публикацию')
+            page.update();publishLock.release()
 
     pick=ft.OutlinedButton(tr(page, 'Добавить фото'),icon=ft.Icons.ADD_PHOTO_ALTERNATE,on_click=choose)
     publish=ft.ElevatedButton(tr(page, 'Опубликовать'),icon=ft.Icons.PUBLISH,on_click=publishPost,height=48)
     onlyMine.on_change=lambda event:(refreshPosts(),page.update())
-    from views.offline_controls import createDraftTools
-    draftTools=createDraftTools(page,currentUser,draftFields,photos,refreshPhotos)
     if mode=='compose':
         from design_system import polish
-        form=ft.Column(spacing=14,controls=[title,description,category,tags,contestControls,draftTools,pick,status,previews,
+        form=ft.Column(spacing=14,controls=[title,description,category,tags,contestControls,pick,status,previews,
             ft.TextButton(tr(page, 'Отменить загрузку'),on_click=cancel),publish])
         return polish(ft.ListView(expand=True,padding=ft.padding.only(left=4,right=4,top=12,bottom=4),build_controls_on_demand=False,controls=[form]))
     page.session.set('refreshCommunityFeed',lambda:(refreshPosts(),page.update()))
@@ -409,7 +431,7 @@ def createHomeTab(page, currentUser, nickname, mode="all", onPublished=None):
                     color=ft.Colors.WHITE)])),
         ft.Card(visible=currentUser is not None, content=ft.Container(padding=16, content=ft.Column(controls=[
             ft.Text(tr(page, 'Опубликовать работу'), size=18, weight=ft.FontWeight.BOLD), title, description, category,
-            tags, contestControls, draftTools, pick, status, previews, ft.TextButton(tr(page, 'Отменить загрузку'), on_click=cancel), publish]))),
+            tags, contestControls, pick, status, previews, ft.TextButton(tr(page, 'Отменить загрузку'), on_click=cancel), publish]))),
         ft.Text(tr(page, 'Лента сообщества'), size=18, weight=ft.FontWeight.BOLD),feedQuery,
         ft.Container(content=feedCategory,padding=ft.padding.symmetric(vertical=6)),
         ft.Container(content=feedSort,padding=ft.padding.symmetric(vertical=6)),onlyMine,

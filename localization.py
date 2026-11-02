@@ -101,3 +101,10 @@ def clearSession(page):
     code=page.session.get('languageCode')
     page.session.clear()
     if code in SUPPORTED:page.session.set('languageCode',code)
+
+
+def rebuildCurrentRoute(page):
+    """Flet suppresses go() for an unchanged route; locale needs an actual rebuild."""
+    handler=page.on_route_change
+    if callable(handler):handler(None)
+    else:page.go(page.route or (getattr(page.views[0],'route',None) if page.views else None) or '/')

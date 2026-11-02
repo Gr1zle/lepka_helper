@@ -196,11 +196,11 @@ class ReviewUiTests(unittest.IsolatedAsyncioTestCase):
         confirm(None)
         self.assertIsNotNone(db.getProjectById(project, self.user['userId']))
 
-    async def test_theme_save_preserves_hidden_language_notification_preferences(self):
+    async def test_theme_save_preserves_visible_language_notification_preferences(self):
         from views.profile_tab import createProfileTab
         profile_service.saveUserSettings(self.user['userId'], 'light', 'en', False)
         view = self.mount(createProfileTab(self.page, self.user['nickname'], self.user['email']))
-        self.assertFalse(any(isinstance(item, ft.Dropdown) and item.label == 'Язык приложения' for item in walk(view)))
+        self.assertTrue(any(isinstance(item, ft.Dropdown) and item.label == 'Язык приложения' for item in walk(view)))
         find(view, ft.Dropdown, label='Тема приложения').value = 'dark'
         find(view, ft.ElevatedButton, text='Сохранить настройки').on_click(None)
         profile = profile_service.getUserProfile(self.user['userId'])

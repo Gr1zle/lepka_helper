@@ -23,8 +23,10 @@ def createMixtureRecipe(mixture):
     return ft.Column(controls=lines, spacing=4)
 
 
-def createPublishedProject(page, postId, currentUser):
-    details = CommunityClient(currentUser).getWorkshop(postId)
+_NOT_LOADED=object()
+
+def createPublishedProject(page, postId, currentUser,details=_NOT_LOADED):
+    if details is _NOT_LOADED:details=CommunityClient(currentUser).getWorkshop(postId)
     if not details:
         return ft.Container()
     def openDetail(event):
@@ -92,7 +94,7 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
         category = ft.Dropdown(label=tr(page, 'Категория работы'), value=projectItem['categoryName'],
             options=[ft.dropdown.Option(key=item, text=term(page, item)) for item in POST_CATEGORIES])
         tags = ft.TextField(label=tr(page, 'Теги через запятую'))
-        from views.contest_picker import createContestPicker
+        from views.contest_picker import createContestPicker,selectedContest
         contest,contestControls=createContestPicker(page,currentUser)
         level = ft.Dropdown(label=tr(page, 'Сложность мастер-класса'), value=IDEA_LEVELS[0],
                             options=[ft.dropdown.Option(key=item, text=term(page, item)) for item in IDEA_LEVELS])
@@ -133,7 +135,7 @@ def createProjectSharing(page, currentUser, projectItem, refreshCallback):
                     'level': level.value, 'timeMinutes': minutes.value,
                     'materials': [entry.strip() for entry in (materials.value or '').splitlines() if entry.strip()],
                     'tools': [entry.strip() for entry in (tools.value or '').splitlines() if entry.strip()]},
-                challengeId=int(contest.value) if contest.value else None)
+                challengeId=selectedContest(contest))
             if success:
                 page.close(dialog)
                 refreshCallback()

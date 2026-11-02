@@ -6,16 +6,25 @@ from api_client import ApiError
 from ui_helpers import authenticatedAction
 
 
+NO_CONTEST='none'
+
+def selectedContest(picker):
+    value=picker.value
+    if value in (None,'',NO_CONTEST):return None
+    if isinstance(value,str) and value.isdecimal() and int(value)>0 and value in [o.key for o in picker.options]:return int(value)
+    raise ValueError('Выберите конкурс из списка или вариант «Без конкурса»')
+
+
 def createContestPicker(page,user):
-    picker=ft.Dropdown(label=tr(page, 'Участие в конкурсе'),value='',options=[ft.dropdown.Option('',tr(page, 'Без конкурса'))])
+    picker=ft.Dropdown(label=tr(page, 'Участие в конкурсе'),value=NO_CONTEST,options=[ft.dropdown.Option(NO_CONTEST,tr(page, 'Без конкурса'))])
     hint=ft.Text(tr(page, 'Выбранному конкурсу автоматически добавится тег. Публикация и заявка сохранятся вместе.'),size=12)
     def refresh(event=None):
         if not user:return
         try:
             items=ChallengeClient(user).listing()
-            picker.options=[ft.dropdown.Option('',tr(page, 'Без конкурса'))]+[ft.dropdown.Option(str(i['challengeId']),i['title'])
+            picker.options=[ft.dropdown.Option(NO_CONTEST,tr(page, 'Без конкурса'))]+[ft.dropdown.Option(str(i['challengeId']),i['title'])
                 for i in items if i['status']=='open']
-            if picker.value not in [item.key for item in picker.options]:picker.value=''
+            if picker.value not in [item.key for item in picker.options]:picker.value=NO_CONTEST
             hint.value=tr(page, 'Одна работа на участника. Конкурсный тег занимает одно из 10 мест для тегов.')
         except ApiError as error:
             if error.statusCode==401:raise
