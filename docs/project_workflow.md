@@ -30,3 +30,9 @@ JSON проекта теперь версии 2: отдельное описан
 Снимки: [проект](screenshots/project-workflow-detail-390.png), [перетаскивание](screenshots/project-workflow-order-after.png), [завершённый проект](screenshots/project-workflow-completed-320.png), [подтверждение удаления](screenshots/project-workflow-delete-confirm.png), [тёмная тема](screenshots/project-workflow-dark-820.png). Это тестовые данные; на физическом Android эти сценарии ещё нужно принять.
 
 Для обновления сервера остановите старый процесс Ctrl+C, распакуйте новый пакет отдельно и запустите его с прежним `--data-dir`. Если раньше использовали папку по умолчанию, она остаётся `LepkaHelperServer` в домашней папке пользователя. Старую базу и настройки удалять не нужно. Docker не требуется.
+
+## Android-поставка
+
+[APK 0.15.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.15.0-projects-arm64.apk) · [Wi-Fi-сервер 0.15](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.15.0.zip) · [PR №31](https://github.com/Gr1zle/lepka_helper/pull/31).
+
+Код APK: `f87afe930c3d294b726436c6f97a62abfaad508f`, Android 9+, ARM64, versionCode 2012. SHA-256 APK: `f9e33233edadb7373760ae6254651887df7b196bf9172eadd818845a092d40e8`. Проверены целостность обоих ZIP внутри APK, точное совпадение упакованных исходников/ресурсов, пустой исходный адрес API и отсутствие личных баз/сессий/ключей. Сертификат и package сохранены: устанавливать поверх предыдущего приложения без удаления.
