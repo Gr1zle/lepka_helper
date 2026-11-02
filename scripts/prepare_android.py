@@ -125,6 +125,7 @@ media_kit = "1.2.0"
 media_kit_video = "1.3.0"
 media_kit_libs_video = "1.0.5"
 media_kit_libs_android_video = "1.3.7"
+screen_brightness_android = "2.1.2"
 ''').replace('APP_VERSION_PLACEHOLDER', APP_VERSION).replace('DEPS_PLACEHOLDER',json.dumps([
     'flet==0.28.3','flet-video==0.1.1','requests==2.32.3','Pillow==12.3.0','starlette==0.46.2',
     'lepka-platform @ '+wheel.as_uri()])), encoding='utf-8')
