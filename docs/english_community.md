@@ -37,3 +37,9 @@ APK устанавливается поверх 0.15 с прежней подп�
 Все 502 автотеста проходят. Дополнительные проверки контролируют полный каталог явных шаблонов и их параметров, отсутствие русских системных подписей в основных английских разделах, сохранение исходных ключей фильтров/любимых цветов, пользовательский текст, экспорт рецепта и неизменное расписание английских напоминаний.
 
 Снимки: [главная 320](screenshots/english-community-home-320.png), [цвета на планшете](screenshots/english-community-colors-dark-820.png), [ответ автора](screenshots/english-community-alice-reply.png), [уведомления первого клиента](screenshots/english-community-alice-inbox.png), [уведомления второго клиента](screenshots/english-community-bob-inbox.png).
+
+## Android-поставка
+
+[APK 0.16.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.16.0-english-arm64.apk) · [Сервер 0.16](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.16.0.zip) · [PR №32](https://github.com/Gr1zle/lepka_helper/pull/32).
+
+Код APK: `c1585f72076ddecd2454be6ae6657ed5801ffe91`. Android 9+, ARM64, versionCode 2013. SHA-256: `9e0ee7a3ea02727b471281bdb0761f467a36206d74b1ecda21c9515968e9f60d`. Проверены целостность ZIP, точное совпадение всех упакованных исходников/ресурсов/словаря, версия, сертификат и отсутствие личных баз, сессий, настроенного адреса API и секретов. Сертификат и package сохранены для установки поверх предыдущей версии. GitHub CI основного коммита прошёл.
