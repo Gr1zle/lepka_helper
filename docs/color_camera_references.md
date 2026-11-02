@@ -45,3 +45,17 @@ PNG и PDF используют один актуальный рецепт. PDF 
 
 ![Выбор цвета на снимке, 320 px](screenshots/color-camera-dialog-320.png)
 ![Редактор референса, 320 px](screenshots/color-reference-320.png)
+
+
+## Поставка 0.12.0
+
+[APK Android 9+, ARM64](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.12.0-tools-arm64.apk) · [Серверный ZIP](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.12.0.zip) · [PR №28](https://github.com/Gr1zle/lepka_helper/pull/28).
+
+[GitHub Actions: все 459 тестов прошли](https://github.com/Gr1zle/lepka_helper/actions/runs/41479042771). Итоговый локальный прогон повторён: 459/459. Source/runtime — `c974008`, артефакты — `968fa04` в ветке artifacts/android-demo-20261031. Программная проверка не подменяет тест настоящего Android ContentResolver/камеры.
+
+APK versionCode 2009, версия 0.12.0, около 38 МБ. Подпись совпадает с 0.11.0. Проверены целостность, совпадение всех Python-модулей/экранов/ресурсов с текущим кодом и всех нативных исходников с wheel; файлов/камеры MediaActions, прежних Keystore/уведомлений/видео в DEX; закрытый FileProvider с правильным authority и grantUriPermissions. Личных баз/сессий/секретов внутри нет. Широкие разрешения на память и собственное разрешение CAMERA не добавлены: снимок делает системное приложение камеры по действию пользователя.
+
+- SHA-256 APK: `28d21e4cf8bbda104b755cec6fb62e913db2f3f8c94139add9d10b1b88311d92`.
+- SHA-256 сервера: `b70f666d5c27905aa03617f5bef9747b01328665b808f1059b2d6154d717e0b9`.
+
+Установить APK поверх 0.11.0 без удаления приложения. Открыть сохранённую смесь и повторно экспортировать PNG в Downloads, проверить размер и открытие картинки; затем PDF, отмену сохранения и выбор другой папки. Старые файлы 0 байт нужно сформировать заново из рецепта. Проверить камеру, касание снимка и применение HEX, затем обрезку/прозрачный PNG референса. Сервер при обновлении распаковать отдельно и запустить с прежним --data-dir, сохранив LepkaHelperServer/accounts.db. Новые локальные функции не требуют покупки хостинга или настройки почты.
