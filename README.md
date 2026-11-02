@@ -1,3 +1,5 @@
+[Скачать APK 0.17.0 — исправления постов, языка и публикации](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.17.0-fixes-arm64.apk) · [Wi-Fi-сервер 0.17](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.17.0.zip) · [PR №33](https://github.com/Gr1zle/lepka_helper/pull/33).
+
 [№33: исправления открытия постов, языка и публикации](docs/interaction_fixes.md).
 
 [Скачать APK 0.16.0 — English и сообщество](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.16.0-english-arm64.apk) · [Wi-Fi-сервер 0.16](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.16.0.zip) · [PR №32](https://github.com/Gr1zle/lepka_helper/pull/32).

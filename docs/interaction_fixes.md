@@ -37,3 +37,9 @@ APK устанавливается поверх прежнего. Для сер�
 В браузере пройдены выбор English до входа в существующий русскоязычный аккаунт, создание поста с явным выбором No challenge без обновления конкурсов, загрузка фото, открытие/возврат, серия из 30 событий нажатия и смена языка в профиле. На 30 событий зарегистрирован один запрос detail и одна страница. Холодное/повторное открытие на этом синтетическом локальном стенде заняло около 0,46/0,66 с; это не измерение физического Android или домашней Wi-Fi сети.
 
 [Полноэкранная публикация](screenshots/interaction-fixes-compose-photo.png) · [открытый пост](screenshots/interaction-fixes-post-loaded.png) · [выбор языка](screenshots/interaction-fixes-language-profile.png) · [применённый русский](screenshots/interaction-fixes-language-russian.png).
+
+## Готовая сборка
+
+[APK 0.17.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.17.0-fixes-arm64.apk) · [Wi-Fi-сервер 0.17](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.17.0.zip) · [PR №33](https://github.com/Gr1zle/lepka_helper/pull/33).
+
+Код APK: `ca7d14d09f2d226ce2d472db092ee20ee87c7b74`. Android 9+, ARM64, versionCode 2014. SHA-256: `6977e58f3798f988b23a752dba52ec373bd7fb7ab865e868fdd4a788067a7290`. Проверены целостность APK и внутреннего Python ZIP, точное совпадение исходников/ресурсов/словаря, версия, прежняя подпись и отсутствие личных баз/сессий/секретов. GitHub CI основного коммита прошёл. Устанавливать поверх прежней версии, приложение не удалять.
