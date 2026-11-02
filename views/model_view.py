@@ -1,3 +1,4 @@
+from localization import tr, term
 from pathlib import Path
 import threading
 import flet as ft
@@ -16,18 +17,18 @@ def createModelView(page,modelId):
     owner=user['userId'] if user else None
     item=getModel(modelId,owner)
     if item is None:
-        return ft.View('/models/missing',controls=[ft.Text('Модель не найдена или недоступна'),
-            ft.TextButton('К галерее',on_click=lambda event:page.go('/models'))])
+        return ft.View('/models/missing',controls=[ft.Text(tr(page, 'Модель не найдена или недоступна')),
+            ft.TextButton(tr(page, 'К галерее'),on_click=lambda event:page.go('/models'))])
     try:mesh=loadModel(modelId,owner)
     except (OSError,ValueError):
-        return ft.View('/models/'+modelId,controls=[ft.Text('Не удалось прочитать встроенную модель'),
-            ft.TextButton('К галерее',on_click=lambda event:page.go('/models'))])
+        return ft.View('/models/'+modelId,controls=[ft.Text(tr(page, 'Не удалось прочитать встроенную модель')),
+            ft.TextButton(tr(page, 'К галерее'),on_click=lambda event:page.go('/models'))])
     state={'yaw':-25,'pitch':45 if modelId=='pizza' else 15,'zoom':1.0,'light':-45,'brightness':1.0,
            'width':min(520,max(200,(page.width or 390)-24)),'height':320}
     full={'value':False}
     view=ft.View('/models/'+modelId,padding=12)
     def active():return bool(page.views and page.views[-1] is view)
-    wire=ft.Checkbox(label='Показать рёбра',value=False)
+    wire=ft.Checkbox(label=tr(page, 'Показать рёбра'),value=False)
     canvas=cv.Canvas(expand=True,resize_interval=150)
     pool=[]
     drawLock=threading.Lock()
@@ -81,8 +82,8 @@ def createModelView(page,modelId):
                 if not event.path:return
                 try:
                     with Path(event.path).with_suffix('.zip').open('xb') as stream:stream.write(content)
-                    showMessage(page,'OBJ и материалы сохранены в ZIP')
-                except OSError:showMessage(page,'Не удалось сохранить ZIP. Выберите новое имя файла',True)
+                    showMessage(page,tr(page, 'OBJ и материалы сохранены в ZIP'))
+                except OSError:showMessage(page,tr(page, 'Не удалось сохранить ZIP. Выберите новое имя файла'),True)
             handler=authenticatedAction(page,user)(selected) if item.get('imported') else selected
             picker=ft.FilePicker(on_result=handler);page.overlay.append(picker);page.update()
             picker.save_file(file_name='lepka-model.zip')
@@ -96,35 +97,35 @@ def createModelView(page,modelId):
     def leave(event):
         if full['value']:toggleFull()
         else:page.go(back)
-    appbar=ft.AppBar(title=ft.Text(item['title']),leading=ft.IconButton(icon=ft.Icons.ARROW_BACK,on_click=leave))
-    fullButton=ft.TextButton('Во весь экран',icon=ft.Icons.FULLSCREEN,on_click=lambda event:toggleFull())
+    appbar=ft.AppBar(title=ft.Text(item['title'] if item.get('imported') else term(page,item['title'])),leading=ft.IconButton(icon=ft.Icons.ARROW_BACK,on_click=leave))
+    fullButton=ft.TextButton(tr(page, 'Во весь экран'),icon=ft.Icons.FULLSCREEN,on_click=lambda event:toggleFull())
     scene=ft.Container(left=0,right=0,top=0,height=320,clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
         bgcolor='#edf1f5',border_radius=16,
         content=ft.GestureDetector(expand=True,content=canvas,drag_interval=60,on_pan_update=rotate,on_scroll=scroll,
                                   mouse_cursor=ft.MouseCursor.MOVE))
     exportHandler=authenticatedAction(page,user)(export) if item.get('imported') or item.get('catalog') else export
     tools=ft.Container(left=0,right=0,top=330,bottom=0,content=ft.ListView(expand=True,spacing=10,controls=[
-            fullButton,ft.Text(item['title'],size=17,weight=ft.FontWeight.BOLD),
-            ft.Text('Тяните фигурку пальцем или мышью. Масштаб — кнопками или колёсиком.',size=12),
-            ft.Row(wrap=True,controls=[ft.TextButton('Уменьшить',on_click=lambda event:zoom(-.2)),
-                ft.TextButton('Увеличить',on_click=lambda event:zoom(.2)),ft.TextButton('Сбросить вид',on_click=reset)]),
-            ft.Row(wrap=True,controls=[ft.TextButton('Спереди',on_click=lambda event:angle(0,0)),
-                ft.TextButton('Слева',on_click=lambda event:angle(-90,0)),ft.TextButton('Сзади',on_click=lambda event:angle(180,0)),
-                ft.TextButton('Сверху',on_click=lambda event:angle(0,75))]),
-            ft.ExpansionTile(title=ft.Text('Освещение и рёбра'),initially_expanded=False,
-                controls=[ft.Text('Направление света'),light,ft.Text('Яркость'),brightness,wire]),
+            fullButton,ft.Text(item['title'] if item.get('imported') else term(page,item['title']),size=17,weight=ft.FontWeight.BOLD),
+            ft.Text(tr(page, 'Тяните фигурку пальцем или мышью. Масштаб — кнопками или колёсиком.'),size=12),
+            ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Уменьшить'),on_click=lambda event:zoom(-.2)),
+                ft.TextButton(tr(page, 'Увеличить'),on_click=lambda event:zoom(.2)),ft.TextButton(tr(page, 'Сбросить вид'),on_click=reset)]),
+            ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Спереди'),on_click=lambda event:angle(0,0)),
+                ft.TextButton(tr(page, 'Слева'),on_click=lambda event:angle(-90,0)),ft.TextButton(tr(page, 'Сзади'),on_click=lambda event:angle(180,0)),
+                ft.TextButton(tr(page, 'Сверху'),on_click=lambda event:angle(0,75))]),
+            ft.ExpansionTile(title=ft.Text(tr(page, 'Освещение и рёбра')),initially_expanded=False,
+                controls=[ft.Text(tr(page, 'Направление света')),light,ft.Text(tr(page, 'Яркость')),brightness,wire]),
             *([] if item.get('catalog') else [createModelFavorite(page,user,modelId)]),
-            *([ft.TextButton('К учебному материалу',on_click=lambda event:page.go('/catalog/'+modelId[len('catalog-'):]))] if item.get('catalog') else []),
-            *([] if item.get('imported') or item.get('catalog') else [ft.TextButton('Урок для этой фигурки',icon=ft.Icons.SCHOOL_OUTLINED,on_click=linkedLesson)]),
-            ft.TextButton('Скачать OBJ и материалы',icon=ft.Icons.DOWNLOAD_OUTLINED,on_click=exportHandler,visible=not androidClient(page)),
-            *([ft.TextButton('Удалить модель',icon=ft.Icons.DELETE_OUTLINED,on_click=remove)] if item.get('imported') else []),
-            ft.Text('Личная модель на этом устройстве' if item.get('imported') else 'Формы упрощены для изучения объёма и деталей. Это не 3D-скан готовой работы.',size=12)
+            *([ft.TextButton(tr(page, 'К учебному материалу'),on_click=lambda event:page.go('/catalog/'+modelId[len('catalog-'):]))] if item.get('catalog') else []),
+            *([] if item.get('imported') or item.get('catalog') else [ft.TextButton(tr(page, 'Урок для этой фигурки'),icon=ft.Icons.SCHOOL_OUTLINED,on_click=linkedLesson)]),
+            ft.TextButton(tr(page, 'Скачать OBJ и материалы'),icon=ft.Icons.DOWNLOAD_OUTLINED,on_click=exportHandler,visible=not androidClient(page)),
+            *([ft.TextButton(tr(page, 'Удалить модель'),icon=ft.Icons.DELETE_OUTLINED,on_click=remove)] if item.get('imported') else []),
+            ft.Text(tr(page, 'Личная модель на этом устройстве') if item.get('imported') else tr(page, 'Формы упрощены для изучения объёма и деталей. Это не 3D-скан готовой работы.'),size=12)
         ]))
     def layout(update=True):
         if update and not active():return
         width,height=page.width or 390,page.height or 844
         view.appbar=None if full['value'] else appbar
-        fullButton.text='Выйти из полного экрана' if full['value'] else 'Во весь экран'
+        fullButton.text=tr(page, 'Выйти из полного экрана') if full['value'] else tr(page, 'Во весь экран')
         fullButton.icon=ft.Icons.FULLSCREEN_EXIT if full['value'] else ft.Icons.FULLSCREEN
         scene.height=None;scene.bottom=0;scene.right=0
         tools.left=0;tools.right=0;tools.top=None;tools.bottom=0;tools.width=None;tools.height=None

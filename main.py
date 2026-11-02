@@ -39,7 +39,8 @@ def main(page: ft.Page):
     initializeDatabase()
     ensureDemoUser()
 
-    page.title = APP_TITLE
+    from localization import restoreLanguage,setLanguage,localizeHints
+    restoreLanguage(page)
     page.theme_mode = ft.ThemeMode.LIGHT
     if apiUrl and nativeClient(page):
         from secure_device import attachProtectedSession
@@ -48,6 +49,7 @@ def main(page: ft.Page):
     if restoredUser:
         page.session.set('currentUser', restoredUser)
         profile = getUserProfile(restoredUser['userId'], restoredUser.get('sessionToken'))
+        if profile:setLanguage(page,profile.get('languageCode','ru'))
         if profile and profile.get('themeMode') == 'dark':
             page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = ft.Colors.SURFACE
@@ -60,6 +62,12 @@ def main(page: ft.Page):
     from design_system import makeTheme
     page.theme = makeTheme()
     page.dark_theme = makeTheme(True)
+
+    originalUpdate=page.update
+    def localizedUpdate(*controls):
+        for control in (controls or [*page.views,*page.overlay]):localizeHints(page,control)
+        return originalUpdate(*controls)
+    page.update=localizedUpdate
 
     # Глобальные настройки
     page.session.set("PRIMARY_COLOR", PRIMARY_COLOR)

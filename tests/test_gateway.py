@@ -365,6 +365,36 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
             result=client.publishProject(pid,'Новый котик','Подробная общая работа','Животные','кот',None,[sid],[])
         self.assertFalse(result[0]);self.assertIn('Обновите',result[1])
 
+    async def test_two_separate_client_databases_share_only_server_community(self):
+        from community_gateway import CommunityClient
+        from challenge_gateway import ChallengeClient
+        from image_fixtures import photo
+        from project_service import saveProject,getUserProjects
+        alice=self.login();a=CommunityClient(alice)
+        gateway.saveUserSettings(alice['userId'],'light','en',True,alice['sessionToken'])
+        personal=saveProject(alice['userId'],'Личный проект Alice','Животные','','Не публиковать')[2]
+        ok,text,pid=a.publishPost('Общий котик','Работа для двух независимых клиентов','Животные','кот',[photo()])
+        self.assertTrue(ok,text)
+        with patch.object(database,'DATABASE_PATH',self.root/'second-device.db'):
+            database.initializeDatabase()
+            bob=gateway.loginUser('second@example.com','ServerPass123')[2];b=CommunityClient(bob)
+            self.assertEqual(getUserProjects(bob['userId']),[])
+            self.assertEqual(b.getPost(pid)['titleText'],'Общий котик')
+            self.assertTrue(b.toggleLike(pid)[0])
+            comment=b.saveComment(pid,'Видно со второго устройства')[2]
+            self.assertIsNotNone(comment)
+            self.assertEqual(gateway.getUserProfile(bob['userId'],bob['sessionToken'])['languageCode'],'ru')
+            with database.openDatabase() as c:self.assertEqual(c.execute('SELECT COUNT(*) FROM posts').fetchone()[0],0)
+        self.assertEqual(getUserProjects(alice['userId'])[0]['projectId'],personal)
+        self.assertEqual(a.getPost(pid)['likesCount'],1)
+        self.assertEqual(a.getComments(pid)[0]['commentText'],'Видно со второго устройства')
+        self.assertTrue(a.saveComment(pid,'Ответ автора',comment)[0])
+        self.assertEqual({n['kind'] for n in ChallengeClient(alice).notices()},{'like','comment'})
+        with patch.object(database,'DATABASE_PATH',self.root/'second-device.db'):
+            self.assertEqual(ChallengeClient(bob).notices()[0]['kind'],'reply')
+            self.assertEqual(gateway.getSessionUser(bob['sessionToken'])['userId'],bob['userId'])
+        self.assertEqual(gateway.getUserProfile(alice['userId'],alice['sessionToken'])['languageCode'],'en')
+
 
 class TransportTests(unittest.TestCase):
     def test_https_is_required_except_explicit_local_test(self):

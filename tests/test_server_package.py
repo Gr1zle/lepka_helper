@@ -34,7 +34,7 @@ class ServerPackageTests(unittest.TestCase):
                     target=module.replace('.','/')+'.py'
                     if (ROOT/target).is_file():self.assertIn(target,FILES,(name,target))
         self.assertFalse(list(folder.rglob('*.db')))
-        self.assertFalse((folder/'assets').exists());self.assertFalse((folder/'views').exists())
+        self.assertEqual(sorted(p.name for p in (folder/'assets').iterdir()),['i18n_en.json']);self.assertFalse((folder/'views').exists())
         with self.assertRaises(ValueError):prepareServer(folder)
 
     def test_packaged_api_starts_in_isolated_process_without_importing_flet(self):

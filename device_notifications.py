@@ -22,10 +22,12 @@ def buildPlan(user, now=None):
     now = now or datetime.now(timezone.utc)
     prefs = getSettings(user['userId']); personal = personalSettings(user['userId'])
     with openDatabase() as c:
-        owner = c.execute("SELECT notificationsEnabled FROM users WHERE userId=? AND isBlocked=0 AND roleName!='deleted'", (user['userId'],)).fetchone()
+        owner = c.execute("SELECT notificationsEnabled,languageCode FROM users WHERE userId=? AND isBlocked=0 AND roleName!='deleted'", (user['userId'],)).fetchone()
         progress = c.execute('SELECT * FROM lessonProgress WHERE userId=?', (user['userId'],)).fetchall()
     if not owner or not owner[0] or not prefs['deviceEnabled']:
         return dict(owner=ownerKey(user), items=[], enabled=False)
+    en=owner['languageCode']=='en'
+    from interface_catalog import english
     items = []
     def add(key, title, body, when, route):
         # Skip old reminders rather than generating a storm after a long absence.
@@ -36,8 +38,8 @@ def buildPlan(user, now=None):
             if project['complete'] or not project['deadline']: continue
             for days in (2, 1, 0):
                 when = datetime.combine(project['deadline']-timedelta(days=days), datetime.min.time(), MOSCOW)+timedelta(hours=10)
-                add(f"project:{project['projectId']}:{project['deadlineDate']}:{days}", 'Дедлайн проекта',
-                    f"{project['projectName']}: " + ('сегодня' if days == 0 else 'завтра' if days == 1 else 'через 2 дня'), when, '/planner')
+                add(f"project:{project['projectId']}:{project['deadlineDate']}:{days}", 'Project deadline' if en else 'Дедлайн проекта',
+                    f"{project['projectName']}: " + (('today' if days == 0 else 'tomorrow' if days == 1 else 'in 2 days') if en else ('сегодня' if days == 0 else 'завтра' if days == 1 else 'через 2 дня')), when, '/planner')
     if prefs['learning'] and personal['lessonsEnabled']:
         for row in progress:
             lesson = getLessonById(row['lessonId'])
@@ -54,7 +56,7 @@ def buildPlan(user, now=None):
             for snooze in snoozes:
                 try: when = max(when, datetime.fromisoformat(snooze[0]))
                 except (ValueError, TypeError): pass
-            add(f"lesson:{row['lessonId']}:{row['updatedAt']}:{personal['resumeDays']}:{when.isoformat()}", 'Продолжить обучение', lesson['title'], when, '/learning')
+            add(f"lesson:{row['lessonId']}:{row['updatedAt']}:{personal['resumeDays']}:{when.isoformat()}", 'Continue learning' if en else 'Продолжить обучение', english(lesson['title']) if en else lesson['title'], when, '/learning')
     return dict(owner=ownerKey(user), items=sorted(items, key=lambda i: (i['at'], i['key']))[:100], enabled=True)
 
 

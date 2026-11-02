@@ -109,6 +109,8 @@ def searchSuggestions(text,userId=None):
         candidates.extend([lesson['title'],*lesson['tags'],*lesson['materials']])
     for model in MODEL_ITEMS:
         candidates.extend([f"3D {model['title']}",*model['tags']])
+    from interface_catalog import english
+    candidates += [english(value) for value in candidates[len(recentSearches(userId)) if userId is not None else 0:]]
     seen, result = set(), []
     for index,value in enumerate(candidates):
         key = value.casefold().replace('ё','е')

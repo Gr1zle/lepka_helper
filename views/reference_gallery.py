@@ -1,3 +1,4 @@
+from localization import tr, term
 import base64
 import flet as ft
 from color_photo import readImage,pngBytes,cropReference,removeBackground
@@ -9,12 +10,12 @@ from ui_helpers import getCurrentUser,authenticatedAction,showMessage,confirmAct
 
 def createReferenceGallery(page):
     user=getCurrentUser(page)
-    if not user:return ft.View('/references',controls=[ft.Text('Войдите для работы с личными референсами')])
+    if not user:return ft.View('/references',controls=[ft.Text(tr(page, 'Войдите для работы с личными референсами'))])
     state={'original':None,'image':None}
     preview=ft.Image(height=260,fit=ft.ImageFit.CONTAIN,visible=False)
-    name=ft.TextField(label='Название референса',value='Мой референс',max_length=80)
+    name=ft.TextField(label=tr(page, 'Название референса'),value='Мой референс',max_length=80)
     margins=[ft.TextField(label=label,value='0',width=130,keyboard_type=ft.KeyboardType.NUMBER) for label in ('Слева, %','Сверху, %','Справа, %','Снизу, %')]
-    background=ft.TextField(label='Цвет фона (HEX)',value='#FFFFFF')
+    background=ft.TextField(label=tr(page, 'Цвет фона (HEX)'),value='#FFFFFF')
     tolerance=ft.Slider(min=0,max=150,divisions=30,value=25,label='{value}')
     saved=ft.Column(spacing=12)
     def refreshPreview():
@@ -55,13 +56,13 @@ def createReferenceGallery(page):
                 confirmAction(page,'Удалить референс?',row['title'],authenticatedAction(page,user)(confirmed))
             controls.append(ft.Card(content=ft.Container(padding=12,content=ft.Column(controls=[ft.Text(item['title']),
                 ft.Image(src_base64=base64.b64encode(item['image']).decode(),height=170,fit=ft.ImageFit.CONTAIN),
-                ft.Row(wrap=True,controls=[ft.TextButton('Открыть референс',on_click=openItem),ft.TextButton('Удалить референс',on_click=remove)])]))))
-        saved.controls=controls or [ft.Text('Сохранённых референсов пока нет.')]
+                ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Открыть референс'),on_click=openItem),ft.TextButton(tr(page, 'Удалить референс'),on_click=remove)])]))))
+        saved.controls=controls or [ft.Text(tr(page, 'Сохранённых референсов пока нет.'))]
     @authenticatedAction(page,user)
     def save(event):
         try:
             if state['image'] is None:raise ValueError('Сначала выберите фото')
-            saveReference(user['userId'],name.value,pngBytes(state['image']));renderSaved();page.update();showMessage(page,'Референс сохранён на устройстве')
+            saveReference(user['userId'],name.value,pngBytes(state['image']));renderSaved();page.update();showMessage(page,tr(page, 'Референс сохранён на устройстве'))
         except ValueError as error:showMessage(page,str(error),True)
     @authenticatedAction(page,user)
     def export(event):
@@ -70,10 +71,10 @@ def createReferenceGallery(page):
             exportBytes(page,user,pngBytes(state['image']),'lepka-reference.png','image/png')
         except (ValueError,OSError) as error:showMessage(page,str(error),True)
     renderSaved()
-    return ft.View('/references',padding=12,appbar=ft.AppBar(title=ft.Text('Фотореференсы'),leading=ft.IconButton(icon=ft.Icons.ARROW_BACK,on_click=lambda e:page.go('/models'))),
+    return ft.View('/references',padding=12,appbar=ft.AppBar(title=ft.Text(tr(page, 'Фотореференсы')),leading=ft.IconButton(icon=ft.Icons.ARROW_BACK,on_click=lambda e:page.go('/models'))),
         controls=[ft.ListView(expand=True,spacing=12,controls=[createPhotoPicker(page,user,selected,'Фото для референса'),name,preview,
-            ft.Text('Обрезка краёв в процентах'),ft.Row(wrap=True,controls=margins),ft.OutlinedButton('Обрезать фото',on_click=crop),
-            background,ft.Text('Допуск цвета однотонного фона'),tolerance,ft.OutlinedButton('Удалить однотонный фон',on_click=cutout),
-            ft.Text('Удаляется только похожий фон, связанный с краями. Для сложного фона используйте обрезку; это не нейросетевое выделение объекта.'),
-            ft.TextButton('Вернуть исходное фото',on_click=reset),ft.FilledButton('Сохранить референс',on_click=save),
-            ft.OutlinedButton('Экспорт референса PNG',on_click=export),ft.Text('До 20 референсов и 40 МБ на аккаунт/сервер. Сохраняются на этом устройстве.'),saved])])
+            ft.Text(tr(page, 'Обрезка краёв в процентах')),ft.Row(wrap=True,controls=margins),ft.OutlinedButton(tr(page, 'Обрезать фото'),on_click=crop),
+            background,ft.Text(tr(page, 'Допуск цвета однотонного фона')),tolerance,ft.OutlinedButton(tr(page, 'Удалить однотонный фон'),on_click=cutout),
+            ft.Text(tr(page, 'Удаляется только похожий фон, связанный с краями. Для сложного фона используйте обрезку; это не нейросетевое выделение объекта.')),
+            ft.TextButton(tr(page, 'Вернуть исходное фото'),on_click=reset),ft.FilledButton(tr(page, 'Сохранить референс'),on_click=save),
+            ft.OutlinedButton(tr(page, 'Экспорт референса PNG'),on_click=export),ft.Text(tr(page, 'До 20 референсов и 40 МБ на аккаунт/сервер. Сохраняются на этом устройстве.')),saved])])

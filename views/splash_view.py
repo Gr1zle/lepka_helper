@@ -1,3 +1,4 @@
+from localization import tr, term
 import asyncio
 import flet as ft
 from app_state import getAppState
@@ -58,9 +59,9 @@ def createSplashView(page):
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=6,
                 controls=[
-                    ft.Text(APP_TITLE, size=34, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+                    ft.Text(tr(page,APP_TITLE), size=34, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
                     ft.Text(
-                        "Мобильный помощник для лепки из пластилина",
+                        tr(page, 'Мобильный помощник для лепки из пластилина'),
                         size=15,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.ON_SURFACE_VARIANT,
@@ -99,7 +100,7 @@ def createSplashView(page):
                                 alignment=ft.alignment.bottom_center,
                                 padding=ft.padding.only(bottom=22),
                                 content=ft.Text(
-                                    'Версия ' + APP_VERSION,
+                                    tr(page, 'Версия ') + APP_VERSION,
                                     size=12,
                                     color=ft.Colors.ON_SURFACE_VARIANT,
                                     text_align=ft.TextAlign.CENTER,

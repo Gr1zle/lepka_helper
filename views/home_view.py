@@ -1,3 +1,4 @@
+from localization import tr, term, message as translateMessage
 from ui_helpers import authenticatedAction, getCurrentUser, isWebClient, serverAction, confirmAction, createLoadError, showMessage as showPageMessage
 from api_client import ApiError
 import base64
@@ -61,7 +62,7 @@ def getPageBackgroundColor(page):
 
 def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
     resultColumn = ft.ResponsiveRow(spacing=12,run_spacing=12)
-    resultHeading=ft.Text('Результаты поиска',size=18,weight=ft.FontWeight.BOLD,visible=not startEmpty)
+    resultHeading=ft.Text(tr(page, 'Результаты поиска'),size=18,weight=ft.FontWeight.BOLD,visible=not startEmpty)
     ideaContainer = ft.Container()
     mainContentColumn = ft.Column(spacing=14)
 
@@ -78,12 +79,12 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
         cached = {}
     suggestions = ft.Column(spacing=0)
     suggestionBox = ft.Container(content=suggestions,visible=False)
-    history = ft.ExpansionTile(title=ft.Text('Недавние поиски'),controls=[],initially_expanded=False,
+    history = ft.ExpansionTile(title=ft.Text(tr(page, 'Недавние поиски')),controls=[],initially_expanded=False,
                                visible=currentUser is not None)
 
     searchField = ft.TextField(
-        label="Поиск уроков и работ",
-        hint_text="Например: котик, еда, дракон",
+        label=tr(page, 'Поиск уроков и работ'),
+        hint_text=tr(page, 'Например: котик, еда, дракон'),
         prefix_icon=ft.Icons.SEARCH,
         border_radius=12,
         value=cached.get('query',''),
@@ -91,33 +92,33 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
     )
 
     categoryDropdown = ft.Dropdown(
-        label="Категория",
+        label=tr(page, 'Категория'),
         value=cached.get('category','Все'),
         border_radius=12,
         options=[
-            ft.dropdown.Option(categoryName)
+            ft.dropdown.Option(key=categoryName, text=term(page, categoryName))
             for categoryName in SEARCH_CATEGORIES
         ],
     )
 
-    levelDropdown = ft.Dropdown(label='Сложность', value=cached.get('level','Все'),
-        options=[ft.dropdown.Option(value) for value in ['Все', *IDEA_LEVELS]])
-    timeDropdown = ft.Dropdown(label='Время до (минут)', value=cached.get('time','Любое'),
-        options=[ft.dropdown.Option(value) for value in ['Любое', '30', '60', '120']])
-    videoCheckbox = ft.Checkbox(label='Только с видео', value=cached.get('video',False))
-    favoritesCheckbox = ft.Checkbox(label='Только избранные уроки',value=cached.get('favorites',False),disabled=currentUser is None)
-    progressCheckbox = ft.Checkbox(label='Продолжить начатые уроки',value=cached.get('progress',False),disabled=currentUser is None)
-    offlineCheckbox = ft.Checkbox(label='Только встроенные уроки и модели (офлайн)',value=cached.get('offline',False))
-    sortDropdown = ft.Dropdown(label='Сортировка уроков',value=cached.get('sort','Релевантность'),
-        options=[ft.dropdown.Option(value) for value in ('Релевантность','По времени','По названию')])
-    ideaThemeDropdown = ft.Dropdown(label='Тематика идеи', value='Случайная',
-        options=[ft.dropdown.Option(value) for value in ['Случайная', *IDEA_THEMES]])
-    ideaLevelDropdown = ft.Dropdown(label='Сложность идеи', value='Случайная',
-        options=[ft.dropdown.Option(value) for value in ['Случайная', *IDEA_LEVELS]])
-    ideaPaletteDropdown = ft.Dropdown(label='Цветовая гамма', value='Случайная',
-        options=[ft.dropdown.Option(value) for value in IDEA_PALETTES])
-    ideaCountDropdown = ft.Dropdown(label='Количество цветов', value='3',
-        options=[ft.dropdown.Option(str(value)) for value in range(1, 6)])
+    levelDropdown = ft.Dropdown(label=tr(page, 'Сложность'), value=cached.get('level','Все'),
+        options=[ft.dropdown.Option(key=value, text=term(page, value)) for value in ['Все', *IDEA_LEVELS]])
+    timeDropdown = ft.Dropdown(label=tr(page, 'Время до (минут)'), value=cached.get('time','Любое'),
+        options=[ft.dropdown.Option(key=value, text=term(page, value)) for value in ['Любое', '30', '60', '120']])
+    videoCheckbox = ft.Checkbox(label=tr(page, 'Только с видео'), value=cached.get('video',False))
+    favoritesCheckbox = ft.Checkbox(label=tr(page, 'Только избранные уроки'),value=cached.get('favorites',False),disabled=currentUser is None)
+    progressCheckbox = ft.Checkbox(label=tr(page, 'Продолжить начатые уроки'),value=cached.get('progress',False),disabled=currentUser is None)
+    offlineCheckbox = ft.Checkbox(label=tr(page, 'Только встроенные уроки и модели (офлайн)'),value=cached.get('offline',False))
+    sortDropdown = ft.Dropdown(label=tr(page, 'Сортировка уроков'),value=cached.get('sort','Релевантность'),
+        options=[ft.dropdown.Option(key=value, text=term(page, value)) for value in ('Релевантность','По времени','По названию')])
+    ideaThemeDropdown = ft.Dropdown(label=tr(page, 'Тематика идеи'), value='Случайная',
+        options=[ft.dropdown.Option(key=value, text=term(page, value)) for value in ['Случайная', *IDEA_THEMES]])
+    ideaLevelDropdown = ft.Dropdown(label=tr(page, 'Сложность идеи'), value='Случайная',
+        options=[ft.dropdown.Option(key=value, text=term(page, value)) for value in ['Случайная', *IDEA_LEVELS]])
+    ideaPaletteDropdown = ft.Dropdown(label=tr(page, 'Цветовая гамма'), value='Случайная',
+        options=[ft.dropdown.Option(key=value, text=term(page, value)) for value in IDEA_PALETTES])
+    ideaCountDropdown = ft.Dropdown(label=tr(page, 'Количество цветов'), value='3',
+        options=[ft.dropdown.Option(key=str(value), text=term(page, str(value))) for value in range(1, 6)])
 
     def lessonAction(callback):
         return authenticatedAction(page, currentUser)(callback) if currentUser else callback
@@ -128,7 +129,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
     @authenticatedAction(page, currentUser)
     def handleCreateProjectFromIdea(ideaData):
         if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
+            showMessage(tr(page, 'Сначала войдите в аккаунт'), True)
             return
 
         projectName = ideaData["title"].replace("Слепить: ", "")
@@ -153,12 +154,12 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
             showMessage(messageText, True)
             return
 
-        showMessage("Идея добавлена в проекты")
+        showMessage(tr(page, 'Идея добавлена в проекты'))
 
     @authenticatedAction(page, currentUser)
     def handleCreateProjectFromLesson(lessonItem):
         if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
+            showMessage(tr(page, 'Сначала войдите в аккаунт'), True)
             return
 
         descriptionText = (
@@ -181,7 +182,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
             showMessage(messageText, True)
             return
 
-        showMessage("Урок добавлен в проекты")
+        showMessage(tr(page, 'Урок добавлен в проекты'))
 
     @lessonAction
     def showLessonDetail(lessonId):
@@ -208,6 +209,8 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
         page.update()
 
     def createLessonDetail(lessonItem):
+        from localization import builtinContent
+        lessonItem=builtinContent(page,lessonItem)
         steps = lessonItem["steps"]
         currentStepIndex = selectedStepIndex["value"]
         currentStepText = steps[currentStepIndex]
@@ -216,10 +219,10 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
 
         materialsText = ", ".join(lessonItem["materials"])
         def enlarge(event):
-            dialog=ft.AlertDialog(title=ft.Text(f"Схема шага {currentStepIndex+1}"),
+            dialog=ft.AlertDialog(title=ft.Text(tr(page, 'Схема шага {v0}', v0=currentStepIndex + 1)),
                 content=ft.Container(width=500,height=360,content=ft.InteractiveViewer(min_scale=1,max_scale=4,
                     content=ft.Image(src=lessonItem['stepImages'][currentStepIndex],fit=ft.ImageFit.CONTAIN))),
-                actions=[ft.TextButton('Закрыть',on_click=lambda event:page.close(dialog))])
+                actions=[ft.TextButton(tr(page, 'Закрыть'),on_click=lambda event:page.close(dialog))])
             page.open(dialog)
         model=next(item for item in MODEL_ITEMS if item['lessonId']==lessonItem['lessonId'])
         def openModel(event):
@@ -247,7 +250,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
             refreshMainContent()
             if currentStepIndex == len(steps) - 1:
                 completed = lessonState['value']['isCompleted'] if currentUser else False
-                showMessage('Урок завершён' if completed else 'Для сохранения завершения отметьте все шаги после входа', not completed)
+                showMessage(tr(page, 'Урок завершён') if completed else tr(page, 'Для сохранения завершения отметьте все шаги после входа'), not completed)
             page.update()
 
         @lessonAction
@@ -271,14 +274,14 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                     checked.remove(index)
                 persistState()
                 page.update()
-            return ft.Checkbox(label=material, value=index in state['checkedMaterials'],
+            return ft.Checkbox(label=term(page,material), value=index in state['checkedMaterials'],
                                disabled=currentUser is None, on_change=change)
 
         return ft.Column(
             spacing=14,
             controls=[
                 ft.TextButton(
-                    text="← Назад к поиску",
+                    text=tr(page, '← Назад к поиску'),
                     on_click=lambda event: showSearchContent(),
                 ),
                 ft.Row(wrap=True,controls=[createLessonFavorite(page,currentUser,lessonItem['lessonId'],refreshMainContent),
@@ -297,7 +300,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                                 color=ft.Colors.WHITE,
                             ),
                             ft.Text(
-                                f"{lessonItem['category']} · {lessonItem['level']} · {lessonItem['timeMinutes']} мин",
+                                tr(page, '{v0} · {v1} · {v2} мин', v0=term(page,lessonItem['category']), v1=term(page,lessonItem['level']), v2=lessonItem['timeMinutes']),
                                 size=14,
                                 color=ft.Colors.WHITE,
                             ),
@@ -317,12 +320,12 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                             spacing=8,
                             controls=[
                                 ft.Text(
-                                    "Материалы и инструменты",
+                                    tr(page, 'Материалы и инструменты'),
                                     size=18,
                                     weight=ft.FontWeight.BOLD,
                                 ),
                                 *[materialControl(index, material) for index, material in enumerate(lessonItem['materials'])],
-                                ft.Text('Прогресс сохраняется после входа' if currentUser is None else 'Отметки сохраняются автоматически', size=12),
+                                ft.Text(tr(page, 'Прогресс сохраняется после входа') if currentUser is None else tr(page, 'Отметки сохраняются автоматически'), size=12),
                             ],
                         ),
                     ),
@@ -335,7 +338,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                             spacing=12,
                             controls=[
                                 ft.Text(
-                                    f"Шаг {currentStepIndex + 1} из {len(steps)}",
+                                    tr(page, 'Шаг {v0} из {v1}', v0=currentStepIndex + 1, v1=len(steps)),
                                     size=18,
                                     weight=ft.FontWeight.BOLD,
                                 ),
@@ -351,30 +354,30 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                                     alignment=ft.alignment.center,
                                     content=ft.Image(src=lessonItem['stepImages'][currentStepIndex], fit=ft.ImageFit.CONTAIN),
                                 ),
-                                ft.Text('3D-схема текущего этапа, не фотография', size=12),
-                                ft.Row(wrap=True,controls=[ft.TextButton('Увеличить схему',on_click=enlarge),
-                                    ft.TextButton('3D этой фигурки',on_click=openModel)]),
+                                ft.Text(tr(page, '3D-схема текущего этапа, не фотография'), size=12),
+                                ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Увеличить схему'),on_click=enlarge),
+                                    ft.TextButton(tr(page, '3D этой фигурки'),on_click=openModel)]),
                                 ft.Text(
                                     currentStepText,
                                     size=16,
                                     color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else DARK_TEXT_COLOR,
                                 ),
-                                ft.Checkbox(label='Шаг выполнен', value=currentStepIndex in state['completedSteps'],
+                                ft.Checkbox(label=tr(page, 'Шаг выполнен'), value=currentStepIndex in state['completedSteps'],
                                     disabled=currentUser is None, on_change=handleStepChecked),
-                                ft.Text('Урок завершён' if state['isCompleted'] else f"Выполнено шагов: {len(state['completedSteps'])} из {len(steps)}"),
+                                ft.Text(tr(page, 'Урок завершён') if state['isCompleted'] else tr(page, 'Выполнено шагов: {v0} из {v1}', v0=len(state['completedSteps']), v1=len(steps))),
                                 ft.Row(
                                     wrap=True,
                                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                     controls=[
                                         ft.ElevatedButton(
-                                            text="Предыдущий",
+                                            text=tr(page, 'Предыдущий'),
                                             icon=ft.Icons.ARROW_BACK,
                                             disabled=currentStepIndex == 0,
                                             height=44,
                                             on_click=handlePreviousStep,
                                         ),
                                         ft.ElevatedButton(
-                                            text="Следующий" if currentStepIndex < len(steps) - 1 else "Завершить",
+                                            text=tr(page, 'Следующий') if currentStepIndex < len(steps) - 1 else tr(page, 'Завершить'),
                                             icon=ft.Icons.ARROW_FORWARD,
                                             height=44,
                                             style=ft.ButtonStyle(
@@ -391,7 +394,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                     ),
                 ),
                 ft.ElevatedButton(
-                    text="Добавить как проект",
+                    text=tr(page, 'Добавить как проект'),
                     icon=ft.Icons.ADD,
                     height=48,
                     style=ft.ButtonStyle(
@@ -406,6 +409,8 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
         )
 
     def createLessonCard(lessonItem):
+        from localization import builtinContent
+        lessonItem=builtinContent(page,lessonItem)
         tagText = ", ".join(lessonItem["tags"])
         state = getUserLessonState(currentUser['userId'],lessonItem['lessonId']) if currentUser else None
 
@@ -429,12 +434,12 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                                     expand=True,
                                     controls=[
                                         ft.Text(
-                                            lessonItem["title"],
+                                            term(page,lessonItem["title"]),
                                             size=17,
                                             weight=ft.FontWeight.BOLD,
                                         ),
                                         ft.Text(
-                                            f"{lessonItem['category']} · {lessonItem['level']} · {lessonItem['timeMinutes']} мин",
+                                            tr(page, '{v0} · {v1} · {v2} мин', v0=term(page,lessonItem['category']), v1=term(page,lessonItem['level']), v2=lessonItem['timeMinutes']),
                                             size=12,
                                             color=ft.Colors.ON_SURFACE_VARIANT,
                                         ),
@@ -450,25 +455,25 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                             color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Text(
-                            f"Теги: {tagText}",
+                            tr(page, 'Теги: {v0}', v0=tagText),
                             size=12,
                             color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Row(
                             controls=[
                                 ft.Text(
-                                    (f"Шагов: {len(state['completedSteps'])}/{len(lessonItem['steps'])}" if state else 'Встроенный урок'),
+                                    (tr(page, 'Шагов: {v0}/{v1}', v0=len(state['completedSteps']), v1=len(lessonItem['steps'])) if state else tr(page, 'Встроенный урок')),
                                     size=12,
                                     color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
                                 ft.Text(
-                                    ('Завершён' if state and state['isCompleted'] else ''),
+                                    (tr(page, 'Завершён') if state and state['isCompleted'] else ''),
                                     size=12,
                                     color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
                                 ft.Container(expand=True),
                                 ft.TextButton(
-                                    text="Открыть",
+                                    text=tr(page, 'Открыть'),
                                     on_click=lambda event, currentLessonId=lessonItem["lessonId"]: showLessonDetail(currentLessonId),
                                 ),
                             ],
@@ -487,7 +492,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
         query = normalizeSearchQuery(searchField.value or '')
         saveWorkspace()
         if query and len(query)<2:
-            resultColumn.controls = [ft.Text('Введите не меньше двух символов для поиска.')]
+            resultColumn.controls = [ft.Text(tr(page, 'Введите не меньше двух символов для поиска.'))]
             return
         lessonItems = searchLessons(query, categoryDropdown.value, levelDropdown.value,
                                     None if timeDropdown.value == 'Любое' else timeDropdown.value, videoCheckbox.value)
@@ -498,7 +503,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
             models=searchModels(query,categoryDropdown.value,levelDropdown.value,
                 None if timeDropdown.value=='Любое' else timeDropdown.value,userId=currentUser['userId'] if currentUser else None)
             if models:
-                controls.append(ft.Text('3D-модели',size=18,weight=ft.FontWeight.BOLD))
+                controls.append(ft.Text(tr(page, '3D-модели'),size=18,weight=ft.FontWeight.BOLD))
                 controls.extend(createModelCard(page,item) for item in models)
         if not (offlineCheckbox.value or favoritesCheckbox.value or progressCheckbox.value):
             try:
@@ -506,7 +511,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                     'queryText':query,'categoryName':categoryDropdown.value,'levelName':levelDropdown.value,
                     'maxTime':None if timeDropdown.value=='Любое' else timeDropdown.value,'onlyVideo':videoCheckbox.value})
                 if works:
-                    controls.append(ft.Text('Работы сообщества',size=18,weight=ft.FontWeight.BOLD))
+                    controls.append(ft.Text(tr(page, 'Работы сообщества'),size=18,weight=ft.FontWeight.BOLD))
                     from views.discovery import createPostTile
                     controls.extend(createPostTile(page,item,currentUser,lambda:(refreshSearchResults(),page.update())) for item in works)
             except ApiError as error:
@@ -548,7 +553,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
         if currentUser:
             for query in recentSearches(currentUser['userId']):
                 history.controls.append(ft.TextButton(query,on_click=lambda event,value=query:useQuery(value)))
-            history.controls.append(ft.TextButton('Очистить историю',on_click=clearHistory))
+            history.controls.append(ft.TextButton(tr(page, 'Очистить историю'),on_click=clearHistory))
 
     def refreshSuggestions():
         values = searchSuggestions(searchField.value or '',currentUser['userId'] if currentUser else None)
@@ -620,22 +625,22 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                 content=ft.Column(
                     controls=[
                         ft.Text(
-                            ideaData["title"],
+                            tr(page,'Слепить: ')+term(page,ideaData["title"].removeprefix('Слепить: ')),
                             size=20,
                             weight=ft.FontWeight.BOLD,
                         ),
                         ft.Text(
-                            ideaData["description"],
+                            tr(page,'Тема: {v0}. Сделайте фигурку «{v1}» уровня «{v2}».',v0=term(page,ideaData['theme']),v1=term(page,ideaData['title'].removeprefix('Слепить: ')),v2=term(page,ideaData['level'])),
                             size=14,
                             color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Text(
-                            f"Сложность: {ideaData['level']}",
+                            tr(page, 'Сложность: {v0}', v0=term(page,ideaData['level'])),
                             size=13,
                             color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Text(
-                            f"Примерное время: {ideaData['estimatedTime']} минут",
+                            tr(page, 'Примерное время: {v0} минут', v0=ideaData['estimatedTime']),
                             size=13,
                             color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
@@ -644,7 +649,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
                             spacing=8,
                         ),
                         ft.ElevatedButton(
-                            text="Добавить в проекты",
+                            text=tr(page, 'Добавить в проекты'),
                             icon=ft.Icons.ADD,
                             height=44,
                             style=ft.ButtonStyle(
@@ -671,7 +676,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
 
             if lessonItem is None:
                 mainContentColumn.controls.append(
-                    ft.Text("Урок не найден", color=ft.Colors.RED_400)
+                    ft.Text(tr(page, 'Урок не найден'), color=ft.Colors.RED_400)
                 )
             else:
                 mainContentColumn.controls.append(createLessonDetail(lessonItem))
@@ -681,30 +686,30 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
         mainContentColumn.controls.extend(
             [
                 ft.Text(
-                    "Поиск и идеи",
+                    tr(page, 'Поиск и идеи'),
                     size=24,
                     weight=ft.FontWeight.BOLD,
                 ),
                 searchField,
                 ft.Row(wrap=True,controls=[
-                    ft.OutlinedButton('3D-галерея',icon=ft.Icons.VIEW_IN_AR_OUTLINED,on_click=lambda event:page.go('/models')),
-                    ft.OutlinedButton('Материалы преподавателей' if catalogMode else 'Учебный каталог',icon=ft.Icons.SCHOOL_OUTLINED,on_click=lambda event:page.go('/catalog') if catalogMode else __import__('views.discovery',fromlist=['openBuiltinCatalog']).openBuiltinCatalog(page,currentUser))]),
-                ft.Row(wrap=True,controls=[ft.ElevatedButton('Найти',icon=ft.Icons.SEARCH,on_click=submitSearch),
-                                           ft.TextButton('Сбросить фильтры',on_click=resetFilters)]),
+                    ft.OutlinedButton(tr(page, '3D-галерея'),icon=ft.Icons.VIEW_IN_AR_OUTLINED,on_click=lambda event:page.go('/models')),
+                    ft.OutlinedButton(tr(page, 'Материалы преподавателей') if catalogMode else tr(page, 'Учебный каталог'),icon=ft.Icons.SCHOOL_OUTLINED,on_click=lambda event:page.go('/catalog') if catalogMode else __import__('views.discovery',fromlist=['openBuiltinCatalog']).openBuiltinCatalog(page,currentUser))]),
+                ft.Row(wrap=True,controls=[ft.ElevatedButton(tr(page, 'Найти'),icon=ft.Icons.SEARCH,on_click=submitSearch),
+                                           ft.TextButton(tr(page, 'Сбросить фильтры'),on_click=resetFilters)]),
                 suggestionBox,
                 history,
                 favoritesCheckbox,
-                ft.ExpansionTile(title=ft.Text('Фильтры уроков'),initially_expanded=False,
+                ft.ExpansionTile(title=ft.Text(tr(page, 'Фильтры уроков')),initially_expanded=False,
                     controls=[categoryDropdown,levelDropdown,timeDropdown,videoCheckbox,progressCheckbox,offlineCheckbox,sortDropdown]),
                 resultHeading,
                 resultColumn,
-                ft.ExpansionTile(title=ft.Text('Генератор идей'),initially_expanded=False,controls=[
+                ft.ExpansionTile(title=ft.Text(tr(page, 'Генератор идей')),initially_expanded=False,controls=[
                 ideaThemeDropdown,
                 ideaLevelDropdown,
                 ideaPaletteDropdown,
                 ideaCountDropdown,
                 ft.ElevatedButton(
-                    text="Сгенерировать идею",
+                    text=tr(page, 'Сгенерировать идею'),
                     icon=ft.Icons.AUTO_AWESOME,
                     height=48,
                     style=ft.ButtonStyle(
@@ -720,7 +725,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
         )
 
         if startEmpty or catalogMode:
-            mainContentColumn.controls=[c for c in mainContentColumn.controls if not (isinstance(c,ft.Text) and c.value=='Поиск и идеи')]
+            mainContentColumn.controls=[c for c in mainContentColumn.controls if not (isinstance(c,ft.Text) and c.value==tr(page, 'Поиск и идеи'))]
 
     @lessonAction
     def resetFilters(event):
@@ -746,7 +751,7 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
     if catalogMode:
         offlineCheckbox.value=True
         offlineCheckbox.disabled=True
-        searchField.label='Поиск в учебном каталоге'
+        searchField.label=tr(page, 'Поиск в учебном каталоге')
     refreshHistory()
     pendingLesson = page.session.get('openBuiltinLesson')
     page.session.set('openBuiltinLesson',None)
@@ -767,10 +772,10 @@ def createSearchTab(page, currentUser, startEmpty=False, catalogMode=False):
 
 def createColorsTab(page, currentUser):
     selectedColors = []
-    barMassField=ft.TextField(label='Масса целого бруска, г',value='20',keyboard_type=ft.KeyboardType.NUMBER)
-    barLengthField=ft.TextField(label='Длина целого бруска, см',value='8',keyboard_type=ft.KeyboardType.NUMBER)
-    lengthEnabled=ft.Checkbox(label='Показывать длину в сантиметрах',value=False)
-    mixtureSearch=ft.TextField(label='Поиск моих смесей по названию или HEX',max_length=120)
+    barMassField=ft.TextField(label=tr(page, 'Масса целого бруска, г'),value='20',keyboard_type=ft.KeyboardType.NUMBER)
+    barLengthField=ft.TextField(label=tr(page, 'Длина целого бруска, см'),value='8',keyboard_type=ft.KeyboardType.NUMBER)
+    lengthEnabled=ft.Checkbox(label=tr(page, 'Показывать длину в сантиметрах'),value=False)
+    mixtureSearch=ft.TextField(label=tr(page, 'Поиск моих смесей по названию или HEX'),max_length=120)
     recipeSearchState = {"token": 0}
 
     recipeColumn = ft.Column(spacing=8)
@@ -852,28 +857,28 @@ def createColorsTab(page, currentUser):
     )
 
     totalWeightField = ft.TextField(
-        label="Общий вес смеси (граммы)",
+        label=tr(page, 'Общий вес смеси (граммы)'),
         value="100",
         keyboard_type=ft.KeyboardType.NUMBER,
         border_radius=12,
     )
 
     mixtureNameField = ft.TextField(
-        label="Название смеси",
+        label=tr(page, 'Название смеси'),
         max_length=80,
-        value="Моя новая смесь",
+        value=tr(page,"Моя новая смесь"),
         border_radius=12,
     )
 
     targetHexField = ft.TextField(
-        label="Целевой цвет (HEX)",
+        label=tr(page, 'Целевой цвет (HEX)'),
         value="#8A4F3A",
         prefix_icon=ft.Icons.SEARCH,
         border_radius=12,
     )
 
     targetResultText = ft.Text(
-        "Введите HEX-цвет или выберите его из палитры",
+        tr(page, 'Введите HEX-цвет или выберите его из палитры'),
         size=13,
         color=ft.Colors.ON_SURFACE_VARIANT,
     )
@@ -904,9 +909,9 @@ def createColorsTab(page, currentUser):
         width=110,
         spacing=8,
         controls=[
-            ft.Text("Цель", size=12, weight=ft.FontWeight.BOLD),
+            ft.Text(tr(page, 'Цель'), size=12, weight=ft.FontWeight.BOLD),
             targetSelectedBox,
-            ft.Text("Рецепт", size=12, weight=ft.FontWeight.BOLD),
+            ft.Text(tr(page, 'Рецепт'), size=12, weight=ft.FontWeight.BOLD),
             targetRecipeBox,
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -917,7 +922,7 @@ def createColorsTab(page, currentUser):
 
         if not currentUser:
             savedMixturesColumn.controls.append(
-                ft.Text("Войдите в аккаунт для просмотра смесей", color=ft.Colors.ON_SURFACE_VARIANT)
+                ft.Text(tr(page, 'Войдите в аккаунт для просмотра смесей'), color=ft.Colors.ON_SURFACE_VARIANT)
             )
             return
 
@@ -925,25 +930,25 @@ def createColorsTab(page, currentUser):
 
         if not mixtures:
             savedMixturesColumn.controls.append(
-                ft.Text("Пока нет сохранённых смесей", color=ft.Colors.ON_SURFACE_VARIANT)
+                ft.Text(tr(page, 'Пока нет сохранённых смесей'), color=ft.Colors.ON_SURFACE_VARIANT)
             )
             return
 
         words=(mixtureSearch.value or '').casefold().split()
         mixtures=[m for m in mixtures if all(word in (m['mixtureName']+' '+m['resultHex']).casefold() for word in words)]
-        if not mixtures:savedMixturesColumn.controls.append(ft.Text('Смесей по этому запросу нет.'))
+        if not mixtures:savedMixturesColumn.controls.append(ft.Text(tr(page, 'Смесей по этому запросу нет.')))
         for mixture in mixtures:
             @authenticatedAction(page, currentUser)
             def handleDeleteMixture(event, currentMixtureId=mixture["mixtureId"]):
                 deleteColorMixture(currentUser["userId"], currentMixtureId)
                 refreshSavedMixtures()
                 page.update()
-                showMessage("Смесь удалена")
+                showMessage(tr(page, 'Смесь удалена'))
 
             @authenticatedAction(page, currentUser)
             def handleOpenMixture(event, item=dict(mixture)):
                 if item['recipeError']:
-                    showMessage('Сохранённый рецепт повреждён. Исходные данные не изменены', True)
+                    showMessage(tr(page, 'Сохранённый рецепт повреждён. Исходные данные не изменены'), True)
                     return
                 selectedColors[:] = [{**color, 'proportion': color['percent']} for color in item['recipeItems']]
                 totalWeightField.value = str(item['totalWeight'])
@@ -971,16 +976,16 @@ def createColorsTab(page, currentUser):
                                     controls=[
                                         ft.Text(mixture["mixtureName"], weight=ft.FontWeight.BOLD),
                                         ft.Text(
-                                            "Рецепт повреждён" if mixture["recipeError"] else f"{mixture['resultHex']} • {mixture['totalWeight']} г",
+                                            tr(page, 'Рецепт повреждён') if mixture["recipeError"] else tr(page, '{v0} • {v1} г', v0=mixture['resultHex'], v1=mixture['totalWeight']),
                                             size=12,
                                             color=ft.Colors.ON_SURFACE_VARIANT,
                                         ),
                                     ],
                                 ),
-                                ft.IconButton(icon=ft.Icons.OPEN_IN_NEW, tooltip='Открыть рецепт', on_click=handleOpenMixture),
+                                ft.IconButton(icon=ft.Icons.OPEN_IN_NEW, tooltip=tr(page, 'Открыть рецепт'), on_click=handleOpenMixture),
                                 ft.IconButton(
                                     icon=ft.Icons.DELETE,
-                                    tooltip="Удалить смесь",
+                                    tooltip=tr(page, 'Удалить смесь'),
                                     icon_color=ft.Colors.RED_400,
                                     on_click=handleDeleteMixture,
                                 ),
@@ -1020,7 +1025,7 @@ def createColorsTab(page, currentUser):
                     border_radius=12,
                     bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                     content=ft.Text(
-                        "Добавьте оттенки из палитры выше.",
+                        tr(page, 'Добавьте оттенки из палитры выше.'),
                         color=ft.Colors.ON_SURFACE_VARIANT,
                     ),
                 )
@@ -1031,7 +1036,7 @@ def createColorsTab(page, currentUser):
                     try:
                         normalizeAndRedistribute(currentColor, float(event.control.value))
                     except (ValueError, TypeError):
-                        showMessage("Введите долю от 0 до 100", True)
+                        showMessage(tr(page, 'Введите долю от 0 до 100'), True)
                         return
                     refreshRecipe()
                     page.update()
@@ -1073,7 +1078,7 @@ def createColorsTab(page, currentUser):
                                                 bgcolor=colorItem["hex"],
                                                 border=ft.border.all(1, ft.Colors.GREY_300),
                                             ),
-                                            ft.Text(colorItem["name"], expand=True, weight=ft.FontWeight.W_500),
+                                            ft.Text(term(page,colorItem["name"]), expand=True, weight=ft.FontWeight.W_500),
                                             ft.Text(
                                                 f"{round(colorItem['proportion'], 1)}%",
                                                 weight=ft.FontWeight.BOLD,
@@ -1122,9 +1127,9 @@ def createColorsTab(page, currentUser):
                             bgcolor=recipeItem["hex"],
                             border=ft.border.all(1, ft.Colors.GREY_300),
                         ),
-                        ft.Text(recipeItem["name"], expand=True),
+                        ft.Text(term(page,recipeItem["name"]), expand=True),
                         ft.Text(
-                            f"{recipeItem['percent']}% • {recipeItem['grams']} г",
+                            tr(page, '{v0}% • {v1} г', v0=recipeItem['percent'], v1=recipeItem['grams']),
                             weight=ft.FontWeight.BOLD,
                         ),
                     ],
@@ -1136,21 +1141,21 @@ def createColorsTab(page, currentUser):
         if lengthEnabled.value and recipeItems:
             try:
                 for item in recipeLengths(recipeItems,barMassField.value,barLengthField.value):
-                    recipeColumn.controls.append(ft.Text(f"{item['name']}: {item['centimeters']:g} см"))
-            except ValueError as error:recipeColumn.controls.append(ft.Text(str(error),color=ft.Colors.RED))
+                    recipeColumn.controls.append(ft.Text(tr(page, '{v0}: {v1:g} см', v0=item['name'], v1=item['centimeters'])))
+            except ValueError as error:recipeColumn.controls.append(ft.Text(translateMessage(page,str(error)),color=ft.Colors.RED))
 
         if not recipeItems:
             recipeColumn.controls.append(
-                ft.Text("Рецепт появится после выбора минимум одного цвета.", color=ft.Colors.ON_SURFACE_VARIANT)
+                ft.Text(tr(page, 'Рецепт появится после выбора минимум одного цвета.'), color=ft.Colors.ON_SURFACE_VARIANT)
             )
 
     def handleColorClick(event, colorItem):
         if any(color["colorId"] == colorItem["colorId"] for color in selectedColors):
-            showMessage("Цвет уже выбран", True)
+            showMessage(tr(page, 'Цвет уже выбран'), True)
             return
 
         if len(selectedColors) >= 5:
-            showMessage("Максимум 5 цветов", True)
+            showMessage(tr(page, 'Максимум 5 цветов'), True)
             return
 
         newProportion = 100.0 / (len(selectedColors) + 1)
@@ -1211,8 +1216,7 @@ def createColorsTab(page, currentUser):
 
         mixtureNameField.value = f"Рецепт для {recipeResult['targetHex']}"
         targetResultText.value = (
-            f"Ближайший результат: {recipeResult['resultHex']}. "
-            f"Погрешность: {recipeResult['distance']}."
+            tr(page, 'Ближайший результат: {v0}. Погрешность: {v1}.', v0=recipeResult['resultHex'], v1=recipeResult['distance'])
         )
         updateTargetRecipePreview(recipeResult["resultHex"])
 
@@ -1236,7 +1240,7 @@ def createColorsTab(page, currentUser):
                 raise ValueError("Введите цвет в формате HEX, например #8A4F3A")
             totalWeight = getTotalWeight()
         except ValueError as error:
-            targetResultText.value = str(error)
+            targetResultText.value = translateMessage(page,str(error))
             targetRecipeText.value = "—"
             showMessage(str(error), True)
             safePageUpdate()
@@ -1246,7 +1250,7 @@ def createColorsTab(page, currentUser):
         updateTargetSelectedPreview(targetHex)
         targetRecipeText.value = "..."
         targetRecipeText.color = ft.Colors.BLACK
-        targetResultText.value = "Подбираю рецепт..."
+        targetResultText.value = tr(page, 'Подбираю рецепт...')
         safePageUpdate()
 
         def runRecipeSearch():
@@ -1256,7 +1260,7 @@ def createColorsTab(page, currentUser):
                 if currentToken != recipeSearchState["token"]:
                     return
 
-                targetResultText.value = "Не получилось подобрать рецепт для этого цвета."
+                targetResultText.value = tr(page, 'Не получилось подобрать рецепт для этого цвета.')
                 safePageUpdate()
                 return
 
@@ -1275,16 +1279,16 @@ def createColorsTab(page, currentUser):
     @authenticatedAction(page, currentUser)
     def handleSaveMixture(event):
         if not currentUser:
-            showMessage("Войдите в аккаунт", True)
+            showMessage(tr(page, 'Войдите в аккаунт'), True)
             return
 
         if len(selectedColors) < 2:
-            showMessage("Нужно минимум 2 цвета", True)
+            showMessage(tr(page, 'Нужно минимум 2 цвета'), True)
             return
 
         mixtureName = mixtureNameField.value.strip()
         if len(mixtureName) < 3:
-            showMessage("Название слишком короткое", True)
+            showMessage(tr(page, 'Название слишком короткое'), True)
             return
 
         normalizeAndRedistribute()
@@ -1300,7 +1304,7 @@ def createColorsTab(page, currentUser):
 
         refreshSavedMixtures()
         page.update()
-        showMessage("Смесь сохранена")
+        showMessage(tr(page, 'Смесь сохранена'))
 
     def colorAction(callback):
         return authenticatedAction(page, currentUser)(callback) if currentUser else callback
@@ -1309,13 +1313,13 @@ def createColorsTab(page, currentUser):
     def handleExportRecipe(event,asPdf=False):
         try:
             calibration=(barMassField.value,barLengthField.value) if lengthEnabled.value else None
-            content=(createRecipePdf if asPdf else createRecipePng)(mixtureNameField.value,selectedColors,getTotalWeight(),calibration)
+            content=(createRecipePdf if asPdf else createRecipePng)(mixtureNameField.value,selectedColors,getTotalWeight(),calibration,languageCode=__import__('localization').language(page))
             exportBytes(page,currentUser,content,'lepka-recipe.'+('pdf' if asPdf else 'png'),'application/pdf' if asPdf else 'image/png')
         except (ValueError,OSError) as error:showMessage(str(error),True)
 
     @colorAction
     def scanColor(event):
-        if not currentUser:showMessage('Войдите для выбора цвета с камеры или фото',True);return
+        if not currentUser:showMessage(tr(page, 'Войдите для выбора цвета с камеры или фото'),True);return
         def apply(hexColor):
             targetHexField.value=hexColor;updateTargetSelectedPreview(hexColor);page.update()
         openColorScan(page,currentUser,apply,lambda color:handleColorClick(None,color))
@@ -1332,7 +1336,7 @@ def createColorsTab(page, currentUser):
                 alignment=ft.alignment.bottom_center,
                 border=ft.border.all(1, ft.Colors.GREY_300),
                 content=ft.Text(
-                    colorItem["name"],
+                    term(page,colorItem["name"]),
                     size=10,
                     weight=ft.FontWeight.BOLD,
                     text_align=ft.TextAlign.CENTER,
@@ -1370,17 +1374,17 @@ def createColorsTab(page, currentUser):
         spacing=16,
         padding=16,
         controls=[
-            ft.Text("Смешивание цветов", size=26, weight=ft.FontWeight.BOLD),
+            ft.Text(tr(page, 'Смешивание цветов'), size=26, weight=ft.FontWeight.BOLD),
             createClayTools(page, currentUser),
             resultColorBox,
 
-            ft.Text("Базовая палитра", size=18, weight=ft.FontWeight.BOLD),
-            ft.Text("Нажмите на цвет, чтобы добавить его в смесь.", size=13, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text(tr(page, 'Базовая палитра'), size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(tr(page, 'Нажмите на цвет, чтобы добавить его в смесь.'), size=13, color=ft.Colors.ON_SURFACE_VARIANT),
             colorGrid,
 
             ft.Row(
                 controls=[
-                    ft.Text("Выбранные цвета", size=18, weight=ft.FontWeight.BOLD, expand=True),
+                    ft.Text(tr(page, 'Выбранные цвета'), size=18, weight=ft.FontWeight.BOLD, expand=True),
                     miniResultBox,
                 ],
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -1388,46 +1392,46 @@ def createColorsTab(page, currentUser):
             selectedColorsColumn,
 
             totalWeightField,
-            ft.ExpansionTile(title=ft.Text('Расчёт длины пластилина (см)'),controls=[ft.Container(padding=12,content=ft.Column(spacing=12,controls=[barMassField,barLengthField,lengthEnabled,
-                ft.Text('Введите массу и длину своего целого бруска. Формула: масса компонента / масса бруска × длина бруска. Для всех цветов предполагаются одинаковые бруски.'),
-                ft.TextButton('Пересчитать сантиметры',on_click=lambda e:(refreshRecipe(),page.update()))]))]),
+            ft.ExpansionTile(title=ft.Text(tr(page, 'Расчёт длины пластилина (см)')),controls=[ft.Container(padding=12,content=ft.Column(spacing=12,controls=[barMassField,barLengthField,lengthEnabled,
+                ft.Text(tr(page, 'Введите массу и длину своего целого бруска. Формула: масса компонента / масса бруска × длина бруска. Для всех цветов предполагаются одинаковые бруски.')),
+                ft.TextButton(tr(page, 'Пересчитать сантиметры'),on_click=lambda e:(refreshRecipe(),page.update()))]))]),
             mixtureNameField,
 
             ft.Column(
                 controls=[
                     ft.ElevatedButton(
-                        "Сохранить смесь",
+                        tr(page, 'Сохранить смесь'),
                         icon=ft.Icons.SAVE,
                         on_click=handleSaveMixture,
                         style=ft.ButtonStyle(bgcolor=PRIMARY_COLOR, color=ft.Colors.WHITE),
                     ),
                     ft.OutlinedButton(
-                        "Экспорт PNG",
+                        tr(page, 'Экспорт PNG'),
                         icon=ft.Icons.FILE_DOWNLOAD,
                         on_click=handleExportRecipe,
                     ),
-                    ft.OutlinedButton('Экспорт PDF',icon=ft.Icons.PICTURE_AS_PDF,on_click=lambda e:handleExportRecipe(e,asPdf=True)),
+                    ft.OutlinedButton(tr(page, 'Экспорт PDF'),icon=ft.Icons.PICTURE_AS_PDF,on_click=lambda e:handleExportRecipe(e,asPdf=True)),
                 ],
                 spacing=10,
             ),
 
-            ft.Text("Рецепт", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(tr(page, 'Рецепт'), size=18, weight=ft.FontWeight.BOLD),
             ft.Card(content=ft.Container(padding=16, content=recipeColumn)),
 
             ft.Divider(),
-            ft.Text("Подбор рецепта", size=18, weight=ft.FontWeight.BOLD),
-            ft.OutlinedButton('Сканировать цвет с камеры',icon=ft.Icons.CAMERA_ALT_OUTLINED,on_click=scanColor),
+            ft.Text(tr(page, 'Подбор рецепта'), size=18, weight=ft.FontWeight.BOLD),
+            ft.OutlinedButton(tr(page, 'Сканировать цвет с камеры'),icon=ft.Icons.CAMERA_ALT_OUTLINED,on_click=scanColor),
             targetHexField,
             ft.ElevatedButton(
-                "Подобрать рецепт",
+                tr(page, 'Подобрать рецепт'),
                 icon=ft.Icons.SEARCH,
                 on_click=handleFindRecipe,
                 style=ft.ButtonStyle(bgcolor=SECONDARY_COLOR, color=ft.Colors.WHITE),
             ),
             targetResultText,
-            ft.Text("Цветовой круг для подбора", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(tr(page, 'Цветовой круг для подбора'), size=18, weight=ft.FontWeight.BOLD),
             ft.Text(
-                "Нажмите на оттенок в круге — он подставится в HEX и сразу подберёт рецепт.",
+                tr(page, 'Нажмите на оттенок в круге — он подставится в HEX и сразу подберёт рецепт.'),
                 size=13,
                 color=ft.Colors.ON_SURFACE_VARIANT,
             ),
@@ -1446,7 +1450,7 @@ def createColorsTab(page, currentUser):
             ),
 
             ft.Divider(),
-            ft.Text("Мои смеси", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(tr(page, 'Мои смеси'), size=18, weight=ft.FontWeight.BOLD),
             mixtureSearch,
             savedMixturesColumn,
         ],
@@ -1454,14 +1458,14 @@ def createColorsTab(page, currentUser):
 
     from design_system import workspace, disclosure, polish
     controls=layout.controls
-    pick=next(i for i,c in enumerate(controls) if isinstance(c,ft.Text) and c.value=='Подбор рецепта')
-    saved=next(i for i,c in enumerate(controls) if isinstance(c,ft.Text) and c.value=='Мои смеси')
+    pick=next(i for i,c in enumerate(controls) if isinstance(c,ft.Text) and c.value==tr(page, 'Подбор рецепта'))
+    saved=next(i for i,c in enumerate(controls) if isinstance(c,ft.Text) and c.value==tr(page, 'Мои смеси'))
     mix=controls[2:pick-1]
-    tools=disclosure('Инструменты мастерской',[controls[1]],ft.Icons.HANDYMAN_OUTLINED)
+    tools=disclosure(tr(page, 'Инструменты мастерской'),[controls[1]],ft.Icons.HANDYMAN_OUTLINED)
     mixing=ft.ResponsiveRow(spacing=20,run_spacing=16,controls=[
         ft.Column(mix[1:4],spacing=12,col={'xs':12,'md':6}),
         ft.Column([mix[0],*mix[4:],tools],spacing=12,col={'xs':12,'md':6})])
-    layout=workspace(page,'Цвета', [('Смешать',[mixing]),('Подобрать',controls[pick+1:saved-1]),('Мои смеси',controls[saved+1:])])
+    layout=workspace(page,tr(page, 'Цвета'), [(tr(page, 'Смешать'),[mixing]),(tr(page, 'Подобрать'),controls[pick+1:saved-1]),(tr(page, 'Мои смеси'),controls[saved+1:])])
     page.session.set('showColorMix',lambda:layout.select_workspace(0))
     return polish(layout)
 
@@ -1480,20 +1484,20 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
     def showAllProjects(event):
         projectTarget['id']=None
         refreshProjectList();page.update()
-    showAllButton=ft.TextButton('Показать все проекты',on_click=showAllProjects,visible=projectTarget['id'] is not None)
+    showAllButton=ft.TextButton(tr(page, 'Показать все проекты'),on_click=showAllProjects,visible=projectTarget['id'] is not None)
 
     projectNameField = ft.TextField(
-        label="Название проекта",
-        hint_text="Например: Милый котик",
+        label=tr(page, 'Название проекта'),
+        hint_text=tr(page, 'Например: Милый котик'),
         prefix_icon=ft.Icons.EDIT,
         border_radius=12,
     )
 
     categoryDropdown = ft.Dropdown(
-        label="Категория",
+        label=tr(page, 'Категория'),
         border_radius=12,
         options=[
-            ft.dropdown.Option(categoryName)
+            ft.dropdown.Option(key=categoryName, text=term(page, categoryName))
             for categoryName in PROJECT_CATEGORIES
         ],
         value=PROJECT_CATEGORIES[0],
@@ -1502,8 +1506,8 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
     deadlineField = createDeadlineField(page)
 
     descriptionField = ft.TextField(
-        label="Описание / заметки",
-        hint_text="Что нужно слепить, какие цвета использовать и т.д.",
+        label=tr(page, 'Описание / заметки'),
+        hint_text=tr(page, 'Что нужно слепить, какие цвета использовать и т.д.'),
         multiline=True,
         min_lines=3,
         max_lines=5,
@@ -1528,7 +1532,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
         if currentUser is None:
             newProjectControls.append(
                 ft.Text(
-                    "Войдите в аккаунт, чтобы создавать и видеть проекты.",
+                    tr(page, 'Войдите в аккаунт, чтобы создавать и видеть проекты.'),
                     color=ft.Colors.ON_SURFACE_VARIANT,
                 )
             )
@@ -1552,7 +1556,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                     border_radius=12,
                     bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                     content=ft.Text(
-                        "Выбранный проект недоступен. Нажмите «Показать все проекты»." if projectTarget['id'] is not None else "Пока нет проектов. Создайте первый проект выше.",
+                        tr(page, 'Выбранный проект недоступен. Нажмите «Показать все проекты».') if projectTarget['id'] is not None else tr(page, 'Пока нет проектов. Создайте первый проект выше.'),
                         color=ft.Colors.ON_SURFACE_VARIANT,
                     ),
                 )
@@ -1567,10 +1571,10 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                 def openProject(event,pid=projectItem['projectId']):
                     body=createProjectsTab(page,currentUser,mode='detail',projectId=pid,
                         onChanged=lambda:(refreshProjectList(),page.update()))
-                    openPage(page,'Проект',body,'/discovery/project/'+str(pid))
+                    openPage(page,tr(page, 'Проект'),body,'/discovery/project/'+str(pid))
                 newProjectControls.append(ft.Card(data=projectItem['projectId'],content=ft.ListTile(
                     title=ft.Text(projectItem['projectName'],weight=ft.FontWeight.W_600),
-                    subtitle=ft.Text(projectItem['categoryName']+' · '+(projectItem['deadlineDate'] or 'Без дедлайна')),
+                    subtitle=ft.Text(term(page,projectItem['categoryName'])+' · '+(projectItem['deadlineDate'] or tr(page,'Без дедлайна'))),
                     trailing=ft.Icon(ft.Icons.CHEVRON_RIGHT),on_click=openProject)))
                 continue
             deadlineText = projectItem["deadlineDate"]
@@ -1588,7 +1592,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                 @authenticatedAction(page, currentUser)
                 def delete():
                     deleted = removeProject(currentProjectId, currentUser["userId"])
-                    showMessage("Проект удалён" if deleted else "Проект не найден или недоступен", not deleted)
+                    showMessage(tr(page, 'Проект удалён') if deleted else tr(page, 'Проект не найден или недоступен'), not deleted)
                     refreshProjectList()
                     page.update()
                 confirmAction(page, 'Удалить личный проект?',
@@ -1596,11 +1600,11 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
 
             @authenticatedAction(page, currentUser)
             def handleEditProject(event, currentProject=projectItem):
-                nameField = ft.TextField(label='Название проекта', value=currentProject['projectName'])
-                categoryField = ft.Dropdown(label='Категория', value=currentProject['categoryName'],
-                    options=[ft.dropdown.Option(value) for value in PROJECT_CATEGORIES])
+                nameField = ft.TextField(label=tr(page, 'Название проекта'), value=currentProject['projectName'])
+                categoryField = ft.Dropdown(label=tr(page, 'Категория'), value=currentProject['categoryName'],
+                    options=[ft.dropdown.Option(key=value, text=term(page, value)) for value in PROJECT_CATEGORIES])
                 dateField = createDeadlineField(page, currentProject['deadlineDate'])
-                notesField = ft.TextField(label='Описание / заметки', value=currentProject['descriptionText'], multiline=True)
+                notesField = ft.TextField(label=tr(page, 'Описание / заметки'), value=currentProject['descriptionText'], multiline=True)
 
                 @authenticatedAction(page, currentUser)
                 def save(event):
@@ -1612,16 +1616,16 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                     showMessage(message, not success)
                     page.update()
 
-                dialog = ft.AlertDialog(modal=True, title=ft.Text('Редактирование проекта'),
+                dialog = ft.AlertDialog(modal=True, title=ft.Text(tr(page, 'Редактирование проекта')),
                     content=ft.Column(tight=True, scroll=ft.ScrollMode.AUTO,
                                       controls=[nameField, categoryField, dateField, notesField]),
-                    actions=[ft.TextButton(text='Отмена', on_click=lambda event: page.close(dialog)),
-                             ft.ElevatedButton(text='Сохранить изменения', on_click=save)])
+                    actions=[ft.TextButton(text=tr(page, 'Отмена'), on_click=lambda event: page.close(dialog)),
+                             ft.ElevatedButton(text=tr(page, 'Сохранить изменения'), on_click=save)])
                 page.open(dialog)
 
             newStepField = ft.TextField(
-                label="Новый этап",
-                hint_text="Например: слепить основу",
+                label=tr(page, 'Новый этап'),
+                hint_text=tr(page, 'Например: слепить основу'),
                 border_radius=12,
             )
 
@@ -1630,7 +1634,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
             if len(projectItem["stepItems"]) == 0:
                 stepControls.append(
                     ft.Text(
-                        "Этапов пока нет. Добавьте первый этап ниже.",
+                        tr(page, 'Этапов пока нет. Добавьте первый этап ниже.'),
                         size=12,
                         color=ft.Colors.ON_SURFACE_VARIANT,
                     )
@@ -1648,7 +1652,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                             page.update()
                             return
                         if progress is None:
-                            showMessage("Этап не найден или недоступен", True)
+                            showMessage(tr(page, 'Этап не найден или недоступен'), True)
                         refreshProjectList()
                         page.update()
 
@@ -1657,14 +1661,14 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                         @authenticatedAction(page, currentUser)
                         def delete():
                             progress = removeProjectStep(currentProjectId, currentStepId, currentUser["userId"])
-                            showMessage("Этап удалён" if progress is not None else "Этап не найден или недоступен", progress is None)
+                            showMessage(tr(page, 'Этап удалён') if progress is not None else tr(page, 'Этап не найден или недоступен'), progress is None)
                             refreshProjectList()
                             page.update()
                         confirmAction(page, 'Удалить этап?', 'Будут удалены этап и его фото. Прогресс проекта пересчитается.', delete)
 
                     @authenticatedAction(page, currentUser)
                     def handleEditStep(event, currentProjectId=projectItem['projectId'], currentStep=dict(stepItem)):
-                        textField = ft.TextField(label='Описание этапа', value=currentStep['stepDescription'], multiline=True)
+                        textField = ft.TextField(label=tr(page, 'Описание этапа'), value=currentStep['stepDescription'], multiline=True)
 
                         @authenticatedAction(page, currentUser)
                         def save(event):
@@ -1676,9 +1680,9 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                             showMessage(message, not success)
                             page.update()
 
-                        dialog = ft.AlertDialog(modal=True, title=ft.Text('Редактирование этапа'), content=textField,
-                            actions=[ft.TextButton(text='Отмена', on_click=lambda event: page.close(dialog)),
-                                     ft.ElevatedButton(text='Сохранить этап', on_click=save)])
+                        dialog = ft.AlertDialog(modal=True, title=ft.Text(tr(page, 'Редактирование этапа')), content=textField,
+                            actions=[ft.TextButton(text=tr(page, 'Отмена'), on_click=lambda event: page.close(dialog)),
+                                     ft.ElevatedButton(text=tr(page, 'Сохранить этап'), on_click=save)])
                         page.open(dialog)
 
                     stepControls.append(
@@ -1693,7 +1697,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                                     expand=True,
                                     size=13,
                                 ),
-                                ft.IconButton(icon=ft.Icons.EDIT_OUTLINED, tooltip="Изменить этап", on_click=handleEditStep),
+                                ft.IconButton(icon=ft.Icons.EDIT_OUTLINED, tooltip=tr(page, 'Изменить этап'), on_click=handleEditStep),
                                 ft.IconButton(
                                     icon=ft.Icons.DELETE_OUTLINE,
                                     icon_size=18,
@@ -1725,7 +1729,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                         if data:
                             stepControls.append(ft.Image(src_base64=base64.b64encode(data).decode(),
                                                          height=150, fit=ft.ImageFit.CONTAIN))
-                        stepControls.append(ft.TextButton('Убрать фото этапа', on_click=deletePhoto))
+                        stepControls.append(ft.TextButton(tr(page, 'Убрать фото этапа'), on_click=deletePhoto))
                     else:
                         hint = ('Старый завершённый этап: добавьте фото' if stepItem['isCompleted']
                                 else 'Добавьте фото перед завершением этапа')
@@ -1755,7 +1759,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                 controls=[
                     ft.Divider(),
                     ft.Text(
-                        "Этапы проекта",
+                        tr(page, 'Этапы проекта'),
                         size=15,
                         weight=ft.FontWeight.BOLD,
                     ),
@@ -1811,7 +1815,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                                             ],
                                             spacing=2,
                                         ),
-                                        ft.IconButton(icon=ft.Icons.EDIT, tooltip="Изменить проект", on_click=handleEditProject),
+                                        ft.IconButton(icon=ft.Icons.EDIT, tooltip=tr(page, 'Изменить проект'), on_click=handleEditProject),
                                         ft.IconButton(
                                             icon=ft.Icons.DELETE,
                                             icon_color=ft.Colors.RED_400,
@@ -1832,7 +1836,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                                     bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                                 ),
                                 ft.Text(
-                                    f"Прогресс: {projectItem['progressPercent']}%",
+                                    tr(page, 'Прогресс: {v0}%', v0=projectItem['progressPercent']),
                                     size=12,
                                     color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
@@ -1853,7 +1857,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
     @authenticatedAction(page, currentUser)
     def handleCreateProject(event):
         if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
+            showMessage(tr(page, 'Сначала войдите в аккаунт'), True)
             return
 
         successStatus, messageText, projectId = saveProject(
@@ -1883,7 +1887,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
         padding=ft.padding.only(left=16, right=16, top=16, bottom=16),
         controls=[
             ft.Text(
-                "Мои проекты",
+                tr(page, 'Мои проекты'),
                 size=24,
                 weight=ft.FontWeight.BOLD,
             ),
@@ -1899,7 +1903,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                     content=ft.Column(
                         controls=[
                             ft.Text(
-                                "Создание проекта",
+                                tr(page, 'Создание проекта'),
                                 size=18,
                                 weight=ft.FontWeight.BOLD,
                             ),
@@ -1908,7 +1912,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                             deadlineField,
                             descriptionField,
                             ft.ElevatedButton(
-                                text="Сохранить проект",
+                                text=tr(page, 'Сохранить проект'),
                                 icon=ft.Icons.SAVE,
                                 height=48,
                                 style=ft.ButtonStyle(
@@ -1924,7 +1928,7 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
                 ),
             ),
             ft.Text(
-                "Список проектов",
+                tr(page, 'Список проектов'),
                 size=18,
                 weight=ft.FontWeight.BOLD,
             ),
@@ -1934,15 +1938,15 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
 
     from design_system import disclosure, polish
     controls=layout.controls
-    createIndex=next(i for i,c in enumerate(controls) if isinstance(c,ft.Card) and isinstance(c.content,ft.Container) and isinstance(c.content.content,ft.Column) and any(isinstance(t,ft.Text) and t.value=='Создание проекта' for t in c.content.content.controls))
+    createIndex=next(i for i,c in enumerate(controls) if isinstance(c,ft.Card) and isinstance(c.content,ft.Container) and isinstance(c.content.content,ft.Column) and any(isinstance(t,ft.Text) and t.value==tr(page, 'Создание проекта') for t in c.content.content.controls))
     form=controls[createIndex].content.content.controls[1:]
     if mode=='create':layout.controls=[ft.Column(form,spacing=14)]
     elif mode=='detail':layout.controls=[projectListColumn]
     elif mode=='all':return polish(layout)
     else:
         overview=controls[2:createIndex] if projectTarget['id'] is None else controls[3:createIndex]
-        layout.controls=[ft.Column(spacing=14,controls=[ft.Text('Мои проекты',size=24,weight=ft.FontWeight.W_600),projectListColumn,
-            disclosure('Обзор и перенос проектов',overview,ft.Icons.INSIGHTS_OUTLINED)])]
+        layout.controls=[ft.Column(spacing=14,controls=[ft.Text(tr(page, 'Мои проекты'),size=24,weight=ft.FontWeight.W_600),projectListColumn,
+            disclosure(tr(page, 'Обзор и перенос проектов'),overview,ft.Icons.INSIGHTS_OUTLINED)])]
     return polish(layout)
 
 def createHomeView(page: ft.Page):
@@ -2001,25 +2005,25 @@ def createHomeView(page: ft.Page):
         selected_index=1 if initialTab==5 else (0 if initialTab==1 else initialTab),
         on_change=update_tab,
         destinations=[
-            ft.NavigationBarDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label="Главная"),
-            ft.NavigationBarDestination(icon=ft.Icons.NOTIFICATIONS_OUTLINED, selected_icon=ft.Icons.NOTIFICATIONS, label="Входящие"),
-            ft.NavigationBarDestination(icon=ft.Icons.PALETTE_OUTLINED, selected_icon=ft.Icons.PALETTE, label="Цвета"),
-            ft.NavigationBarDestination(icon=ft.Icons.FOLDER_OUTLINED, selected_icon=ft.Icons.FOLDER, label="Проекты"),
-            ft.NavigationBarDestination(icon=ft.Icons.PERSON_OUTLINE, selected_icon=ft.Icons.PERSON, label="Профиль"),
+            ft.NavigationBarDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label=tr(page, 'Главная')),
+            ft.NavigationBarDestination(icon=ft.Icons.NOTIFICATIONS_OUTLINED, selected_icon=ft.Icons.NOTIFICATIONS, label=tr(page, 'Входящие')),
+            ft.NavigationBarDestination(icon=ft.Icons.PALETTE_OUTLINED, selected_icon=ft.Icons.PALETTE, label=tr(page, 'Цвета')),
+            ft.NavigationBarDestination(icon=ft.Icons.FOLDER_OUTLINED, selected_icon=ft.Icons.FOLDER, label=tr(page, 'Проекты')),
+            ft.NavigationBarDestination(icon=ft.Icons.PERSON_OUTLINE, selected_icon=ft.Icons.PERSON, label=tr(page, 'Профиль')),
         ],
     )
 
     from design_system import ICON
-    labels=['Главная','Уведомления','Цвета','Проекты','Профиль']
+    labels=['Главная','Входящие','Цвета','Проекты','Профиль']
     icons=[ft.Icons.HOME_OUTLINED,ft.Icons.NOTIFICATIONS_OUTLINED,ft.Icons.PALETTE_OUTLINED,ft.Icons.FOLDER_OUTLINED,ft.Icons.PERSON_OUTLINE]
     rail=ft.NavigationRail(expand=True,selected_index=nav_bar.selected_index,extended=False,
         min_width=80,min_extended_width=210,label_type=ft.NavigationRailLabelType.ALL,
         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
-        destinations=[ft.NavigationRailDestination(icon=icon,label=label) for icon,label in zip(icons,labels)])
+        destinations=[ft.NavigationRailDestination(icon=icon,label=term(page,label)) for icon,label in zip(icons,labels)])
     from views.discovery import openCreate
-    createButton=ft.IconButton(ft.Icons.ADD_CIRCLE_OUTLINE,tooltip='Создать',on_click=authenticatedAction(page,currentUser)(lambda e:openCreate(page,currentUser)))
+    createButton=ft.IconButton(ft.Icons.ADD_CIRCLE_OUTLINE,tooltip=tr(page, 'Создать'),on_click=authenticatedAction(page,currentUser)(lambda e:openCreate(page,currentUser)))
     brand=ft.Row([createButton,ft.Image(src=ICON,width=30,height=30,border_radius=10),
-        ft.Text('Лепка',size=20,weight=ft.FontWeight.W_600)])
+        ft.Text(tr(page, 'Лепка'),size=20,weight=ft.FontWeight.W_600)])
     sidebar=ft.Container(width=80,padding=ft.padding.only(top=16,bottom=16),
         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
         content=ft.Column([ft.Container(content=ft.Image(src=ICON,width=42,height=42,border_radius=12),alignment=ft.alignment.center),rail],expand=True))

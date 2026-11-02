@@ -1,3 +1,4 @@
+from localization import tr, term
 import flet as ft
 from app_state import setAppState
 
@@ -39,7 +40,7 @@ def createOnboardingView(page):
         no_wrap=False,
     )
     dotsRow = ft.Row(alignment=ft.MainAxisAlignment.CENTER, spacing=8)
-    backButton = ft.OutlinedButton(text="Назад", height=48, width=130)
+    backButton = ft.OutlinedButton(text=tr(page, 'Назад'), height=48, width=130)
     nextButton = ft.ElevatedButton(height=48, width=160)
 
     def finishOnboarding():
@@ -49,8 +50,8 @@ def createOnboardingView(page):
     def updateSlide():
         currentSlide = SLIDES[slideIndex]
         iconControl.name = currentSlide["icon"]
-        titleControl.value = currentSlide["title"]
-        textControl.value = currentSlide["text"]
+        titleControl.value = tr(page,currentSlide["title"])
+        textControl.value = tr(page,currentSlide["text"])
         dotsRow.controls.clear()
 
         for index in range(len(SLIDES)):
@@ -64,7 +65,7 @@ def createOnboardingView(page):
             )
 
         backButton.visible = slideIndex > 0
-        nextButton.text = "Начать" if slideIndex == len(SLIDES) - 1 else "Далее"
+        nextButton.text = tr(page, 'Начать') if slideIndex == len(SLIDES) - 1 else tr(page, 'Далее')
 
     def handleNext(event):
         nonlocal slideIndex
@@ -92,7 +93,7 @@ def createOnboardingView(page):
     updateSlide()
 
     skipButton = ft.TextButton(
-        text="Пропустить",
+        text=tr(page, 'Пропустить'),
         on_click=lambda event: finishOnboarding(),
     )
 

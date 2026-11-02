@@ -1,3 +1,4 @@
+from localization import tr, term
 """Полный экран мастер-класса: одинаковые элементы Flet для ПК и телефона."""
 import base64
 
@@ -26,7 +27,7 @@ def createWorkshopView(page, postId, currentUser, onBack):
 
     def updateContent():
         if client.getWorkshop(postId) is None:
-            body.controls = [ft.TextButton('← Назад', on_click=onBack), ft.Text('Мастер-класс удалён или недоступен')]
+            body.controls = [ft.TextButton(tr(page, '← Назад'), on_click=onBack), ft.Text(tr(page, 'Мастер-класс удалён или недоступен'))]
             return
         currentIndex = state[0]['lastStep']
         step = workshop['steps'][currentIndex]
@@ -67,61 +68,61 @@ def createWorkshopView(page, postId, currentUser, onBack):
             return ft.Checkbox(label=label, value=index in state[0]['checkedMaterials'],
                                disabled=currentUser is None, on_change=change)
 
-        materialControls = [ft.Text('Материалы и инструменты', size=18, weight=ft.FontWeight.BOLD)]
+        materialControls = [ft.Text(tr(page, 'Материалы и инструменты'), size=18, weight=ft.FontWeight.BOLD)]
         materialControls.extend(checklist(index, item) for index, item in enumerate(workshop['materials']))
         if workshop['tools']:
-            materialControls.append(ft.Text('Инструменты', weight=ft.FontWeight.BOLD))
+            materialControls.append(ft.Text(tr(page, 'Инструменты'), weight=ft.FontWeight.BOLD))
             materialControls.extend(checklist(len(workshop['materials']) + index, item)
                                     for index, item in enumerate(workshop['tools']))
         if not workshop['materials'] and not workshop['tools']:
-            materialControls.append(ft.Text('Автор не указал материалы и инструменты.'))
-        materialControls.append(ft.Text('Отметки сохраняются автоматически' if currentUser else
-                                       'Войдите, чтобы сохранять отметки и прогресс', size=12))
+            materialControls.append(ft.Text(tr(page, 'Автор не указал материалы и инструменты.')))
+        materialControls.append(ft.Text(tr(page, 'Отметки сохраняются автоматически') if currentUser else
+                                       tr(page, 'Войдите, чтобы сохранять отметки и прогресс'), size=12))
 
         photoPosition = step['photoPosition']
         imageData = client.getPhoto(workshop['photoIds'][photoPosition]) if photoPosition is not None else None
         image = (ft.Image(src_base64=base64.b64encode(imageData).decode(), height=220, fit=ft.ImageFit.CONTAIN)
-                 if imageData else ft.Text('Автор не добавил фотографию этого шага.', size=12))
+                 if imageData else ft.Text(tr(page, 'Автор не добавил фотографию этого шага.'), size=12))
         completedCount = len(state[0]['completedSteps'])
         progress = completedCount / len(workshop['steps'])
         meta = (f"{workshop['level']} · {workshop['timeMinutes']} мин" if workshop['level'] else
                 'Сложность и время не указаны автором')
         body.controls = [
-            ft.TextButton('← Назад', on_click=onBack),
+            ft.TextButton(tr(page, '← Назад'), on_click=onBack),
             ft.Container(padding=18, border_radius=18, bgcolor=ft.Colors.PRIMARY, content=ft.Column(spacing=8, controls=[
                 ft.Text(workshop['title'], size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
                 ft.Text(f"{workshop['category']} · {meta}", color=ft.Colors.WHITE),
-                ft.Text(f"Автор: {workshop['nickname']}", color=ft.Colors.WHITE),
+                ft.Text(tr(page, 'Автор: {v0}', v0=workshop['nickname']), color=ft.Colors.WHITE),
                 ft.Text(workshop['description'], color=ft.Colors.WHITE)])),
             ft.Card(content=ft.Container(padding=16, content=ft.Column(controls=materialControls))),
             ft.Card(content=ft.Container(padding=16, content=ft.Column(spacing=12, controls=[
-                ft.Text(f"Шаг {currentIndex + 1} из {len(workshop['steps'])}", size=18, weight=ft.FontWeight.BOLD),
+                ft.Text(tr(page, 'Шаг {v0} из {v1}', v0=currentIndex + 1, v1=len(workshop['steps'])), size=18, weight=ft.FontWeight.BOLD),
                 ft.ProgressBar(value=progress, color=ft.Colors.SECONDARY), image,
                 ft.Text(step['description'], size=16),
-                ft.Checkbox(label='Шаг выполнен', value=currentIndex in state[0]['completedSteps'],
+                ft.Checkbox(label=tr(page, 'Шаг выполнен'), value=currentIndex in state[0]['completedSteps'],
                             disabled=currentUser is None, on_change=complete),
-                ft.Text('Мастер-класс завершён' if progress == 1 else
-                        f"Выполнено шагов: {completedCount} из {len(workshop['steps'])}"),
+                ft.Text(tr(page, 'Мастер-класс завершён') if progress == 1 else
+                        tr(page, 'Выполнено шагов: {v0} из {v1}', v0=completedCount, v1=len(workshop['steps']))),
                 ft.Row(wrap=True, alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                    ft.OutlinedButton('Предыдущий', icon=ft.Icons.ARROW_BACK, height=48, disabled=currentIndex == 0,
+                    ft.OutlinedButton(tr(page, 'Предыдущий'), icon=ft.Icons.ARROW_BACK, height=48, disabled=currentIndex == 0,
                                       on_click=lambda event: move(event, -1)),
-                    ft.ElevatedButton('Следующий' if currentIndex < len(workshop['steps']) - 1 else 'Завершить',
+                    ft.ElevatedButton(tr(page, 'Следующий') if currentIndex < len(workshop['steps']) - 1 else tr(page, 'Завершить'),
                         icon=ft.Icons.ARROW_FORWARD, height=48, on_click=lambda event: move(event, 1))])])))]
         if workshop['mixtures']:
-            body.controls.append(ft.Text('Смеси для этой работы', size=18, weight=ft.FontWeight.BOLD))
+            body.controls.append(ft.Text(tr(page, 'Смеси для этой работы'), size=18, weight=ft.FontWeight.BOLD))
         for index, mixture in enumerate(workshop['mixtures']):
             @authenticatedAction(page, currentUser)
             def saveRecipe(event, mixtureIndex=index):
                 success, message, _ = client.copyRecipe(postId, mixtureIndex)
                 showMessage(page, message, not success)
-            body.controls.extend([createMixtureRecipe(mixture), ft.OutlinedButton('Сохранить рецепт в мою палитру',
+            body.controls.extend([createMixtureRecipe(mixture), ft.OutlinedButton(tr(page, 'Сохранить рецепт в мою палитру'),
                 disabled=currentUser is None, on_click=saveRecipe)])
 
         @authenticatedAction(page, currentUser)
         def addProject(event):
             success, message, _ = client.copyProject(postId)
             showMessage(page, message, not success)
-        body.controls.append(ft.ElevatedButton('Добавить как проект', icon=ft.Icons.ADD, height=48,
+        body.controls.append(ft.ElevatedButton(tr(page, 'Добавить как проект'), icon=ft.Icons.ADD, height=48,
                                               disabled=currentUser is None, on_click=addProject))
 
     updateContent()
@@ -132,7 +133,7 @@ def createWorkshopView(page, postId, currentUser, onBack):
 
 def openWorkshop(page, postId, currentUser):
     if CommunityClient(currentUser).getWorkshop(postId) is None:
-        showMessage(page, 'Мастер-класс удалён или недоступен', True)
+        showMessage(page, tr(page, 'Мастер-класс удалён или недоступен'), True)
         return
 
     def back(event):

@@ -1,3 +1,4 @@
+from localization import tr, term
 """Drag-only ordering. Flutter owns the optimistic list; Python saves the draft."""
 import flet as ft
 from project_service import getProjectSteps,saveProjectStepOrder
@@ -7,7 +8,7 @@ from ui_helpers import authenticatedAction,showMessage
 def createOrderEditor(page,user,projectId,onSaved,onCancel):
     steps=getProjectSteps(projectId,user['userId'])
     expected=[s['stepId'] for s in steps];ordered=list(expected);active={'value':True}
-    status=ft.Text('Удерживайте этап на телефоне; на ПК тяните за ручку справа.',size=13)
+    status=ft.Text(tr(page, 'Удерживайте этап на телефоне; на ПК тяните за ручку справа.'),size=13)
     labels={step['stepId']:step['stepDescription'] for step in steps}
     generation={'value':0}
     host=ft.Container(height=min(420,max(120,len(steps)*66)))
@@ -20,7 +21,7 @@ def createOrderEditor(page,user,projectId,onSaved,onCancel):
             old,new=event.old_index,event.new_index
             if type(old) is int and type(new) is int and 0<=old<len(ordered) and 0<=new<len(ordered):
                 ordered.insert(new,ordered.pop(old))
-                status.value='Новый порядок готов. Сохраните изменения или отмените.'
+                status.value=tr(page, 'Новый порядок готов. Сохраните изменения или отмените.')
                 # Replace the list control, not its children: Flet 0.28 keeps an
                 # optimistic child-order cache which otherwise wins over patches.
                 rebuild()
@@ -37,18 +38,18 @@ def createOrderEditor(page,user,projectId,onSaved,onCancel):
         showMessage(page,message,not success)
     def cancel(event):active['value']=False;onCancel()
     return ft.Column(spacing=12,controls=[status,host,
-        ft.Row(wrap=True,controls=[ft.TextButton('Отмена',on_click=cancel),ft.ElevatedButton('Сохранить порядок',on_click=save)])])
+        ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Отмена'),on_click=cancel),ft.ElevatedButton(tr(page, 'Сохранить порядок'),on_click=save)])])
 
 
 def createStepOrderButton(page,currentUser,projectId,onSaved):
     @authenticatedAction(page,currentUser)
     def openOrder(event):
         if len(getProjectSteps(projectId,currentUser['userId']))<2:
-            showMessage(page,'Для изменения порядка нужны хотя бы два этапа');return
-        dialog=ft.AlertDialog(modal=True,title=ft.Text('Порядок этапов'))
+            showMessage(page,tr(page, 'Для изменения порядка нужны хотя бы два этапа'));return
+        dialog=ft.AlertDialog(modal=True,title=ft.Text(tr(page, 'Порядок этапов')))
         def cancel():page.close(dialog)
         def saved():page.close(dialog);onSaved()
         dialog.content=ft.Container(width=min(500,max(240,(page.width or 390)-64)),
             content=createOrderEditor(page,currentUser,projectId,saved,cancel))
         page.open(dialog)
-    return ft.TextButton('Порядок этапов',icon=ft.Icons.SWAP_VERT,on_click=openOrder)
+    return ft.TextButton(tr(page, 'Порядок этапов'),icon=ft.Icons.SWAP_VERT,on_click=openOrder)

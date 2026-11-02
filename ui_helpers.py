@@ -1,3 +1,5 @@
+from localization import clearSession
+from localization import tr, term
 """Общие сообщения и проверка актуальности сессии перед действием."""
 from functools import wraps
 import flet as ft
@@ -13,7 +15,8 @@ def isWebClient(page):
 
 
 def showMessage(page, messageText, isError=False):
-    page.open(ft.SnackBar(content=ft.Text(messageText),
+    from localization import message as translateMessage
+    page.open(ft.SnackBar(content=ft.Text(translateMessage(page,messageText)),
                          bgcolor=ft.Colors.RED_400 if isError else ft.Colors.GREEN_400))
 
 
@@ -23,17 +26,17 @@ def confirmAction(page, titleText, messageText, callback):
         page.close(dialog)
         callback()
     dialog = ft.AlertDialog(modal=True, title=ft.Text(titleText), content=ft.Text(messageText), actions=[
-        ft.TextButton('Отмена', on_click=lambda event: page.close(dialog)),
-        ft.ElevatedButton('Подтвердить удаление', on_click=confirm)])
+        ft.TextButton(tr(page, 'Отмена'), on_click=lambda event: page.close(dialog)),
+        ft.ElevatedButton(tr(page, 'Подтвердить удаление'), on_click=confirm)])
     page.open(dialog)
 
 
 def createLoadError(page, error, retry):
     return ft.Container(padding=24, content=ft.Column(spacing=16, controls=[
-        ft.Icon(ft.Icons.CLOUD_OFF, size=48), ft.Text('Не удалось открыть раздел', size=22),
-        ft.Text(str(error)), ft.Text('Проверьте, запущен ли сервер, и повторите попытку.'),
-        ft.ElevatedButton('Повторить загрузку', height=48, on_click=lambda event: retry()),
-        ft.TextButton('Выйти ко входу', on_click=lambda event: logoutPage(page))]))
+        ft.Icon(ft.Icons.CLOUD_OFF, size=48), ft.Text(tr(page, 'Не удалось открыть раздел'), size=22),
+        ft.Text(str(error)), ft.Text(tr(page, 'Проверьте, запущен ли сервер, и повторите попытку.')),
+        ft.ElevatedButton(tr(page, 'Повторить загрузку'), height=48, on_click=lambda event: retry()),
+        ft.TextButton(tr(page, 'Выйти ко входу'), on_click=lambda event: logoutPage(page))]))
 
 
 def serverAction(page):
@@ -46,7 +49,7 @@ def serverAction(page):
             except ApiError as error:
                 if error.statusCode == 401:
                     forgetDeviceSession(page)
-                    page.session.clear()
+                    clearSession(page)
                     page.overlay.clear()
                     page.go('/auth')
                 showMessage(page, str(error), True)
@@ -60,11 +63,11 @@ def getCurrentUser(page):
     if currentUser is None:
         return None
     if currentUser.get('apiUrl') and currentUser.get('sessionExpiresAt') is not None and currentUser['sessionExpiresAt']<=__import__('time').time():
-        forgetDeviceSession(page);page.session.clear();return None
+        forgetDeviceSession(page);clearSession(page);return None
     verifiedUser = getSessionUser(currentUser.get('sessionToken'))
     if verifiedUser is None or verifiedUser['userId'] != currentUser.get('userId'):
         forgetDeviceSession(page)
-        page.session.clear()
+        clearSession(page)
         return None
     page.session.set('currentUser', verifiedUser)
     return verifiedUser
@@ -79,7 +82,7 @@ def logoutPage(page):
         errorMessage = 'На устройстве выход выполнен. Сервер недоступен: отзыв токена не подтверждён'
     finally:
         forgetDeviceSession(page)
-        page.session.clear()
+        clearSession(page)
         page.overlay.clear()
         page.go('/auth')
     if errorMessage:
@@ -95,7 +98,7 @@ def authenticatedAction(page, expectedUser):
             currentUser = getCurrentUser(page)
             if (currentUser is None or expectedUser is None
                     or currentUser.get('sessionToken') != expectedUser.get('sessionToken')):
-                showMessage(page, 'Сессия завершена. Выполните вход снова', True)
+                showMessage(page, tr(page, 'Сессия завершена. Выполните вход снова'), True)
                 if currentUser is None:
                     page.go('/auth')
                 return None

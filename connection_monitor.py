@@ -1,3 +1,4 @@
+from localization import clearSession
 """Проверка связи и отправка очереди, пока приложение открыто."""
 import asyncio
 import time
@@ -27,7 +28,7 @@ def startConnectionMonitor(page):
                 if user.get('sessionExpiresAt') is not None and user['sessionExpiresAt']<=time.time():
                     from device_session import forgetDeviceSession
                     await asyncio.to_thread(forgetDeviceSession,page)
-                    page.session.clear();page.overlay.clear();page.go('/auth');continue
+                    clearSession(page);page.overlay.clear();page.go('/auth');continue
                 try:
                     response=await asyncio.to_thread(apiRequest,'GET','/auth/me',sessionToken=token)
                     if not active():continue
@@ -54,7 +55,7 @@ def startConnectionMonitor(page):
                         from device_session import forgetDeviceSession
                         from offline_access import forgetVerified
                         await asyncio.to_thread(forgetDeviceSession,page)
-                        forgetVerified(token);page.session.clear();page.overlay.clear();page.go('/auth')
+                        forgetVerified(token);clearSession(page);page.overlay.clear();page.go('/auth')
                         continue
                     noteUnavailable();page.session.set('connectionState','offline')
                 except Exception:
