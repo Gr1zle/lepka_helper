@@ -22,13 +22,16 @@ public final class LepkaPlatformPlugin implements FlutterPlugin, ActivityAware, 
     private Context context;
     private android.app.Activity activity;
     private ActivityPluginBinding activityBinding;
+    private MediaActions media;
     @Override public boolean onNewIntent(android.content.Intent intent) { Notifications.opened(context,intent); return false; }
     @Override public void onAttachedToActivity(ActivityPluginBinding binding) {
         activityBinding=binding;activity=binding.getActivity();binding.addOnNewIntentListener(this);
+        media.attach(activity);binding.addActivityResultListener(media);
         Notifications.opened(context,activity.getIntent());
     }
     @Override public void onDetachedFromActivity() {
-        if(activityBinding!=null)activityBinding.removeOnNewIntentListener(this);
+        if(activityBinding!=null) { activityBinding.removeOnNewIntentListener(this);activityBinding.removeActivityResultListener(media); }
+        if(media!=null)media.detach(false);
         activityBinding=null;activity=null;
     }
     @Override public void onDetachedFromActivityForConfigChanges() { onDetachedFromActivity(); }
@@ -49,11 +52,14 @@ public final class LepkaPlatformPlugin implements FlutterPlugin, ActivityAware, 
 
     @Override public void onAttachedToEngine(FlutterPluginBinding binding) {
         context=binding.getApplicationContext();
+        media=new MediaActions(context);
         preferences = binding.getApplicationContext().getSharedPreferences("lepka_protected_session", Context.MODE_PRIVATE);
         channel = new MethodChannel(binding.getBinaryMessenger(), "ru.gr1zle.lepka/protected_session");
         channel.setMethodCallHandler((call, result) -> {
             try {
-                if (call.method.startsWith("notify")) {
+                if (call.method.equals("fileSave") || call.method.equals("cameraCapture")) {
+                    media.begin(call.method,call.argument("value"),result);
+                } else if (call.method.startsWith("notify")) {
                     result.success(Notifications.call(context, activity, call.method, call.argument("value")));
                 } else if (call.method.equals("write")) {
                     String value = call.argument("value");
@@ -84,6 +90,7 @@ public final class LepkaPlatformPlugin implements FlutterPlugin, ActivityAware, 
         });
     }
     @Override public void onDetachedFromEngine(FlutterPluginBinding binding) {
+        media.detach(true);
         channel.setMethodCallHandler(null);
     }
 }

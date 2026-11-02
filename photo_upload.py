@@ -16,6 +16,12 @@ _lock = threading.Lock()
 UPLOAD_SECONDS = 600
 
 
+def photoUploadExists(token):
+    with _lock:
+        row=_uploads.get(token)
+        return bool(row and row['expires']>time.monotonic() and row['state']=='pending')
+
+
 def createPhotoUpload(user, name):
     with _lock:
         now = time.monotonic()

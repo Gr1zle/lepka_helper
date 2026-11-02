@@ -8,6 +8,7 @@ import flet as ft
 class ProtectedSession(ft.Control):
     def __init__(self):
         super().__init__()
+        self._uiPending=None
         self._pending={};self._lock=threading.Lock();self._serial=threading.Lock()
         self._add_event_handler('result',self._received)
     def _get_control_name(self):return 'lepka_protected_session'
@@ -16,7 +17,26 @@ class ProtectedSession(ft.Control):
         except (ValueError,TypeError):return
         with self._lock:
             pending=self._pending.get(record.get('requestId'))
-            if pending:pending['result']=record;pending['event'].set()
+            if pending and 'callback' not in pending:pending['result']=record;pending['event'].set()
+            callback=pending.get('callback') if pending else None
+            if callback:
+                self._pending.pop(record['requestId'],None);self._uiPending=None
+        if callback:
+            self._set_attr('uiCommand','')
+            try:self.update()
+            except (AssertionError,OSError):pass
+            callback(record)
+    def requestUi(self,operation,value,callback):
+        # User-owned dialogs have a separate command channel and no eight-second timeout.
+        with self._lock:
+            if self._uiPending:raise OSError('Завершите предыдущий выбор файла или снимка')
+            requestId=secrets.token_hex(16);self._uiPending=requestId
+            self._pending[requestId]={'callback':callback}
+        try:
+            self._set_attr('uiCommand',json.dumps(dict(requestId=requestId,operation=operation,value=value),ensure_ascii=False));self.update()
+        except Exception:
+            with self._lock:self._pending.pop(requestId,None);self._uiPending=None
+            raise
     def call(self,operation,value=None,stillActive=None):
         with self._serial:
             if stillActive is not None and not stillActive():return None

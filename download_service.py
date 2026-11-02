@@ -16,7 +16,7 @@ MAX_PENDING_BYTES = 64 * 1024 * 1024
 
 
 def createDownload(content, filename='lepka-recipe.png', mediaType='image/png', owner=None):
-    if (filename, mediaType) not in (('lepka-recipe.png', 'image/png'), ('lepka-project.json', 'application/json'),('lepka-model.zip','application/zip'),('lepka-personal.json','application/json')):
+    if (filename, mediaType) not in (('lepka-recipe.png', 'image/png'),('lepka-recipe.pdf','application/pdf'),('lepka-reference.png','image/png'), ('lepka-project.json', 'application/json'),('lepka-model.zip','application/zip'),('lepka-personal.json','application/json')):
         raise ValueError('Неподдерживаемый формат скачивания')
     with _lock:
         now = time.monotonic()

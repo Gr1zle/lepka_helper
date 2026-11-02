@@ -45,6 +45,9 @@ def addColumnIfNotExists(cursor, tableName, columnName, columnSql):
 def initializeDatabase():
     connection = getConnection()
     cursor = connection.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS referenceImages (
+        referenceId TEXT PRIMARY KEY,userId INTEGER NOT NULL REFERENCES users(userId) ON DELETE CASCADE,
+        apiUrl TEXT NOT NULL,title TEXT NOT NULL,image BLOB NOT NULL,createdAt REAL NOT NULL)''')
     cursor.executescript('''CREATE TABLE IF NOT EXISTS learningAssets (
         assetId TEXT PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, mime TEXT NOT NULL,
         content BLOB NOT NULL, creatorId INTEGER REFERENCES users(userId) ON DELETE SET NULL, createdAt REAL NOT NULL);

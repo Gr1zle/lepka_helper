@@ -85,6 +85,7 @@ def createModelGallery(page):
         controls=[ft.ListView(expand=True,spacing=12,controls=[
             ft.Text('Поверните фигурку, приблизьте детали и измените свет. Модели входят в приложение.',size=14),
             createModelImport(page,user,lambda modelId:page.go('/models/'+modelId)),
+            ft.TextButton('Мои фотореференсы',icon=ft.Icons.PHOTO_LIBRARY_OUTLINED,on_click=lambda e:page.go('/references')),
             query,category,onlyFavorites,result])])
 
 
