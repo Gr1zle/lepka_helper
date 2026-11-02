@@ -15,7 +15,7 @@ ACTION_LABELS={'user.delete':'Удаление аккаунта','role.create':'
  'challenge.cancelled':'Отмена задания','material.delete':'Удаление материала','user.block':'Блокировка аккаунта',
  'user.unblock':'Разблокировка аккаунта','role.admin':'Назначение администратора','role.user':'Снятие роли администратора',
  'report.resolved':'Жалоба рассмотрена','report.rejected':'Жалоба отклонена'}
-SECTIONS={'Жалобы':'reports.manage','Аккаунты':'accounts.view','Журнал':'audit.view','Роли':'roles.manage','Конкурсы':'contests.manage','Материалы':'materials.remove'}
+SECTIONS={'Жалобы':'reports.manage','Аккаунты':'accounts.view','Журнал':'audit.view','Роли':'roles.manage','Конкурсы':'contests.manage','Материалы':'materials.remove','Учебный каталог':'catalog.manage'}
 
 
 def createAdminView(page):
@@ -117,6 +117,7 @@ def createAdminView(page):
                                 on_click=authenticatedAction(page,user)(lambda e:page.go('/challenges' if section.value=='Конкурсы' else '/home')))]
                              if section.value in ('Конкурсы','Материалы') else [factory(item) for item in items] or [ft.Text('Записей пока нет.')])
             previous.disabled=offset['value']==0;following.disabled=len(items)<50;pageNumber.value=f"Страница {offset['value']//50+1}"
+            if section.value=='Учебный каталог':result.controls=[ft.OutlinedButton('Управление учебным каталогом',on_click=authenticatedAction(page,user)(lambda e:page.go('/catalog-admin')))]
         except ApiError as error:
             if error.statusCode==401:raise
             result.controls=[ft.Text(str(error))] if error.statusCode==403 else [createLoadError(page,error,lambda:render())]

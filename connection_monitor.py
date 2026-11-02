@@ -1,6 +1,7 @@
 """Проверка связи и отправка очереди, пока приложение открыто."""
 import asyncio
 import time
+import sqlite3
 from api_client import ApiError,apiRequest,getApiUrl
 from remote_account_cache import cacheRemoteUser
 from offline_access import registerVerified,noteUnavailable
@@ -36,6 +37,12 @@ def startConnectionMonitor(page):
                     previous=page.session.get('connectionState')
                     page.session.set('connectionState','sending')
                     sent=await asyncio.to_thread(flush,live,apiUrl,active)
+                    try:
+                        from catalog_sync import syncIfNeeded
+                        await asyncio.to_thread(syncIfNeeded,live,holder)
+                    except ApiError as error:
+                        if error.statusCode==401:raise
+                    except (ValueError,LookupError,sqlite3.Error):pass
                     if not active():continue
                     page.session.set('connectionState','online')
                     callback=page.session.get('refreshCommunityFeed')

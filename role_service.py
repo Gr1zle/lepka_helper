@@ -4,6 +4,7 @@ import re
 import database as db
 
 PERMISSIONS={
+    'catalog.manage':'Управлять учебным каталогом',
     'reports.manage':'Рассматривать жалобы',
     'materials.remove':'Удалять материалы',
     'accounts.view':'Список аккаунтов',

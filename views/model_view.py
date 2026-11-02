@@ -74,7 +74,7 @@ def createModelView(page,modelId):
     def export(event):
         content=modelBundle(modelId,owner)
         if isWebClient(page):
-            ticket=createDownload(content,'lepka-model.zip','application/zip',user if item.get('imported') else None)
+            ticket=createDownload(content,'lepka-model.zip','application/zip',user if item.get('imported') or item.get('catalog') else None)
             page.launch_url(webAddress(page)+'/downloads/'+ticket,web_window_name='_self')
         else:
             def selected(event):
@@ -86,7 +86,7 @@ def createModelView(page,modelId):
             handler=authenticatedAction(page,user)(selected) if item.get('imported') else selected
             picker=ft.FilePicker(on_result=handler);page.overlay.append(picker);page.update()
             picker.save_file(file_name='lepka-model.zip')
-    back=page.views[-1].route if page.views and page.views[-1].route=='/models' else '/home'
+    back=page.views[-1].route if page.views and (page.views[-1].route=='/models' or (page.views[-1].route or '').startswith('/catalog/')) else '/home'
     @authenticatedAction(page,user)
     def remove(event):
         @authenticatedAction(page,user)
@@ -102,7 +102,7 @@ def createModelView(page,modelId):
         bgcolor='#edf1f5',border_radius=16,
         content=ft.GestureDetector(expand=True,content=canvas,drag_interval=60,on_pan_update=rotate,on_scroll=scroll,
                                   mouse_cursor=ft.MouseCursor.MOVE))
-    exportHandler=authenticatedAction(page,user)(export) if item.get('imported') else export
+    exportHandler=authenticatedAction(page,user)(export) if item.get('imported') or item.get('catalog') else export
     tools=ft.Container(left=0,right=0,top=330,bottom=0,content=ft.ListView(expand=True,spacing=10,controls=[
             fullButton,ft.Text(item['title'],size=17,weight=ft.FontWeight.BOLD),
             ft.Text('Тяните фигурку пальцем или мышью. Масштаб — кнопками или колёсиком.',size=12),
@@ -113,8 +113,9 @@ def createModelView(page,modelId):
                 ft.TextButton('Сверху',on_click=lambda event:angle(0,75))]),
             ft.ExpansionTile(title=ft.Text('Освещение и рёбра'),initially_expanded=False,
                 controls=[ft.Text('Направление света'),light,ft.Text('Яркость'),brightness,wire]),
-            createModelFavorite(page,user,modelId),
-            *([] if item.get('imported') else [ft.TextButton('Урок для этой фигурки',icon=ft.Icons.SCHOOL_OUTLINED,on_click=linkedLesson)]),
+            *([] if item.get('catalog') else [createModelFavorite(page,user,modelId)]),
+            *([ft.TextButton('К учебному материалу',on_click=lambda event:page.go('/catalog/'+modelId[len('catalog-'):]))] if item.get('catalog') else []),
+            *([] if item.get('imported') or item.get('catalog') else [ft.TextButton('Урок для этой фигурки',icon=ft.Icons.SCHOOL_OUTLINED,on_click=linkedLesson)]),
             ft.TextButton('Скачать OBJ и материалы',icon=ft.Icons.DOWNLOAD_OUTLINED,on_click=exportHandler,visible=not androidClient(page)),
             *([ft.TextButton('Удалить модель',icon=ft.Icons.DELETE_OUTLINED,on_click=remove)] if item.get('imported') else []),
             ft.Text('Личная модель на этом устройстве' if item.get('imported') else 'Формы упрощены для изучения объёма и деталей. Это не 3D-скан готовой работы.',size=12)

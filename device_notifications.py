@@ -104,6 +104,11 @@ def startNotificationMonitor(page):
                     nextSocial = time.monotonic()+30
                     prefs = getSettings(user['userId'])
                     if prefs['deviceEnabled'] and plan.get('enabled'):
+                        if prefs['learning']:
+                            from catalog_client import catalogNotices
+                            for item in catalogNotices(user):
+                                if item['isRead']:continue
+                                await asyncio.to_thread(control.call,'notifyShow',json.dumps(dict(owner=plan['owner'],key=item['noticeId'],title='Новый учебный материал',body=item['title'][:200],route='/catalog'),ensure_ascii=False),active)
                         from challenge_gateway import ChallengeClient
                         notices = await asyncio.to_thread(ChallengeClient(user).notices, 0, 'all', True)
                         names = dict(like='likes', comment='comments', reply='replies', award='awards')
@@ -118,6 +123,7 @@ def startNotificationMonitor(page):
                         route = target.get('route')
                         if route == '/learning': page.session.set('homeTab', 1); page.go('/home')
                         elif route == '/planner': page.go('/planner')
+                        elif route == '/catalog': page.go('/catalog')
                         elif route == '/notices':
                             page.go('/home')
                             callback=page.session.get('openNoticeCenterCallback')

@@ -676,6 +676,7 @@ def createSearchTab(page, currentUser):
                 ),
                 searchField,
                 ft.TextButton('3D-галерея',icon=ft.Icons.VIEW_IN_AR_OUTLINED,on_click=lambda event:page.go('/models')),
+                ft.TextButton('Учебный каталог',icon=ft.Icons.SCHOOL_OUTLINED,on_click=lambda event:page.go('/catalog')),
                 ft.Row(wrap=True,controls=[ft.ElevatedButton('Найти',icon=ft.Icons.SEARCH,on_click=submitSearch),
                                            ft.TextButton('Сбросить фильтры',on_click=resetFilters)]),
                 suggestionBox,

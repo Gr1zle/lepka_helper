@@ -45,6 +45,35 @@ def addColumnIfNotExists(cursor, tableName, columnName, columnSql):
 def initializeDatabase():
     connection = getConnection()
     cursor = connection.cursor()
+    cursor.executescript('''CREATE TABLE IF NOT EXISTS learningAssets (
+        assetId TEXT PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, mime TEXT NOT NULL,
+        content BLOB NOT NULL, creatorId INTEGER REFERENCES users(userId) ON DELETE SET NULL, createdAt REAL NOT NULL);
+    CREATE TABLE IF NOT EXISTS learningCatalog (
+        contentId TEXT PRIMARY KEY, revision INTEGER NOT NULL, state TEXT NOT NULL,
+        documentJson TEXT NOT NULL, creatorId INTEGER REFERENCES users(userId) ON DELETE SET NULL,
+        updatedAt TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS learningUsage (
+        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, contentId TEXT REFERENCES learningCatalog(contentId) ON DELETE CASCADE,
+        revision INTEGER NOT NULL, viewedAt TEXT NOT NULL, completedAt TEXT, PRIMARY KEY(userId,contentId,revision));
+    CREATE TABLE IF NOT EXISTS learningCache (
+        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, contentId TEXT NOT NULL,
+        revision INTEGER NOT NULL, documentJson TEXT NOT NULL, assetsJson TEXT NOT NULL, byteCount INTEGER NOT NULL,
+        downloadedAt REAL NOT NULL, PRIMARY KEY(userId,apiUrl,contentId));
+    CREATE TABLE IF NOT EXISTS learningPersonal (
+        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, contentId TEXT NOT NULL,
+        revision INTEGER NOT NULL, checkedJson TEXT NOT NULL DEFAULT '[]', favorite INTEGER NOT NULL DEFAULT 0,
+        note TEXT NOT NULL DEFAULT '', viewPending INTEGER NOT NULL DEFAULT 1, completePending INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY(userId,apiUrl,contentId));
+    CREATE TABLE IF NOT EXISTS learningIndex (
+        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, itemsJson TEXT NOT NULL,
+        PRIMARY KEY(userId,apiUrl));
+    CREATE TABLE IF NOT EXISTS learningSubscriptions (
+        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, category TEXT NOT NULL,
+        PRIMARY KEY(userId,apiUrl,category));
+    CREATE TABLE IF NOT EXISTS learningCatalogNotices (
+        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, contentId TEXT NOT NULL,
+        revision INTEGER NOT NULL, title TEXT NOT NULL, isRead INTEGER NOT NULL DEFAULT 0, createdAt TEXT NOT NULL,
+        PRIMARY KEY(userId,apiUrl,contentId,revision));''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS deliverySettings (
         userId INTEGER PRIMARY KEY REFERENCES users(userId) ON DELETE CASCADE,
         deviceEnabled INTEGER NOT NULL DEFAULT 0, likes INTEGER NOT NULL DEFAULT 1,

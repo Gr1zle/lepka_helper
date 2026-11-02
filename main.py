@@ -19,6 +19,7 @@ from views.model_view import createModelView
 from views.project_planner import createProjectPlanner
 from views.admin_view import createAdminView
 from views.challenge_view import createChallengeView
+from views.learning_catalog import createCatalogView,createCatalogDetail,createCatalogEditor
 
 PRIMARY_COLOR = "#FF6B6B"
 SECONDARY_COLOR = "#4ECDC4"
@@ -90,6 +91,13 @@ def main(page: ft.Page):
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             page.views[:]=[root,createProjectPlanner(page)]
             page.update();return
+        elif page.route in ('/catalog','/catalog-admin') or page.route.startswith(('/catalog/','/catalog-edit/')):
+            root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
+            if page.route=='/catalog':catalogView=createCatalogView(page)
+            elif page.route=='/catalog-admin':catalogView=createCatalogView(page,True)
+            elif page.route.startswith('/catalog-edit/'):catalogView=createCatalogEditor(page,page.route[len('/catalog-edit/'):])
+            else:catalogView=createCatalogDetail(page,page.route[len('/catalog/'):])
+            page.views[:]=[root,catalogView];page.update();return
         elif page.route == '/models':
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             page.views[:]=[root,createModelGallery(page)]
@@ -98,6 +106,7 @@ def main(page: ft.Page):
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             parents=[root]
             if page.views and page.views[-1].route=='/models':parents.append(page.views[-1])
+            if page.views and (page.views[-1].route or '').startswith('/catalog/'):parents.append(page.views[-1])
             page.views[:]=[*parents,createModelView(page,page.route[len('/models/'):])]
             page.update();return
         else:

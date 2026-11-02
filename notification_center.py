@@ -11,7 +11,8 @@ class NoticeCenter:
         self.community=ChallengeClient(user)
 
     def local(self,source='all',unread=False):
-        return [r for r in personalItems(self.user['userId']) if (source=='all' or r['source']==source) and (not unread or not r['isRead'])]
+        from catalog_client import catalogNotices
+        return [r for r in personalItems(self.user['userId'])+catalogNotices(self.user) if (source=='all' or r['source']==source) and (not unread or not r['isRead'])]
 
     def noticeSummary(self):
         result=dict(self.community.noticeSummary())

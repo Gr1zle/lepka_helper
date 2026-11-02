@@ -39,6 +39,7 @@ def createNoticeButton(page,user):
                 from views.project_planner import openPlannerProject
                 openPlannerProject(page,user,item['projectId']);return
             if item['source']=='learning':
+                if item.get('contentId'):page.go('/catalog/'+item['contentId']);return
                 page.session.set('openBuiltinLesson',item['lessonId'])
                 page.session.set('homeTab',1)
                 navigate=page.session.get('navigateHomeTab')
