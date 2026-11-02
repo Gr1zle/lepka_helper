@@ -84,6 +84,8 @@ def personalItems(userId,enabled=None,now=None):
 
 
 def readPersonal(userId,noticeId=None):
+    from catalog_client import readCatalog
+    if noticeId is None or noticeId.startswith('catalog:'):readCatalog(userId,noticeId)
     with openDatabase() as c:
         requireOwner(c,userId)
         if noticeId is None:

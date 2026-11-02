@@ -9,6 +9,7 @@ from contextlib import closing
 import challenge_service
 import notification_mail
 from backend.delivery import installDeliveryRoutes
+from backend.catalog import installCatalogRoutes
 from pathlib import Path
 import threading
 import time
@@ -161,6 +162,7 @@ def createApp(dataDirectory=None):
 
     application = FastAPI(title='Lepka Helper API', version='1.1', lifespan=lifespan)
     installDeliveryRoutes(application, currentUser)
+    installCatalogRoutes(application, currentUser)
     attempts = defaultdict(deque)
     attemptsLock = threading.Lock()
 

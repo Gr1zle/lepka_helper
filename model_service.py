@@ -19,6 +19,9 @@ def personalItem(record):
 
 
 def getModel(modelId,userId=None):
+    if isinstance(modelId,str) and modelId.startswith('catalog-') and userId is not None:
+        cached=catalogModel(modelId,userId)
+        return cached[0] if cached else None
     item=next((deepcopy(item) for item in MODEL_ITEMS if item['modelId']==modelId),None)
     if item:return item
     record=importedModel(modelId,userId)
@@ -39,10 +42,29 @@ def loadBuiltinModel(modelId):
 
 
 def loadModel(modelId,userId=None):
+    if isinstance(modelId,str) and modelId.startswith('catalog-') and userId is not None:
+        cached=catalogModel(modelId,userId)
+        if not cached:raise ValueError('Сохранённая модель каталога недоступна')
+        from model_import import decodeModel
+        import base64
+        return decodeModel(cached[1]['name'],base64.b64decode(cached[1]['contentBase64'],validate=True))['mesh']
     if any(item['modelId']==modelId for item in MODEL_ITEMS):return loadBuiltinModel(modelId)
     record=importedModel(modelId,userId)
     if not record:raise ValueError('Модель не найдена')
     return parseObj(record['objText'],record['materialText'])
+
+
+def catalogModel(modelId,userId):
+    import json
+    from api_client import getApiUrl
+    from lesson_library import requireOwner
+    with openDatabase() as c:
+        requireOwner(c,userId)
+        row=c.execute('SELECT documentJson,assetsJson FROM learningCache WHERE userId=? AND apiUrl=? AND contentId=?',(userId,getApiUrl(),modelId[len('catalog-'):])).fetchone()
+    if not row:return None
+    info=json.loads(row[0]);document=info['document'];aid=document['modelAsset']
+    if not aid:return None
+    return (dict(modelId=modelId,title=document['title'],category=document['category'],tags=document['tags'],catalog=True),json.loads(row[1])[aid])
 
 
 def searchModels(query='',category='Все',level='Все',maxTime=None,userId=None):
@@ -95,7 +117,14 @@ def modelBundle(modelId,userId=None):
     item=requireModel(modelId,userId)
     output=BytesIO()
     with ZipFile(output,'w',ZIP_DEFLATED) as archive:
-        if item.get('imported'):
+        if item.get('catalog'):
+            import base64
+            from model_import import decodeModel
+            cached=catalogModel(modelId,userId)
+            decoded=decodeModel(cached[1]['name'],base64.b64decode(cached[1]['contentBase64'],validate=True))
+            archive.writestr('model.obj',decoded['objText']);archive.writestr('model.mtl',decoded['materialText'])
+            archive.writestr('README.txt','Saved learning catalogue model from Lepka Helper.\n')
+        elif item.get('imported'):
             record=importedModel(modelId,userId)
             if not record:raise ValueError('Модель не найдена')
             archive.writestr('model.obj',record['objText'])

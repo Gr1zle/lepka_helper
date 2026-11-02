@@ -27,7 +27,7 @@ class UserChangeInput(ReasonInput):
 
 class RoleInput(ReasonInput):
     title:str=Field(min_length=3,max_length=50)
-    permissions:list[str]=Field(max_length=7)
+    permissions:list[str]=Field(max_length=8)
 
 
 def invoke(callback):

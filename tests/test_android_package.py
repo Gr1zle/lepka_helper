@@ -10,6 +10,21 @@ from scripts import prepare_android as android
 
 
 class AndroidPackageTests(unittest.TestCase):
+    def test_native_extension_is_packaged_as_dependency_alongside_video(self):
+        from zipfile import ZipFile
+        import tomllib
+        with tempfile.TemporaryDirectory() as folder:
+            output=android.prepareAndroid(Path(folder)/'with-native-extension')
+            metadata=tomllib.loads((output/'pyproject.toml').read_text())
+            dependencies=metadata['project']['dependencies']
+            self.assertIn('flet-video==0.1.1',dependencies)
+            wheel=next((output/'build').glob('lepka_platform-*.whl'))
+            self.assertIn('lepka-platform @ '+wheel.as_uri(),dependencies)
+            with ZipFile(wheel) as archive:
+                self.assertIsNone(archive.testzip())
+                for name in android.NATIVE_FILES:
+                    self.assertEqual(archive.read('flutter/lepka_platform/'+name),(android.ROOT/'native/lepka_platform'/name).read_bytes())
+                self.assertTrue(any(name.endswith('.dist-info/RECORD') for name in archive.namelist()))
     def test_local_demo_is_explicit_and_does_not_include_an_api_address(self):
         with tempfile.TemporaryDirectory() as folder:
             output = android.prepareAndroid(Path(folder) / 'demo', localDemo=True)
