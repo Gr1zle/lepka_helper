@@ -17,8 +17,9 @@ class ProtectedSession(ft.Control):
         with self._lock:
             pending=self._pending.get(record.get('requestId'))
             if pending:pending['result']=record;pending['event'].set()
-    def call(self,operation,value=None):
+    def call(self,operation,value=None,stillActive=None):
         with self._serial:
+            if stillActive is not None and not stillActive():return None
             requestId=secrets.token_hex(16);pending={'event':threading.Event(),'result':None}
             with self._lock:self._pending[requestId]=pending
             try:

@@ -37,8 +37,8 @@ class _ProtectedSessionState extends State<ProtectedSession> {
       final decoded = jsonDecode(command) as Map<String, dynamic>;
       requestId = decoded['requestId'] as String;
       final operation = decoded['operation'] as String;
-      if (!['read', 'write', 'delete'].contains(operation)) throw const FormatException();
-      final value = await channel.invokeMethod<String>(operation, operation == 'write' ? {'value': decoded['value']} : null);
+      if (!['read', 'write', 'delete', 'notifyStatus', 'notifyPermission', 'notifySync', 'notifyClear', 'notifyOpen', 'notifyShow', 'notifyTest'].contains(operation)) throw const FormatException();
+      final value = await channel.invokeMethod<String>(operation, {'value': decoded['value']});
       widget.backend.triggerControlEvent(widget.control.id, 'result', jsonEncode({'requestId': requestId, 'ok': true, 'value': value}));
     } catch (_) {
       widget.backend.triggerControlEvent(widget.control.id, 'result', jsonEncode({'requestId': requestId, 'ok': false}));

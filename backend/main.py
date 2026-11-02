@@ -7,6 +7,8 @@ import logging
 import sqlite3
 from contextlib import closing
 import challenge_service
+import notification_mail
+from backend.delivery import installDeliveryRoutes
 from pathlib import Path
 import threading
 import time
@@ -137,15 +139,28 @@ def createApp(dataDirectory=None):
                     except asyncio.TimeoutError:
                         pass
             worker=asyncio.create_task(updateChallenges())
+            async def updateMail():
+                while not stop.is_set():
+                    try:
+                        await run_in_threadpool(notification_mail.deliver)
+                    except Exception:
+                        logging.getLogger(__name__).warning('Не удалось обработать очередь писем; повтор через 30 секунд')
+                    try:
+                        await asyncio.wait_for(stop.wait(),timeout=30)
+                    except asyncio.TimeoutError:
+                        pass
+            mailWorker=asyncio.create_task(updateMail())
             try:
                 yield
             finally:
                 stop.set()
                 await worker
+                await mailWorker
         finally:
             database.DATABASE_PATH = previousPath
 
     application = FastAPI(title='Lepka Helper API', version='1.1', lifespan=lifespan)
+    installDeliveryRoutes(application, currentUser)
     attempts = defaultdict(deque)
     attemptsLock = threading.Lock()
 

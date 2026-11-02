@@ -128,6 +128,8 @@ def main(page: ft.Page):
     page.on_resized = resizeModel
     from connection_monitor import startConnectionMonitor
     startConnectionMonitor(page)
+    from device_notifications import startNotificationMonitor
+    startNotificationMonitor(page)
     page.go("/")
 
 

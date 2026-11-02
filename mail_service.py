@@ -1,6 +1,21 @@
 """Доставка писем через HTTPS API Resend. Ключ задаётся вне исходного кода."""
 import os
 import requests
+from html import escape
+
+
+def sendNotification(email, subject, body, requestId):
+    apiKey=os.environ.get('LEPKA_MAIL_API_KEY');sender=os.environ.get('LEPKA_MAIL_FROM')
+    if not apiKey or not sender: raise MailDeliveryError('Отправка писем не настроена')
+    try:
+        response=requests.post('https://api.resend.com/emails',
+            headers={'Authorization':f'Bearer {apiKey}','Idempotency-Key':'lepka-notice-'+requestId},
+            json={'from':sender,'to':[email],'subject':'Lepka Helper — '+subject,
+                  'text':body+'\nОткройте Помощник по лепке. Настройки доставки доступны в центре уведомлений.',
+                  'html':'<main><h1>Помощник по лепке</h1><h2>'+escape(subject)+'</h2><p>'+escape(body)+'</p><p>Откройте приложение → Уведомления. Отключить письма можно в настройках доставки.</p></main>'},timeout=15)
+        response.raise_for_status()
+    except requests.RequestException as error:
+        raise MailDeliveryError('Не удалось отправить письмо') from error
 
 
 class MailDeliveryError(Exception):

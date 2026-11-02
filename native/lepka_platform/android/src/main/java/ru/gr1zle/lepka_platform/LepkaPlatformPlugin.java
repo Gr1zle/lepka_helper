@@ -12,11 +12,27 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.MethodChannel;
+import io.flutter.embedding.engine.plugins.activity.ActivityAware;
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 
-public final class LepkaPlatformPlugin implements FlutterPlugin {
+public final class LepkaPlatformPlugin implements FlutterPlugin, ActivityAware, io.flutter.plugin.common.PluginRegistry.NewIntentListener {
     private static final String ALIAS = "ru.gr1zle.lepka.session.v1";
     private MethodChannel channel;
     private SharedPreferences preferences;
+    private Context context;
+    private android.app.Activity activity;
+    private ActivityPluginBinding activityBinding;
+    @Override public boolean onNewIntent(android.content.Intent intent) { Notifications.opened(context,intent); return false; }
+    @Override public void onAttachedToActivity(ActivityPluginBinding binding) {
+        activityBinding=binding;activity=binding.getActivity();binding.addOnNewIntentListener(this);
+        Notifications.opened(context,activity.getIntent());
+    }
+    @Override public void onDetachedFromActivity() {
+        if(activityBinding!=null)activityBinding.removeOnNewIntentListener(this);
+        activityBinding=null;activity=null;
+    }
+    @Override public void onDetachedFromActivityForConfigChanges() { onDetachedFromActivity(); }
+    @Override public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) { onAttachedToActivity(binding); }
 
     private SecretKey key() throws Exception {
         KeyStore store = KeyStore.getInstance("AndroidKeyStore");
@@ -32,11 +48,14 @@ public final class LepkaPlatformPlugin implements FlutterPlugin {
     }
 
     @Override public void onAttachedToEngine(FlutterPluginBinding binding) {
+        context=binding.getApplicationContext();
         preferences = binding.getApplicationContext().getSharedPreferences("lepka_protected_session", Context.MODE_PRIVATE);
         channel = new MethodChannel(binding.getBinaryMessenger(), "ru.gr1zle.lepka/protected_session");
         channel.setMethodCallHandler((call, result) -> {
             try {
-                if (call.method.equals("write")) {
+                if (call.method.startsWith("notify")) {
+                    result.success(Notifications.call(context, activity, call.method, call.argument("value")));
+                } else if (call.method.equals("write")) {
                     String value = call.argument("value");
                     if (value == null || value.length() > 8192) throw new IllegalArgumentException();
                     Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");

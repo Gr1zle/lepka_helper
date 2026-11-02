@@ -83,6 +83,9 @@ def nativeClient(page):
 
 def forgetDeviceSession(page):
     from app_state import setAppState
+    from device_notifications import clear
+    try:clear(page)
+    except OSError:pass
     if nativeClient(page) and getApiUrl():
         setAppState('remoteSessionDisabled',True)
         from secure_device import getProtectedSession

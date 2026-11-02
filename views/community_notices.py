@@ -7,6 +7,7 @@ from api_client import ApiError
 from notification_center import NoticeCenter,SOURCES
 from personal_notices import snoozeLesson
 from views.personal_notice_settings import openPersonalNoticeSettings
+from views.notification_delivery import openDeliverySettings
 
 KIND_LABELS={'all':'Все события','award':'Призовые места','like':'Лайки','comment':'Комментарии','reply':'Ответы'}
 
@@ -110,7 +111,9 @@ def createNoticeButton(page,user):
             actions=[ft.TextButton('Закрыть',on_click=lambda e:page.close(dialog))])
         render();summary();page.open(dialog)
     summary()
-    return ft.Column(spacing=4,controls=[ft.OutlinedButton('Центр уведомлений',icon=ft.Icons.NOTIFICATIONS_OUTLINED,on_click=openNotices),counter])
+    page.session.set('openNoticeCenterCallback',openNotices)
+    return ft.Column(spacing=4,controls=[ft.OutlinedButton('Центр уведомлений',icon=ft.Icons.NOTIFICATIONS_OUTLINED,on_click=openNotices),counter,
+        ft.TextButton('Доставка уведомлений',on_click=lambda e:openDeliverySettings(page,user))])
 
 
 def createChallengeProfile(page,user):
