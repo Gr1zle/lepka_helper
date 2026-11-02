@@ -41,7 +41,7 @@ def getProjectMixtures(projectId, userId):
 def addProjectMixture(projectId, userId, mixtureId):
     with openDatabase() as connection:
         connection.execute('BEGIN IMMEDIATE')
-        project = connection.execute('''SELECT pr.projectId FROM projects AS pr
+        project = connection.execute('''SELECT pr.projectId,pr.finalPhotoImage FROM projects AS pr
             JOIN users AS usr ON usr.userId = pr.userId
             WHERE pr.projectId = ? AND pr.userId = ? AND usr.isBlocked = 0''', (projectId, userId)).fetchone()
         source = connection.execute('SELECT * FROM colorMixtures WHERE mixtureId = ? AND userId = ?',
@@ -111,7 +111,7 @@ def prepareProjectPublication(projectId, userId, titleText, descriptionText, cat
         tagsText = normalizeTags(tagsText)
         maximumSteps = 100 if workshopInfo is not None else 10
         validateSelectedIds(otherStepIds, maximumSteps - 1)
-        validateSelectedIds([resultStepId, *otherStepIds], maximumSteps)
+        validateSelectedIds(([resultStepId] if resultStepId is not None else [])+list(otherStepIds), maximumSteps)
         validateSelectedIds(projectMixtureIds, MAX_PROJECT_MIXTURES)
         if workshopInfo is not None:
             workshopInfo = normalizeWorkshopInfo(workshopInfo)
@@ -124,7 +124,7 @@ def prepareProjectPublication(projectId, userId, titleText, descriptionText, cat
         # удалить или изменить между проверкой владельца и сохранением фото.
         if existingConnection is None:
             connection.execute('BEGIN')
-        project = connection.execute('''SELECT pr.projectId FROM projects AS pr
+        project = connection.execute('''SELECT pr.projectId,pr.finalPhotoImage FROM projects AS pr
             JOIN users AS usr ON usr.userId = pr.userId
             WHERE pr.projectId = ? AND pr.userId = ? AND usr.isBlocked = 0''', (projectId, userId)).fetchone()
         if project is None:
@@ -132,22 +132,31 @@ def prepareProjectPublication(projectId, userId, titleText, descriptionText, cat
         photos, steps, mixtures = [], [], []
         selectedSteps = []
         stepOrder = {}
-        for stepId in [resultStepId, *otherStepIds]:
-            step = connection.execute('SELECT stepDescription, photoImage, sortOrder FROM projectSteps WHERE projectId = ? AND stepId = ?',
+        useFinal=resultStepId is None
+        if useFinal:
+            if not project['finalPhotoImage']:return False,'Добавьте финальное фото проекта',None
+            photos.append(bytes(project['finalPhotoImage']))
+        for stepId in ([resultStepId] if resultStepId is not None else [])+list(otherStepIds):
+            step = connection.execute('SELECT stepDescription,detailsText, photoImage, sortOrder FROM projectSteps WHERE projectId = ? AND stepId = ?',
                                       (projectId, stepId)).fetchone()
-            if step is None or (not step['photoImage'] and (workshopInfo is None or stepId == resultStepId)):
+            if step is None or not step['photoImage']:
                 return False, 'Добавьте фото выбранного этапа или измените выбор', None
             position = len(photos) if step['photoImage'] else None
-            selectedSteps.append((stepId, {'description': step['stepDescription'], 'photoPosition': position}))
+            description=step['stepDescription']+('\n'+step['detailsText'] if step['detailsText'] else '')
+            if len(description)>1000:return False,'Сократите название и описание этапа до 1000 символов вместе',None
+            publicStep={'description':description,'photoPosition':position}
+            if step['detailsText']:publicStep.update(title=step['stepDescription'],details=step['detailsText'])
+            selectedSteps.append((stepId,publicStep))
             stepOrder[stepId] = (step['sortOrder'], stepId)
             if step['photoImage']:
                 photos.append(bytes(step['photoImage']))
                 if len(photos) > 10:
                     return False, 'В публикации допускается не больше 10 фото', None
         # Обложка остаётся первой фотографией, шаги читаются в порядке проекта.
-        if workshopInfo is not None:
+        if workshopInfo is not None or useFinal:
             selectedSteps.sort(key=lambda item: stepOrder[item[0]])
         steps = [step for stepId, step in selectedSteps]
+        if useFinal:steps.append({'description':'Готовая работа','photoPosition':0,'result':True})
         for mixtureId in projectMixtureIds:
             record = connection.execute('SELECT mixtureJson FROM projectMixtures WHERE projectId = ? AND projectMixtureId = ?',
                                         (projectId, mixtureId)).fetchone()
@@ -158,6 +167,7 @@ def prepareProjectPublication(projectId, userId, titleText, descriptionText, cat
             except ValueError as error:
                 return False, str(error), None
         details = {'steps': steps, 'mixtures': mixtures}
+        if useFinal:details['formatVersion']=2
         if workshopInfo is not None:
             details.update(formatVersion=2, workshopInfo=workshopInfo)
         details = json.dumps(details, ensure_ascii=False)
@@ -201,12 +211,20 @@ def readPublishedProject(detailsJson):
                 raise ValueError()
             if position is not None:
                 photoPositions.append(position)
-            publicSteps.append({'description': step['description'], 'photoPosition': position})
+            clean={'description':step['description'],'photoPosition':position}
+            if 'title' in step or 'details' in step:
+                if not isinstance(step.get('title'),str) or not 3<=len(step['title'].strip())<=1000 or not isinstance(step.get('details'),str) or len(step['details'])>900 or step['description']!=step['title']+('\n'+step['details'] if step['details'] else ''):raise ValueError()
+                clean.update(title=step['title'],details=step['details'])
+            if 'result' in step:
+                if step['result'] is not True or position!=0:raise ValueError()
+                clean['result']=True
+            publicSteps.append(clean)
         if sorted(photoPositions) != list(range(len(photoPositions))) or not photoPositions:
             raise ValueError()
         result = {'steps': publicSteps, 'mixtures': [readMixture(json.dumps(mixture)) for mixture in mixtures]}
         if isWorkshop:
-            result['workshopInfo'] = normalizeWorkshopInfo(details['workshopInfo'])
+            result['formatVersion']=2
+            if 'workshopInfo' in details:result['workshopInfo']=normalizeWorkshopInfo(details['workshopInfo'])
         return result
     except (KeyError, TypeError, ValueError, OverflowError):
         return None

@@ -233,6 +233,13 @@ class CommunityClient:
         if not self.remote:
             return sharing.publishProject(*args,challengeId=challengeId)
         requireCachedUser(self.user['userId'], self.user.get('sessionToken'))
+        if resultStepId is None:
+            try:
+                capabilities=self.request('GET','/capabilities')
+                if capabilities.get('projectWorkflow',0)<2:return False,'Обновите Wi-Fi-сервер до версии 0.15 или новее',None
+            except ApiError as error:
+                if error.statusCode==404:return False,'Обновите Wi-Fi-сервер до версии 0.15 или новее',None
+                if error.statusCode not in (0,502,503,504):raise
         success, message, payload = sharing.prepareProjectPublication(*args)
         if not success:
             return False, message, None

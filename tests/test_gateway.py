@@ -345,6 +345,27 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
         self.assertEqual(profile['themeMode'], 'light')
 
 
+    async def test_remote_final_photo_project_keeps_structured_steps_and_copies_to_another_account(self):
+        from image_fixtures import photo
+        from community_gateway import CommunityClient
+        from project_service import saveProject,saveStep,saveFinalPhoto,saveProjectStepPhoto,getProjectSteps
+        user=self.login();client=CommunityClient(user)
+        pid=saveProject(user['userId'],'Новый котик','Животные','','Приватные заметки')[2]
+        sid=saveStep(pid,user['userId'],'Слепить основу','Сформировать овал')[2]
+        saveFinalPhoto(pid,user['userId'],photo());saveProjectStepPhoto(pid,sid,user['userId'],photo())
+        ok,message,postId=client.publishProject(pid,'Новый котик','Подробная общая работа','Животные','кот',None,[sid],[])
+        self.assertTrue(ok,message)
+        workshop=client.getWorkshop(postId)
+        self.assertEqual(workshop['steps'][0]['title'],'Слепить основу')
+        self.assertNotIn('Приватные',workshop['description'])
+        other=gateway.loginUser('second@example.com','ServerPass123')[2]
+        ok,message,copied=CommunityClient(other).copyProject(postId);self.assertTrue(ok,message)
+        self.assertEqual(getProjectSteps(copied,other['userId'])[0]['details'],'Сформировать овал')
+        with patch.object(client,'request',side_effect=api_client.ApiError('Старая версия',404)):
+            result=client.publishProject(pid,'Новый котик','Подробная общая работа','Животные','кот',None,[sid],[])
+        self.assertFalse(result[0]);self.assertIn('Обновите',result[1])
+
+
 class TransportTests(unittest.TestCase):
     def test_https_is_required_except_explicit_local_test(self):
         for url in ('http://api.example.com', 'https://user:password@example.com', 'https://api.example.com?key=bad'):

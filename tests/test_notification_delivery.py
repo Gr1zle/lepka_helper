@@ -45,7 +45,7 @@ class DeliveryTests(unittest.TestCase):
         with db.openDatabase() as c:c.execute("UPDATE projects SET deadlineDate='05.11.2026' WHERE projectId=?",(pid,))
         after=buildPlan(self.user,self.now)['items']
         self.assertTrue(set(i['key'] for i in before).isdisjoint(i['key'] for i in after))
-        with db.openDatabase() as c:c.execute('UPDATE projects SET progressPercent=100 WHERE projectId=?',(pid,))
+        with db.openDatabase() as c:c.execute('UPDATE projects SET progressPercent=100,isFinished=1 WHERE projectId=?',(pid,))
         self.assertEqual(buildPlan(self.user,self.now)['items'],[])
         self.project()
         with db.openDatabase() as c:c.execute('UPDATE users SET notificationsEnabled=0 WHERE userId=?',(self.uid,))

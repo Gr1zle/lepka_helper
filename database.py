@@ -306,6 +306,17 @@ def initializeDatabase():
     )
 
     addColumnIfNotExists(cursor, 'projectSteps', 'photoImage', 'photoImage BLOB')
+    addColumnIfNotExists(cursor,'projectSteps','detailsText',"detailsText TEXT NOT NULL DEFAULT ''")
+    addColumnIfNotExists(cursor,'projects','finalPhotoImage','finalPhotoImage BLOB')
+    projectColumns={row['name'] for row in cursor.execute('PRAGMA table_info(projects)')}
+    if 'isFinished' not in projectColumns:
+        addColumnIfNotExists(cursor,'projects','isFinished','isFinished INTEGER NOT NULL DEFAULT 0')
+        # Preserve old completion state and its known date; never invent dates.
+        cursor.execute('UPDATE projects SET isFinished=1 WHERE progressPercent>=100')
+        ordering='sortOrder DESC,stepId DESC' if any(row['name']=='sortOrder' for row in cursor.execute('PRAGMA table_info(projectSteps)')) else 'stepId DESC'
+        cursor.execute(f'UPDATE projects SET finalPhotoImage=(SELECT photoImage FROM projectSteps WHERE projectSteps.projectId=projects.projectId AND length(photoImage)>0 ORDER BY {ordering} LIMIT 1) WHERE isFinished=1')
+
+        cursor.execute('UPDATE projects SET isFinished=0 WHERE isFinished=1 AND finalPhotoImage IS NULL')
     addColumnIfNotExists(cursor, 'projects', 'completedAt', 'completedAt TEXT')
     cursor.execute('''CREATE TABLE IF NOT EXISTS projectReminders (
         reminderId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -631,7 +642,7 @@ def getProjectsByUserId(userId):
             categoryName,
             deadlineDate,
             descriptionText,
-            progressPercent,
+            progressPercent, isFinished, completedAt, (length(finalPhotoImage)>0) AS hasFinalPhoto,
             createdAt
         FROM projects
         WHERE userId = ?
@@ -762,7 +773,7 @@ def getProjectStepsByProjectId(projectId, userId):
     connection = getConnection()
     try:
         return connection.execute(
-            """SELECT s.stepId, s.projectId, s.stepDescription,
+            """SELECT s.stepId, s.projectId, s.stepDescription, s.detailsText,
                       s.isCompleted, s.createdAt, (length(s.photoImage) > 0) AS hasPhoto
             FROM projectSteps AS s
             JOIN projects AS p ON p.projectId = s.projectId
@@ -783,11 +794,12 @@ def updateProjectStepStatus(projectId, stepId, isCompleted, userId):
             cursor = connection.execute(
                 """UPDATE projectSteps SET isCompleted = ?
                 WHERE stepId = ? AND projectId = ?
-                AND projectId IN (SELECT projectId FROM projects WHERE userId = ?)
-                AND (? = 0 OR length(photoImage) > 0 OR isCompleted = 1)""",
-                (1 if isCompleted else 0, stepId, projectId, userId, int(isCompleted)),
+                AND projectId IN (SELECT projectId FROM projects WHERE userId = ?)""",
+                (1 if isCompleted else 0, stepId, projectId, userId),
             )
-        return cursor.rowcount > 0
+            changed=cursor.rowcount>0
+            if changed and not isCompleted:connection.execute('UPDATE projects SET isFinished=0,completedAt=NULL WHERE projectId=? AND userId=?',(projectId,userId))
+        return changed
     finally:
         connection.close()
 
@@ -814,10 +826,9 @@ def updateProjectProgress(projectId, progressPercent, userId):
             cursor = connection.execute(
                 """UPDATE projects SET completedAt = CASE
                     WHEN ? < 100 THEN NULL
-                    WHEN progressPercent < 100 THEN strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-                    ELSE completedAt END, progressPercent = ?
+                    ELSE completedAt END, isFinished=CASE WHEN ? < 100 THEN 0 ELSE isFinished END, progressPercent = ?
                 WHERE projectId = ? AND userId = ?""",
-                (progressPercent, progressPercent, projectId, userId),
+                (progressPercent, progressPercent, progressPercent, projectId, userId),
             )
         return cursor.rowcount > 0
     finally:
@@ -1334,6 +1345,38 @@ def setProjectStepPhoto(projectId, stepId, userId, imageData):
     with openDatabase() as connection:
         cursor = connection.execute("""UPDATE projectSteps SET photoImage = ?
             WHERE projectId = ? AND stepId = ?
-            AND projectId IN (SELECT projectId FROM projects WHERE userId = ?)
-            AND (? IS NOT NULL OR isCompleted = 0)""", (imageData, projectId, stepId, userId, imageData))
+            AND projectId IN (SELECT projectId FROM projects WHERE userId = ?)""", (imageData, projectId, stepId, userId))
         return cursor.rowcount > 0
+
+
+def updateStepDetails(projectId,stepId,userId,title,details):
+    with openDatabase() as connection:
+        cursor=connection.execute('UPDATE projectSteps SET stepDescription=?,detailsText=? WHERE stepId=? AND projectId=? AND projectId IN (SELECT projectId FROM projects WHERE userId=?)',
+            (title,details,stepId,projectId,userId))
+        return cursor.rowcount>0
+
+
+def projectFinalPhoto(projectId,userId):
+    with openDatabase() as connection:
+        row=connection.execute('SELECT finalPhotoImage FROM projects WHERE projectId=? AND userId=?',(projectId,userId)).fetchone()
+        return bytes(row[0]) if row and row[0] else None
+
+
+def setFinalPhoto(projectId,userId,image):
+    with openDatabase() as connection:
+        cursor=connection.execute('UPDATE projects SET finalPhotoImage=? WHERE projectId=? AND userId=? AND (? IS NOT NULL OR isFinished=0)',(image,projectId,userId,image))
+        return cursor.rowcount>0
+
+
+def finishProjectRecord(projectId,userId,finished):
+    with openDatabase() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        row=connection.execute('SELECT * FROM projects WHERE projectId=? AND userId=?',(projectId,userId)).fetchone()
+        if row is None:return False
+        if finished:
+            if not row['finalPhotoImage']:raise ValueError('Добавьте фото финального результата')
+            if connection.execute('SELECT 1 FROM projectSteps WHERE projectId=? AND isCompleted=0',(projectId,)).fetchone():
+                raise ValueError('Сначала отметьте выполненные этапы')
+            connection.execute("UPDATE projects SET isFinished=1,progressPercent=100,completedAt=CASE WHEN isFinished=1 THEN completedAt ELSE strftime('%Y-%m-%dT%H:%M:%SZ','now') END WHERE projectId=?",(projectId,))
+        else:connection.execute('UPDATE projects SET isFinished=0,completedAt=NULL,progressPercent=CASE WHEN NOT EXISTS (SELECT 1 FROM projectSteps WHERE projectId=?) THEN 0 ELSE progressPercent END WHERE projectId=?',(projectId,projectId))
+        return True

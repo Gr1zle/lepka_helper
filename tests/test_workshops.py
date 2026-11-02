@@ -70,8 +70,12 @@ class WorkshopTests(WorkshopFixture, unittest.TestCase):
 
     def test_selected_text_step_is_not_lost_or_given_a_fake_photo(self):
         textStep = projects.saveProjectStep(self.project, 'Подготовьте рабочее место', self.owner)[2]
-        postId = self.publish(workshopInfo=INFO, otherStepIds=[textStep, self.step])[2]
-        workshop = workshops.getWorkshop(postId)
+        self.assertFalse(self.publish(workshopInfo=INFO,otherStepIds=[textStep,self.step])[0])
+        with db.openDatabase() as connection:
+            row=connection.execute('SELECT projectDetailsJson FROM posts WHERE postId=?',(self.postId,)).fetchone()
+            legacy=json.loads(row[0]);legacy['steps'].append({'description':'Подготовьте рабочее место','photoPosition':None})
+            connection.execute('UPDATE posts SET projectDetailsJson=? WHERE postId=?',(json.dumps(legacy),self.postId))
+        workshop = workshops.getWorkshop(self.postId)
         self.assertEqual(len(workshop['steps']), 3)
         self.assertEqual(workshop['steps'][-1], {'description': 'Подготовьте рабочее место', 'photoPosition': None})
         self.assertEqual(len(workshop['photoIds']), 2)
@@ -79,14 +83,18 @@ class WorkshopTests(WorkshopFixture, unittest.TestCase):
     def test_hundred_steps_with_text_are_allowed_but_eleven_photos_are_not(self):
         textSteps = [projects.saveProjectStep(self.project, f'Текстовый этап {index}', self.owner)[2] for index in range(98)]
         success, message, postId = self.publish(workshopInfo=INFO, otherStepIds=[self.step, *textSteps])
-        self.assertTrue(success, message)
-        self.assertEqual(len(workshops.getWorkshop(postId)['steps']), 100)
-        self.assertEqual(len(workshops.getWorkshop(postId)['photoIds']), 2)
+        self.assertFalse(success)
+        with db.openDatabase() as connection:
+            legacy=json.loads(connection.execute('SELECT projectDetailsJson FROM posts WHERE postId=?',(self.postId,)).fetchone()[0])
+            legacy['steps'].extend({'description':'Старый текстовый шаг '+str(i),'photoPosition':None} for i in range(98))
+            connection.execute('UPDATE posts SET projectDetailsJson=? WHERE postId=?',(json.dumps(legacy),self.postId))
+        self.assertEqual(len(workshops.getWorkshop(self.postId)['steps']),100)
+        self.assertEqual(len(workshops.getWorkshop(self.postId)['photoIds']),2)
         photoSteps = [self.addStep(self.project, self.owner, f'Этап с фото {index}') for index in range(9)]
         success, message, _ = self.publish(workshopInfo=INFO, otherStepIds=[self.step, *photoSteps])
         self.assertFalse(success)
         self.assertIn('10 фото', message)
-        self.assertEqual(len(posts.getCommunityPosts()), 2)
+        self.assertEqual(len(posts.getCommunityPosts()), 1)
 
     def test_corrupt_photo_positions_and_metadata_are_not_read(self):
         with db.openDatabase() as connection:
@@ -284,7 +292,11 @@ class WorkshopUiTests(WorkshopFixture, unittest.IsolatedAsyncioTestCase):
 
     async def test_step_without_photo_shows_a_clear_text_message(self):
         textStep = projects.saveProjectStep(self.project, 'Шаг без фотографии', self.owner)[2]
-        self.postId = self.publish(workshopInfo=INFO, otherStepIds=[self.step, textStep])[2]
+        self.assertFalse(self.publish(workshopInfo=INFO,otherStepIds=[self.step,textStep])[0])
+        with db.openDatabase() as connection:
+            legacy=json.loads(connection.execute('SELECT projectDetailsJson FROM posts WHERE postId=?',(self.postId,)).fetchone()[0])
+            legacy['steps'].append({'description':'Шаг без фотографии','photoPosition':None})
+            connection.execute('UPDATE posts SET projectDetailsJson=? WHERE postId=?',(json.dumps(legacy),self.postId))
         workshops.saveUserWorkshopState(self.other, self.postId,
             {'lastStep': 2, 'completedSteps': [], 'checkedMaterials': []})
         from views.workshop_view import createWorkshopView

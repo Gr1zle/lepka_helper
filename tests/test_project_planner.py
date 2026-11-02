@@ -30,6 +30,8 @@ class PlannerTests(unittest.TestCase):
         step = saveProjectStep(completed,'Подготовить основу',self.owner)[2]
         saveProjectStepPhoto(completed,step,self.owner,photo())
         changeProjectStepStatus(completed,step,True,self.owner)
+        from project_service import saveFinalPhoto,finishProject
+        saveFinalPhoto(completed,self.owner,photo());finishProject(completed,self.owner)
         self.project(1,self.other)
         plan = monthPlan(self.owner,2028,2,today=self.today)
         self.assertEqual(plan['weeks'][0],[0,1,2,3,4,5,6])
@@ -91,6 +93,8 @@ class PlannerTests(unittest.TestCase):
         step = saveProjectStep(project,'Подготовить основу',self.owner)[2]
         saveProjectStepPhoto(project,step,self.owner,photo())
         changeProjectStepStatus(project,step,True,self.owner)
+        from project_service import saveFinalPhoto,finishProject
+        saveFinalPhoto(project,self.owner,photo());finishProject(project,self.owner)
         self.assertEqual(syncProjectReminders(self.owner,today=self.today),[])
         changeProjectStepStatus(project,step,False,self.owner)
         self.assertEqual(len(syncProjectReminders(self.owner,today=self.today)),1)

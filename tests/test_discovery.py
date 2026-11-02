@@ -53,10 +53,10 @@ class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any(isinstance(c,ft.TextField) and c.label=='Новый этап' for c in harness.walk(root)))
         tile=next(c for c in harness.walk(root) if isinstance(c,ft.ListTile) and c.title.value=='Фигурка')
         tile.on_click(None)
-        self.assertIsNotNone(harness.find(self.dialog(),ft.Text,value='Каркас'))
-        checkbox=harness.find(self.dialog(),ft.Checkbox)
+        self.assertIsNotNone(harness.find(self.page.views[-1],ft.Text,value='Каркас'))
+        checkbox=harness.find(self.page.views[-1],ft.Checkbox)
         checkbox.value=True;checkbox.on_change(SimpleNamespace(control=checkbox))
-        self.assertTrue(harness.find(self.dialog(),ft.Checkbox).value)
+        self.assertTrue(harness.find(self.page.views[-1],ft.Checkbox).value)
 
     async def test_cover_does_not_fetch_comments_until_opened(self):
         item={'postId':1,'titleText':'Работа','nickname':'Автор','photoIds':[]}

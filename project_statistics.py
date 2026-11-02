@@ -9,8 +9,8 @@ def getProjectStatistics(userId, year=None, month=None):
     if type(year) is not int or type(month) is not int or not 1 <= year <= 9999 or not 1 <= month <= 12:
         raise ValueError('Некорректный месяц или год')
     with openDatabase() as connection:
-        records = connection.execute('SELECT progressPercent, completedAt FROM projects WHERE userId=?', (userId,)).fetchall()
-    complete = [row for row in records if row['progressPercent'] >= 100]
+        records = connection.execute('SELECT progressPercent, completedAt, isFinished FROM projects WHERE userId=?', (userId,)).fetchall()
+    complete = [row for row in records if row['isFinished']]
     prefix = f'{year:04d}-{month:02d}'
     return {'total': len(records), 'completed': len(complete), 'active': len(records)-len(complete),
             'month': sum(bool(row['completedAt'] and row['completedAt'].startswith(prefix)) for row in complete),

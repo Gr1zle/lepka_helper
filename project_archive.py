@@ -17,12 +17,14 @@ def decodeProject(content):
     try:
         data = json.loads(content.decode('utf-8-sig'))
         if (not isinstance(data, dict) or set(data) != {'format', 'version', 'project', 'steps', 'mixtures'}
-                or data['format'] != 'lepka-helper-project' or type(data['version']) is not int or data['version'] != 1):
+                or data['format'] != 'lepka-helper-project' or type(data['version']) is not int or data['version'] not in (1,2)):
             raise ValueError('Неподдерживаемый формат проекта')
         project = data['project']
-        if not isinstance(project, dict) or set(project) != {'name', 'category', 'deadline', 'notes'}:
+        modern=data['version']==2
+        expected={'name','category','deadline','notes'} | ({'finished','finalPhoto'} if modern else set())
+        if not isinstance(project, dict) or set(project) != expected:
             raise ValueError('Некорректное описание проекта')
-        if any(not isinstance(value, str) for value in project.values()):
+        if any(not isinstance(project[key],str) for key in ('name','category','deadline','notes')):
             raise ValueError('Поля проекта должны быть текстом')
         normalized = dict(zip(('projectName', 'categoryName', 'deadlineDate', 'descriptionText'),
             normalizeProjectData(project['name'], project['category'], project['deadline'], project['notes'])))
@@ -33,7 +35,7 @@ def decodeProject(content):
             raise ValueError('В файле допускается не больше 10 рецептов')
         cleanSteps = []
         for step in steps:
-            if not isinstance(step, dict) or set(step) != {'description', 'completed', 'photo'}:
+            if not isinstance(step, dict) or set(step) != ({'description','completed','photo','details'} if modern else {'description','completed','photo'}):
                 raise ValueError('Некорректный этап проекта')
             error = validateStepDescription(step['description'])
             if error:
@@ -49,9 +51,17 @@ def decodeProject(content):
                 except ValueError:
                     raise ValueError('Некорректная фотография этапа') from None
                 image = preparePhoto('step.jpg', rawImage)['data']
-            if step['completed'] and image is None:
-                raise ValueError('Для завершённого этапа необходимо фото')
-            cleanSteps.append({'description': step['description'].strip(), 'completed': step['completed'], 'image': image})
+            details=step.get('details','')
+            if not isinstance(details,str) or len(details)>900:raise ValueError('Описание этапа: до 900 символов')
+            cleanSteps.append({'description':step['description'].strip(),'details':details.strip(),'completed':step['completed'],'image':image})
+        finalImage=None
+        if modern and project['finalPhoto'] is not None:
+            try:finalImage=preparePhoto('final.jpg',base64.b64decode(project['finalPhoto'],validate=True))['data']
+            except (ValueError,TypeError):raise ValueError('Некорректное финальное фото') from None
+        finished=project['finished'] if modern else bool(cleanSteps and all(step['completed'] for step in cleanSteps) and cleanSteps[-1]['image'])
+        if not modern and finished:finalImage=cleanSteps[-1]['image']
+        if type(finished) is not bool or (finished and (not finalImage or not all(step['completed'] for step in cleanSteps))):raise ValueError('Завершённый проект должен содержать финальное фото и выполненные этапы')
+        normalized.update(isFinished=finished,finalPhoto=finalImage)
         cleanMixtures = [readMixture(json.dumps(item)) for item in mixtures]
         return {'project': normalized, 'steps': cleanSteps, 'mixtures': cleanMixtures}
     except (json.JSONDecodeError, UnicodeError, KeyError, TypeError, OverflowError, RecursionError) as error:
@@ -67,10 +77,11 @@ def exportProject(projectId, userId, existingConnection=None):
         steps = connection.execute('SELECT * FROM projectSteps WHERE projectId=? ORDER BY sortOrder,stepId', (projectId,)).fetchall()
         if len(steps) > MAX_STEPS:
             raise ValueError('Для переноса допускается не больше 100 этапов')
-        body = {'format': 'lepka-helper-project', 'version': 1,
+        body = {'format': 'lepka-helper-project', 'version': 2,
             'project': {'name': project['projectName'], 'category': project['categoryName'],
-                        'deadline': project['deadlineDate'], 'notes': project['descriptionText'] or ''},
-            'steps': [{'description': step['stepDescription'], 'completed': bool(step['isCompleted']),
+                        'deadline': project['deadlineDate'], 'notes': project['descriptionText'] or '',
+                        'finished':bool(project['isFinished']), 'finalPhoto':base64.b64encode(project['finalPhotoImage']).decode() if project['finalPhotoImage'] else None},
+            'steps': [{'description': step['stepDescription'], 'details':step['detailsText'], 'completed': bool(step['isCompleted']),
                        'photo': base64.b64encode(step['photoImage']).decode() if step['photoImage'] else None} for step in steps],
             'mixtures': [json.loads(row['mixtureJson']) for row in connection.execute(
                 'SELECT mixtureJson FROM projectMixtures WHERE projectId=? ORDER BY projectMixtureId', (projectId,))]}
@@ -90,12 +101,13 @@ def importProject(userId, content, existingConnection=None):
         projectId = createProjectWithSteps(userId, project['projectName'], project['categoryName'], project['deadlineDate'],
             project['descriptionText'], [step['description'] for step in data['steps']], existingConnection=connection)
         ids = [row['stepId'] for row in connection.execute('SELECT stepId FROM projectSteps WHERE projectId=? ORDER BY sortOrder', (projectId,))]
-        connection.executemany('UPDATE projectSteps SET photoImage=?,isCompleted=? WHERE stepId=?',
-            [(step['image'], int(step['completed']), stepId) for stepId, step in zip(ids, data['steps'])])
+        connection.executemany('UPDATE projectSteps SET photoImage=?,isCompleted=?,detailsText=? WHERE stepId=?',
+            [(step['image'],int(step['completed']),step['details'],stepId) for stepId, step in zip(ids, data['steps'])])
         connection.executemany('INSERT INTO projectMixtures (projectId,mixtureJson) VALUES (?,?)',
             [(projectId, json.dumps(item, ensure_ascii=False)) for item in data['mixtures']])
         count = len(data['steps'])
         progress = round(sum(step['completed'] for step in data['steps']) / count * 100, 1) if count else 0
         # Для импортированного завершённого проекта дата завершения неизвестна.
-        connection.execute('UPDATE projects SET progressPercent=? WHERE projectId=?', (progress, projectId))
+        if project['isFinished']:progress=100
+        connection.execute('UPDATE projects SET progressPercent=?,isFinished=?,finalPhotoImage=? WHERE projectId=?', (progress,int(project['isFinished']),project['finalPhoto'],projectId))
     return projectId

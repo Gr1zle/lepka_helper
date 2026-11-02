@@ -19,14 +19,14 @@ def plannerProjects(userId, today=None):
     today = today or date.today()
     with openDatabase() as connection:
         records = connection.execute('''SELECT p.projectId,p.projectName,p.categoryName,
-            p.deadlineDate,p.progressPercent FROM projects p JOIN users u ON u.userId=p.userId
+            p.deadlineDate,p.progressPercent,p.isFinished FROM projects p JOIN users u ON u.userId=p.userId
             WHERE p.userId=? AND u.isBlocked=0 AND u.roleName!='deleted' ''', (userId,)).fetchall()
     result = []
     for record in records:
         item = dict(record)
         deadline = parseDeadline(item['deadlineDate'])
         days = (deadline-today).days if deadline else None
-        complete = item['progressPercent'] >= 100
+        complete = bool(item['isFinished'])
         status = ('Завершён' if complete else 'Проверьте дату' if item['deadlineDate'] and not deadline
                   else 'Без срока' if deadline is None else 'Просрочен' if days < 0
                   else 'Сегодня' if days == 0 else 'Завтра' if days == 1 else f'Через {days} дн.')
@@ -70,9 +70,9 @@ def syncProjectReminders(userId, enabled=True, today=None):
         # Удалённый, завершённый проект или изменённый дедлайн больше не должен напоминать о старом сроке.
         connection.execute('''DELETE FROM projectReminders WHERE userId=? AND NOT EXISTS (
             SELECT 1 FROM projects p WHERE p.projectId=projectReminders.projectId AND p.userId=projectReminders.userId
-            AND p.progressPercent<100 AND p.deadlineDate=projectReminders.deadlineDate)''', (userId,))
+            AND p.isFinished=0 AND p.deadlineDate=projectReminders.deadlineDate)''', (userId,))
         if not enabled: return []
-        projects = connection.execute('SELECT projectId,deadlineDate FROM projects WHERE userId=? AND progressPercent<100', (userId,)).fetchall()
+        projects = connection.execute('SELECT projectId,deadlineDate FROM projects WHERE userId=? AND isFinished=0', (userId,)).fetchall()
         candidates = []
         for item in projects:
             deadline = parseDeadline(item['deadlineDate'])
