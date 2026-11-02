@@ -1,3 +1,5 @@
+[№29: редизайн, адаптивная навигация и иконка](docs/design_system.md) · [№28: камера, экспорт и референсы](docs/color_camera_references.md).
+
 [№25: офлайн-вход, черновики и автоматическая очередь](docs/offline_session_outbox.md).
 
 [Оставшиеся блоки приложения](docs/remaining_work.md) · [№24: личные данные и синхронизация](docs/personal_vault_sync.md).

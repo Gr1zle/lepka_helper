@@ -11,8 +11,8 @@ from app_info import APP_TITLE
 from views.about_dialog import showDataInfo
 from device_session import saveDeviceSession
 
-PRIMARY_COLOR = "#FF6B6B"
-SECONDARY_COLOR = "#4ECDC4"
+from design_system import PRIMARY_COLOR
+from design_system import SECONDARY_COLOR
 
 
 def createAuthView(page):
@@ -141,7 +141,7 @@ def createAuthView(page):
         codeField = ft.TextField(label="Код из письма", hint_text="6 цифр", prefix_icon=ft.Icons.PIN, border_radius=12)
         newPasswordField = ft.TextField(label="Новый пароль", password=True, can_reveal_password=True, prefix_icon=ft.Icons.LOCK, border_radius=12)
         confirmPasswordField = ft.TextField(label="Повторите новый пароль", password=True, can_reveal_password=True, prefix_icon=ft.Icons.LOCK_OUTLINE, border_radius=12)
-        infoText = ft.Text("Код будет отправлен на почту. Он действует 10 минут; допускается 5 попыток.", size=13, color=ft.Colors.GREY_600)
+        infoText = ft.Text("Код будет отправлен на почту. Он действует 10 минут; допускается 5 попыток.", size=13, color=ft.Colors.ON_SURFACE_VARIANT)
 
         def sendRecoveryCode(event):
             emailValue = (emailField.value or "").strip().lower()
@@ -264,11 +264,12 @@ def createAuthView(page):
         tab_alignment=ft.TabAlignment.CENTER,
         indicator_color=PRIMARY_COLOR,
         label_color=PRIMARY_COLOR,
-        unselected_label_color=ft.Colors.BLACK87,
+        unselected_label_color=ft.Colors.ON_SURFACE_VARIANT,
     )
     activeFormContainer.content = loginForm
 
-    return ft.View(
+    from design_system import polish
+    return polish(ft.View(
         route="/auth",
         padding=0,
         controls=[
@@ -283,17 +284,17 @@ def createAuthView(page):
                         expand=True,
                         scroll=ft.ScrollMode.AUTO,
                         controls=[
-                            ft.Container(height=28),
+                            ft.Container(height=12),
                             ft.Column(
                                 controls=[
-                                    ft.Icon(name=ft.Icons.BRUSH, size=58, color=PRIMARY_COLOR),
-                                    ft.Text(APP_TITLE, size=30, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
-                                    ft.Text("Помощник для лепки", size=17, color=ft.Colors.GREY_600, text_align=ft.TextAlign.CENTER),
+                                    ft.Image(src="icon.png", width=72, height=72, border_radius=22),
+                                    ft.Text(APP_TITLE, size=25, weight=ft.FontWeight.W_600, text_align=ft.TextAlign.CENTER),
+                                    ft.Text("От первого оттенка до готовой фигурки", size=14, color=ft.Colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER),
                                 ],
                                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                                 spacing=6,
                             ),
-                            ft.Container(height=28),
+                            ft.Container(height=12),
                             ft.Container(width=360, alignment=ft.alignment.center, content=authTabs),
                             ft.TextButton("Подключение к серверу / Wi-Fi", on_click=lambda e: openServerConnection(page)),
                             rememberSession,
@@ -305,4 +306,4 @@ def createAuthView(page):
                 ),
             )
         ],
-    )
+    ))

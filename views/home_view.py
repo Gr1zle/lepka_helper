@@ -49,18 +49,18 @@ from views.model_gallery import createModelCard
 from model_service import searchModels
 from learning_assets import MODEL_ITEMS
 
-PRIMARY_COLOR = "#FF6B6B"
-SECONDARY_COLOR = "#4ECDC4"
+from design_system import PRIMARY_COLOR
+from design_system import SECONDARY_COLOR
 LIGHT_BACKGROUND_COLOR = "#FFFFFF"
 DARK_BACKGROUND_COLOR = "#121212"
 DARK_TEXT_COLOR = "#222222"
 
 
 def getPageBackgroundColor(page):
-    return "#121212" if page.theme_mode == ft.ThemeMode.DARK else "#FFFFFF"
+    return ft.Colors.SURFACE
 
 def createSearchTab(page, currentUser):
-    resultColumn = ft.Column(spacing=10)
+    resultColumn = ft.ResponsiveRow(spacing=12,run_spacing=12)
     ideaContainer = ft.Container()
     mainContentColumn = ft.Column(spacing=14)
 
@@ -340,13 +340,13 @@ def createSearchTab(page, currentUser):
                                 ),
                                 ft.ProgressBar(
                                     value=progressValue,
-                                    color=SECONDARY_COLOR,
-                                    bgcolor="#DDDDDD",
+                                    color=ft.Colors.SECONDARY,
+                                    bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                                 ),
                                 ft.Container(
                                     height=190,
                                     border_radius=18,
-                                    bgcolor="#F5F5F5",
+                                    bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                                     alignment=ft.alignment.center,
                                     content=ft.Image(src=lessonItem['stepImages'][currentStepIndex], fit=ft.ImageFit.CONTAIN),
                                 ),
@@ -420,7 +420,7 @@ def createSearchTab(page, currentUser):
                                     width=52,
                                     height=52,
                                     border_radius=16,
-                                    bgcolor="#FFF0F0",
+                                    bgcolor=ft.Colors.PRIMARY_CONTAINER,
                                     alignment=ft.alignment.center,
                                     content=ft.Image(src=lessonItem['previewImage'], fit=ft.ImageFit.CONTAIN),
                                 ),
@@ -435,7 +435,7 @@ def createSearchTab(page, currentUser):
                                         ft.Text(
                                             f"{lessonItem['category']} · {lessonItem['level']} · {lessonItem['timeMinutes']} мин",
                                             size=12,
-                                            color=ft.Colors.GREY_600,
+                                            color=ft.Colors.ON_SURFACE_VARIANT,
                                         ),
                                     ],
                                     spacing=2,
@@ -446,24 +446,24 @@ def createSearchTab(page, currentUser):
                         ft.Text(
                             lessonItem["description"],
                             size=13,
-                            color=ft.Colors.GREY_700,
+                            color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Text(
                             f"Теги: {tagText}",
                             size=12,
-                            color=ft.Colors.GREY_600,
+                            color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Row(
                             controls=[
                                 ft.Text(
                                     (f"Шагов: {len(state['completedSteps'])}/{len(lessonItem['steps'])}" if state else 'Встроенный урок'),
                                     size=12,
-                                    color=ft.Colors.GREY_600,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
                                 ft.Text(
                                     ('Завершён' if state and state['isCompleted'] else ''),
                                     size=12,
-                                    color=ft.Colors.GREY_600,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
                                 ft.Container(expand=True),
                                 ft.TextButton(
@@ -518,6 +518,10 @@ def createSearchTab(page, currentUser):
                 'Ничего не найдено. Попробуйте изменить запрос или фильтры.')
             controls.append(ft.Text(empty))
         if searchVersion['value']==version and (page.session.get('currentUser') or {}).get('sessionToken')==owner:
+            from design_system import polish
+            for control in controls:
+                control.col={"xs":12,"md":6} if isinstance(control,ft.Card) else 12
+                polish(control)
             resultColumn.controls = controls
 
     def saveWorkspace():
@@ -619,17 +623,17 @@ def createSearchTab(page, currentUser):
                         ft.Text(
                             ideaData["description"],
                             size=14,
-                            color=ft.Colors.GREY_700,
+                            color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Text(
                             f"Сложность: {ideaData['level']}",
                             size=13,
-                            color=ft.Colors.GREY_600,
+                            color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Text(
                             f"Примерное время: {ideaData['estimatedTime']} минут",
                             size=13,
-                            color=ft.Colors.GREY_600,
+                            color=ft.Colors.ON_SURFACE_VARIANT,
                         ),
                         ft.Row(
                             controls=colorControls,
@@ -678,8 +682,9 @@ def createSearchTab(page, currentUser):
                     weight=ft.FontWeight.BOLD,
                 ),
                 searchField,
-                ft.TextButton('3D-галерея',icon=ft.Icons.VIEW_IN_AR_OUTLINED,on_click=lambda event:page.go('/models')),
-                ft.TextButton('Учебный каталог',icon=ft.Icons.SCHOOL_OUTLINED,on_click=lambda event:page.go('/catalog')),
+                ft.Row(wrap=True,controls=[
+                    ft.OutlinedButton('3D-галерея',icon=ft.Icons.VIEW_IN_AR_OUTLINED,on_click=lambda event:page.go('/models')),
+                    ft.OutlinedButton('Учебный каталог',icon=ft.Icons.SCHOOL_OUTLINED,on_click=lambda event:page.go('/catalog'))]),
                 ft.Row(wrap=True,controls=[ft.ElevatedButton('Найти',icon=ft.Icons.SEARCH,on_click=submitSearch),
                                            ft.TextButton('Сбросить фильтры',on_click=resetFilters)]),
                 suggestionBox,
@@ -764,7 +769,8 @@ def createColorsTab(page, currentUser):
         showPageMessage(page, messageText, isError)
 
     def getTextColorForBackground(hexColor):
-        return ft.Colors.BLACK if hexColor.upper() in ["#FFFFFF", "#F5DEB3", "#FFD60A"] else ft.Colors.WHITE
+        from design_system import swatchTextColor
+        return swatchTextColor(hexColor)
 
     def getTotalWeight():
         try:
@@ -815,8 +821,8 @@ def createColorsTab(page, currentUser):
 
     resultColorText = ft.Text("#FFFFFF", size=32, weight=ft.FontWeight.BOLD)
     resultColorBox = ft.Container(
-        height=150,
-        border_radius=24,
+        height=112,
+        border_radius=20,
         bgcolor="#FFFFFF",
         alignment=ft.alignment.center,
         content=resultColorText,
@@ -857,7 +863,7 @@ def createColorsTab(page, currentUser):
     targetResultText = ft.Text(
         "Введите HEX-цвет или выберите его из палитры",
         size=13,
-        color=ft.Colors.GREY_600,
+        color=ft.Colors.ON_SURFACE_VARIANT,
     )
 
     targetSelectedText = ft.Text("#8A4F3A", size=11, weight=ft.FontWeight.BOLD)
@@ -899,7 +905,7 @@ def createColorsTab(page, currentUser):
 
         if not currentUser:
             savedMixturesColumn.controls.append(
-                ft.Text("Войдите в аккаунт для просмотра смесей", color=ft.Colors.GREY_600)
+                ft.Text("Войдите в аккаунт для просмотра смесей", color=ft.Colors.ON_SURFACE_VARIANT)
             )
             return
 
@@ -907,7 +913,7 @@ def createColorsTab(page, currentUser):
 
         if not mixtures:
             savedMixturesColumn.controls.append(
-                ft.Text("Пока нет сохранённых смесей", color=ft.Colors.GREY_600)
+                ft.Text("Пока нет сохранённых смесей", color=ft.Colors.ON_SURFACE_VARIANT)
             )
             return
 
@@ -931,6 +937,8 @@ def createColorsTab(page, currentUser):
                 totalWeightField.value = str(item['totalWeight'])
                 mixtureNameField.value = item['mixtureName']
                 refreshRecipe()
+                showMix=page.session.get('showColorMix')
+                if callable(showMix):showMix()
                 page.update()
 
             savedMixturesColumn.controls.append(
@@ -953,7 +961,7 @@ def createColorsTab(page, currentUser):
                                         ft.Text(
                                             "Рецепт повреждён" if mixture["recipeError"] else f"{mixture['resultHex']} • {mixture['totalWeight']} г",
                                             size=12,
-                                            color=ft.Colors.GREY_600,
+                                            color=ft.Colors.ON_SURFACE_VARIANT,
                                         ),
                                     ],
                                 ),
@@ -998,10 +1006,10 @@ def createColorsTab(page, currentUser):
                 ft.Container(
                     padding=12,
                     border_radius=12,
-                    bgcolor="#F5F5F5",
+                    bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                     content=ft.Text(
-                        "Выберите цвета из базовой палитры ниже.",
-                        color=ft.Colors.GREY_700,
+                        "Добавьте оттенки из палитры выше.",
+                        color=ft.Colors.ON_SURFACE_VARIANT,
                     ),
                 )
             )
@@ -1121,7 +1129,7 @@ def createColorsTab(page, currentUser):
 
         if not recipeItems:
             recipeColumn.controls.append(
-                ft.Text("Рецепт появится после выбора минимум одного цвета.", color=ft.Colors.GREY_600)
+                ft.Text("Рецепт появится после выбора минимум одного цвета.", color=ft.Colors.ON_SURFACE_VARIANT)
             )
 
     def handleColorClick(event, colorItem):
@@ -1304,16 +1312,16 @@ def createColorsTab(page, currentUser):
         return ft.GestureDetector(
             on_tap=lambda event, currentColor=colorItem: onTap(event, currentColor),
             content=ft.Container(
-                width=70,
-                height=70,
+                width=78,
+                height=64,
                 border_radius=16,
                 bgcolor=colorItem["hex"],
-                padding=6,
+                padding=3,
                 alignment=ft.alignment.bottom_center,
                 border=ft.border.all(1, ft.Colors.GREY_300),
                 content=ft.Text(
                     colorItem["name"],
-                    size=9,
+                    size=10,
                     weight=ft.FontWeight.BOLD,
                     text_align=ft.TextAlign.CENTER,
                     color=getTextColorForBackground(colorItem["hex"]),
@@ -1330,15 +1338,7 @@ def createColorsTab(page, currentUser):
         return ft.GestureDetector(on_tap_down=choose, content=ft.Image(
             src_base64=createColorWheelBase64(220), width=220, height=220, fit=ft.ImageFit.CONTAIN))
 
-    colorGrid = ft.GridView(
-        expand=False,
-        runs_count=5,
-        max_extent=80,
-        spacing=10,
-        run_spacing=10,
-        child_aspect_ratio=1,
-        height=190,
-    )
+    colorGrid = ft.Row(wrap=True,spacing=8,run_spacing=8)
     for color in BASE_COLORS:
         colorGrid.controls.append(createPaletteButton(color, handleColorClick))
     paletteSearch=ft.TextField(label='Поиск базового цвета по названию или HEX',max_length=120)
@@ -1358,7 +1358,7 @@ def createColorsTab(page, currentUser):
     refreshRecipe()
     refreshSavedMixtures()
 
-    return ft.ListView(
+    layout = ft.ListView(
         build_controls_on_demand=False,
         expand=True,
         spacing=16,
@@ -1369,7 +1369,7 @@ def createColorsTab(page, currentUser):
             resultColorBox,
 
             ft.Text("Базовая палитра", size=18, weight=ft.FontWeight.BOLD),
-            ft.Text("Нажмите на цвет, чтобы добавить его в смесь.", size=13, color=ft.Colors.GREY_600),
+            ft.Text("Нажмите на цвет, чтобы добавить его в смесь.", size=13, color=ft.Colors.ON_SURFACE_VARIANT),
             paletteSearch,
             colorGrid,
 
@@ -1424,7 +1424,7 @@ def createColorsTab(page, currentUser):
             ft.Text(
                 "Нажмите на оттенок в круге — он подставится в HEX и сразу подберёт рецепт.",
                 size=13,
-                color=ft.Colors.GREY_600,
+                color=ft.Colors.ON_SURFACE_VARIANT,
             ),
             ft.Container(
                 alignment=ft.alignment.center,
@@ -1434,6 +1434,7 @@ def createColorsTab(page, currentUser):
                         targetPreviewColumn,
                     ],
                     spacing=12,
+                    wrap=True,
                     alignment=ft.MainAxisAlignment.CENTER,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
@@ -1445,6 +1446,19 @@ def createColorsTab(page, currentUser):
             savedMixturesColumn,
         ],
     )
+
+    from design_system import workspace, disclosure, polish
+    controls=layout.controls
+    pick=next(i for i,c in enumerate(controls) if isinstance(c,ft.Text) and c.value=='Подбор рецепта')
+    saved=next(i for i,c in enumerate(controls) if isinstance(c,ft.Text) and c.value=='Мои смеси')
+    mix=controls[2:pick-1]
+    tools=disclosure('Инструменты мастерской',[controls[1]],ft.Icons.HANDYMAN_OUTLINED)
+    mixing=ft.ResponsiveRow(spacing=20,run_spacing=16,controls=[
+        ft.Column(mix[1:5],spacing=12,col={'xs':12,'md':6}),
+        ft.Column([mix[0],*mix[5:],tools],spacing=12,col={'xs':12,'md':6})])
+    layout=workspace(page,'Цвета', [('Смешать',[mixing]),('Подобрать',controls[pick+1:saved-1]),('Мои смеси',controls[saved+1:])])
+    page.session.set('showColorMix',lambda:layout.select_workspace(0))
+    return polish(layout)
 
 
 def createProjectsTab(page, currentUser):
@@ -1506,7 +1520,7 @@ def createProjectsTab(page, currentUser):
             newProjectControls.append(
                 ft.Text(
                     "Войдите в аккаунт, чтобы создавать и видеть проекты.",
-                    color=ft.Colors.GREY_600,
+                    color=ft.Colors.ON_SURFACE_VARIANT,
                 )
             )
             projectListColumn.controls = newProjectControls
@@ -1524,10 +1538,10 @@ def createProjectsTab(page, currentUser):
                 ft.Container(
                     padding=16,
                     border_radius=12,
-                    bgcolor="#F5F5F5",
+                    bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                     content=ft.Text(
                         "Выбранный проект недоступен. Нажмите «Показать все проекты»." if projectTarget['id'] is not None else "Пока нет проектов. Создайте первый проект выше.",
-                        color=ft.Colors.GREY_700,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
                     ),
                 )
             )
@@ -1594,7 +1608,7 @@ def createProjectsTab(page, currentUser):
                     ft.Text(
                         "Этапов пока нет. Добавьте первый этап ниже.",
                         size=12,
-                        color=ft.Colors.GREY_600,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
                     )
                 )
             else:
@@ -1754,7 +1768,7 @@ def createProjectsTab(page, currentUser):
                                             alignment=ft.alignment.center,
                                             content=ft.Icon(
                                                 name=ft.Icons.CHECKLIST,
-                                                color=SECONDARY_COLOR,
+                                                color=ft.Colors.SECONDARY,
                                                 size=26,
                                             ),
                                         ),
@@ -1769,7 +1783,7 @@ def createProjectsTab(page, currentUser):
                                                 ft.Text(
                                                     f"{projectItem['categoryName']} · {deadlineText}",
                                                     size=12,
-                                                    color=ft.Colors.GREY_600,
+                                                    color=ft.Colors.ON_SURFACE_VARIANT,
                                                 ),
                                             ],
                                             spacing=2,
@@ -1787,17 +1801,17 @@ def createProjectsTab(page, currentUser):
                                 ft.Text(
                                     descriptionText,
                                     size=13,
-                                    color=ft.Colors.GREY_700,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
                                 ft.ProgressBar(
                                     value=projectItem["progressPercent"] / 100,
-                                    color=SECONDARY_COLOR,
-                                    bgcolor="#DDDDDD",
+                                    color=ft.Colors.SECONDARY,
+                                    bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                                 ),
                                 ft.Text(
                                     f"Прогресс: {projectItem['progressPercent']}%",
                                     size=12,
-                                    color=ft.Colors.GREY_600,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
                                 createProjectSharing(page, currentUser, projectItem, refreshProjectList),
                                 createStepOrderButton(page, currentUser, projectItem['projectId'], refreshProjectList),
@@ -1837,7 +1851,7 @@ def createProjectsTab(page, currentUser):
 
     refreshProjectList()
 
-    return ft.ListView(
+    layout = ft.ListView(
         expand=True,
         build_controls_on_demand=False,
         spacing=14,
@@ -1893,6 +1907,17 @@ def createProjectsTab(page, currentUser):
         ],
     )
 
+    from design_system import disclosure, polish
+    controls=layout.controls
+    createIndex=next(i for i,c in enumerate(controls) if isinstance(c,ft.Card) and isinstance(c.content,ft.Container) and isinstance(c.content.content,ft.Column) and any(isinstance(t,ft.Text) and t.value=='Создание проекта' for t in c.content.content.controls))
+    form=controls[createIndex].content.content.controls[1:]
+    overview=controls[2:createIndex] if projectTarget['id'] is None else controls[3:createIndex]
+    header=controls[:2]
+    layout.controls=[*header,disclosure('Новый проект',form,ft.Icons.ADD),
+        *([projectListColumn] if projectTarget['id'] is not None else []),
+        *controls[createIndex+1:],disclosure('Обзор и перенос проектов',overview,ft.Icons.INSIGHTS_OUTLINED)]
+    return polish(layout)
+
 def createHomeView(page: ft.Page):
     try:
         currentUser = getCurrentUser(page)
@@ -1928,7 +1953,8 @@ def createHomeView(page: ft.Page):
             if not 0 <= index < len(factories):
                 return
             page.session.set('homeTab',index)
-            content_area.content = factories[index]()
+            from design_system import polish
+            content_area.content = polish(factories[index]())
         except ApiError as error:
             if error.statusCode == 401:
                 raise
@@ -1953,27 +1979,44 @@ def createHomeView(page: ft.Page):
         ],
     )
 
+    from design_system import ICON
+    labels=['Главная','Поиск','Цвета','Проекты','Профиль']
+    icons=[ft.Icons.HOME_OUTLINED,ft.Icons.SEARCH,ft.Icons.PALETTE_OUTLINED,ft.Icons.FOLDER_OUTLINED,ft.Icons.PERSON_OUTLINE]
+    rail=ft.NavigationRail(expand=True,selected_index=initialTab,extended=False,
+        min_width=80,min_extended_width=210,label_type=ft.NavigationRailLabelType.ALL,
+        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+        destinations=[ft.NavigationRailDestination(icon=icon,label=label) for icon,label in zip(icons,labels)])
+    brand=ft.Row([ft.Image(src=ICON,width=38,height=38,border_radius=12),
+        ft.Text('Лепка',size=20,weight=ft.FontWeight.W_600)])
+    sidebar=ft.Container(width=80,padding=ft.padding.only(top=16,bottom=16),
+        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+        content=ft.Column([ft.Container(content=ft.Image(src=ICON,width=42,height=42,border_radius=12),alignment=ft.alignment.center),rail],expand=True))
+    content_frame=ft.Container(content=content_area,expand=True)
+    main_column=ft.Column([ft.Container(content=brand,padding=ft.padding.only(left=16,top=10,bottom=4)),connectionBanner,content_frame],expand=True,spacing=0)
+    body=ft.Row([sidebar,ft.Container(content=main_column,expand=True)],expand=True,spacing=0)
     def navigateHomeTab(index):
-        nav_bar.selected_index=index
+        nav_bar.selected_index=rail.selected_index=index
         loadTab(index)
-
+    nav_bar.on_change=lambda e:navigateHomeTab(e.control.selected_index)
+    rail.on_change=lambda e:navigateHomeTab(e.control.selected_index)
+    def resize(event=None):
+        width=page.width or 390
+        wide=width>=760
+        sidebar.visible=wide
+        nav_bar.visible=not wide
+        rail.extended=width>=1180
+        rail.label_type=ft.NavigationRailLabelType.NONE if rail.extended else ft.NavigationRailLabelType.ALL
+        sidebar.width=210 if rail.extended else 80
+        available=width-(sidebar.width if wide else 0)
+        # Centre the scrollable workspace, with a useful readable limit on PCs.
+        content_area.width=min(1040,available)
+        content_area.expand=False
+        content_frame.alignment=ft.alignment.top_center
+        if event:page.update()
     page.session.set('navigateHomeTab',navigateHomeTab)
-    # Внутренние переходы не зависят от повторного события того же /home.
+    page.session.set('resizeHomeView',resize)
     loadTab(initialTab)
-
-    return ft.View(
-        "/home",
-        padding=0,
-        bgcolor=ft.Colors.SURFACE,
-        controls=[
-            ft.Container(
-                expand=True,
-                bgcolor=ft.Colors.SURFACE,
-                content=ft.Column([
-                    connectionBanner,
-                    ft.Container(expand=True, content=content_area),
-                    nav_bar
-                ], expand=True)
-            )
-        ]
-    )
+    resize()
+    return ft.View('/home',padding=0,spacing=0,bgcolor=ft.Colors.SURFACE,controls=[
+        ft.Container(expand=True,bgcolor=ft.Colors.SURFACE,content=ft.SafeArea(expand=True,
+            content=ft.Column([body,nav_bar],expand=True,spacing=0)))])

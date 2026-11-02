@@ -1,8 +1,8 @@
 import flet as ft
 from app_state import setAppState
 
-PRIMARY_COLOR = "#FF6B6B"
-SECONDARY_COLOR = "#4ECDC4"
+from design_system import PRIMARY_COLOR
+from design_system import SECONDARY_COLOR
 
 SLIDES = [
     {
@@ -30,12 +30,12 @@ SLIDES = [
 
 def createOnboardingView(page):
     slideIndex = 0
-    iconControl = ft.Icon(size=92, color=PRIMARY_COLOR)
+    iconControl = ft.Icon(size=92, color=ft.Colors.PRIMARY)
     titleControl = ft.Text(size=28, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER)
     textControl = ft.Text(
         size=15,
         text_align=ft.TextAlign.CENTER,
-        color=ft.Colors.GREY_700,
+        color=ft.Colors.ON_SURFACE_VARIANT,
         no_wrap=False,
     )
     dotsRow = ft.Row(alignment=ft.MainAxisAlignment.CENTER, spacing=8)
@@ -126,7 +126,7 @@ def createOnboardingView(page):
                                             width=150,
                                             height=150,
                                             border_radius=45,
-                                            bgcolor="#FFF0F0",
+                                            bgcolor=ft.Colors.PRIMARY_CONTAINER,
                                             alignment=ft.alignment.center,
                                             content=iconControl,
                                         ),

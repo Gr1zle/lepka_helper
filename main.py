@@ -22,8 +22,8 @@ from views.challenge_view import createChallengeView
 from views.reference_gallery import createReferenceGallery
 from views.learning_catalog import createCatalogView,createCatalogDetail,createCatalogEditor
 
-PRIMARY_COLOR = "#FF6B6B"
-SECONDARY_COLOR = "#4ECDC4"
+from design_system import PRIMARY_COLOR
+from design_system import SECONDARY_COLOR
 
 
 def main(page: ft.Page):
@@ -53,17 +53,27 @@ def main(page: ft.Page):
     page.bgcolor = ft.Colors.SURFACE
     page.window.width = 390
     page.window.height = 780
-    page.window.resizable = False
+    page.window.resizable = True
+    page.window.min_width = 320
+    page.window.min_height = 600
     page.padding = 0
-    page.theme = ft.Theme(color_scheme_seed=PRIMARY_COLOR, color_scheme=ft.ColorScheme(surface='#FFFFFF'), visual_density=ft.VisualDensity.COMFORTABLE)
-    page.dark_theme = ft.Theme(color_scheme_seed=PRIMARY_COLOR, color_scheme=ft.ColorScheme(surface='#121212'), visual_density=ft.VisualDensity.COMFORTABLE)
+    from design_system import makeTheme
+    page.theme = makeTheme()
+    page.dark_theme = makeTheme(True)
 
     # Глобальные настройки
     page.session.set("PRIMARY_COLOR", PRIMARY_COLOR)
     page.session.set("SECONDARY_COLOR", SECONDARY_COLOR)
 
+    from design_system import polish, presentView, resizeLayouts
+
+    def displayViews(views):
+        page.views[:] = [presentView(page,view) for view in views]
+        page.update()
+
     @serverAction(page)
     def route_change(e):
+        page.session.set('resizeHomeView',None)
         if not page.route.startswith('/models/'):
             page.session.set('resizeModelView',None)
             page.session.set('exitModelFullscreen',None)
@@ -83,41 +93,41 @@ def main(page: ft.Page):
         elif page.route == '/challenges':
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             page.views[:]=[root,createChallengeView(page)]
-            page.update();return
+            displayViews(page.views);return
         elif page.route == '/admin':
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             page.views[:]=[root,createAdminView(page)]
-            page.update();return
+            displayViews(page.views);return
         elif page.route == '/planner':
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             page.views[:]=[root,createProjectPlanner(page)]
-            page.update();return
+            displayViews(page.views);return
         elif page.route in ('/catalog','/catalog-admin') or page.route.startswith(('/catalog/','/catalog-edit/')):
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             if page.route=='/catalog':catalogView=createCatalogView(page)
             elif page.route=='/catalog-admin':catalogView=createCatalogView(page,True)
             elif page.route.startswith('/catalog-edit/'):catalogView=createCatalogEditor(page,page.route[len('/catalog-edit/'):])
             else:catalogView=createCatalogDetail(page,page.route[len('/catalog/'):])
-            page.views[:]=[root,catalogView];page.update();return
+            page.views[:]=[root,catalogView];displayViews(page.views);return
         elif page.route == '/references':
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
-            page.views[:]=[root,createReferenceGallery(page)];page.update();return
+            page.views[:]=[root,createReferenceGallery(page)];displayViews(page.views);return
         elif page.route == '/models':
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             page.views[:]=[root,createModelGallery(page)]
-            page.update();return
+            displayViews(page.views);return
         elif page.route.startswith('/models/'):
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             parents=[root]
             if page.views and page.views[-1].route=='/models':parents.append(page.views[-1])
             if page.views and (page.views[-1].route or '').startswith('/catalog/'):parents.append(page.views[-1])
             page.views[:]=[*parents,createModelView(page,page.route[len('/models/'):])]
-            page.update();return
+            displayViews(page.views);return
         else:
             page.go("/")
             return
 
-        page.views[:] = [view]
+        page.views[:] = [presentView(page,view)]
         page.update()
 
     def view_pop(e):
@@ -136,6 +146,9 @@ def main(page: ft.Page):
     page.on_route_change = route_change
     page.on_view_pop = view_pop
     def resizeModel(event):
+        resizeLayouts(page)
+        callback=page.session.get('resizeHomeView')
+        if callable(callback):callback(event)
         callback=page.session.get('resizeModelView')
         if callable(callback):callback(event)
     page.on_resized = resizeModel

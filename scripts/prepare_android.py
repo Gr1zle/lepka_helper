@@ -20,14 +20,14 @@ sys.path.insert(0, str(ROOT))
 from app_info import APP_VERSION
 from learning_assets import MODEL_ASSETS,STEP_ASSETS
 MODULES = (
-    'file_export','color_photo','reference_service','camera_web','learning_catalog','catalog_client','catalog_upload','catalog_media','catalog_sync','device_notifications','delivery_settings','secure_device','offline_access','offline_mutations','community_cache','community_outbox','deferred_community','publication_drafts','connection_monitor','personal_vault','personal_snapshot','personal_checkpoints','personal_sync','color_wheel','personal_notices','notification_center','account_gateway', 'account_security', 'api_client', 'app_info', 'app_paths', 'app_state', 'project_planner', 'model_import', 'model_upload', 'moderation_service','moderation_gateway','role_service','challenge_service','challenge_gateway','contest_entry','activity_service','social_feed','feed_service',
+    'design_system','file_export','color_photo','reference_service','camera_web','learning_catalog','catalog_client','catalog_upload','catalog_media','catalog_sync','device_notifications','delivery_settings','secure_device','offline_access','offline_mutations','community_cache','community_outbox','deferred_community','publication_drafts','connection_monitor','personal_vault','personal_snapshot','personal_checkpoints','personal_sync','color_wheel','personal_notices','notification_center','account_gateway', 'account_security', 'api_client', 'app_info', 'app_paths', 'app_state', 'project_planner', 'model_import', 'model_upload', 'moderation_service','moderation_gateway','role_service','challenge_service','challenge_gateway','contest_entry','activity_service','social_feed','feed_service',
     'auth_service', 'color_export', 'color_service', 'community_gateway', 'database', 'date_field',
     'download_service', 'device_session', 'lesson_service', 'lesson_library', 'mail_service', 'password_service',
     'photo_service', 'photo_upload', 'photo_picker', 'post_service', 'profile_service',
     'project_service', 'project_sharing', 'project_archive', 'project_backups', 'project_statistics', 'project_upload', 'clay_tools', 'workshop_service', 'remote_account_cache', 'ui_helpers', 'validators', 'mesh_renderer','model_service','learning_assets',
 )
 VIEWS = ('auth_view', 'about_dialog', 'home_view', 'community_tab', 'project_sharing', 'project_step_order', 'project_transfer', 'project_statistics', 'project_planner', 'clay_tools_view', 'lesson_library_view', 'model_import', 'model_gallery','model_view','workshop_view', 'profile_tab', 'splash_view', 'onboarding_view','admin_view','moderation_actions','challenge_view','community_notices','contest_picker','admin_permissions','role_editor','report_history','server_connection','personal_notice_settings','personal_data','offline_controls','notification_delivery','learning_catalog','catalog_file_picker','color_scan','reference_gallery')
-ASSETS = ('fonts/DejaVuSans.ttf', 'fonts/LICENSE-DejaVu.txt',
+ASSETS = ('icon.png','fonts/DejaVuSans.ttf', 'fonts/LICENSE-DejaVu.txt',
           *(f'lessons/lesson_{index}.svg' for index in range(1, 7)),*MODEL_ASSETS,*STEP_ASSETS)
 
 NATIVE_FILES=('pubspec.yaml','lib/lepka_platform.dart','android/build.gradle','android/src/main/AndroidManifest.xml',
@@ -112,6 +112,7 @@ product = "Помощник по лепке"
 split_per_abi = true
 target_arch = ["arm64-v8a"]
 min_sdk_version = 28
+adaptive_icon_background = "#F6F4ED"
 
 [tool.flet.android.permission]
 "android.permission.INTERNET" = true

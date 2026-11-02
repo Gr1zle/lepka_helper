@@ -88,7 +88,7 @@ def createWorkshopView(page, postId, currentUser, onBack):
                 'Сложность и время не указаны автором')
         body.controls = [
             ft.TextButton('← Назад', on_click=onBack),
-            ft.Container(padding=18, border_radius=18, bgcolor='#FF6B6B', content=ft.Column(spacing=8, controls=[
+            ft.Container(padding=18, border_radius=18, bgcolor=ft.Colors.PRIMARY, content=ft.Column(spacing=8, controls=[
                 ft.Text(workshop['title'], size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
                 ft.Text(f"{workshop['category']} · {meta}", color=ft.Colors.WHITE),
                 ft.Text(f"Автор: {workshop['nickname']}", color=ft.Colors.WHITE),
@@ -96,7 +96,7 @@ def createWorkshopView(page, postId, currentUser, onBack):
             ft.Card(content=ft.Container(padding=16, content=ft.Column(controls=materialControls))),
             ft.Card(content=ft.Container(padding=16, content=ft.Column(spacing=12, controls=[
                 ft.Text(f"Шаг {currentIndex + 1} из {len(workshop['steps'])}", size=18, weight=ft.FontWeight.BOLD),
-                ft.ProgressBar(value=progress, color='#4ECDC4'), image,
+                ft.ProgressBar(value=progress, color=ft.Colors.SECONDARY), image,
                 ft.Text(step['description'], size=16),
                 ft.Checkbox(label='Шаг выполнен', value=currentIndex in state[0]['completedSteps'],
                             disabled=currentUser is None, on_change=complete),

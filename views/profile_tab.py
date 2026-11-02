@@ -20,8 +20,8 @@ from profile_service import (
 )
 from ui_helpers import authenticatedAction, getCurrentUser, logoutPage, serverAction, isWebClient, showMessage as showPageMessage
 
-PRIMARY_COLOR = "#FF6B6B"
-SECONDARY_COLOR = "#4ECDC4"
+from design_system import PRIMARY_COLOR
+from design_system import SECONDARY_COLOR
 
 
 def createInfoCard(iconName, titleText, descriptionText):
@@ -36,12 +36,12 @@ def createInfoCard(iconName, titleText, descriptionText):
                         width=52,
                         height=52,
                         border_radius=26,
-                        bgcolor="#FFF0F0",
+                        bgcolor=ft.Colors.PRIMARY_CONTAINER,
                         alignment=ft.alignment.center,
                         content=ft.Icon(
                             name=iconName,
                             size=28,
-                            color=PRIMARY_COLOR,
+                            color=ft.Colors.PRIMARY,
                         ),
                     ),
                     ft.Container(
@@ -56,7 +56,7 @@ def createInfoCard(iconName, titleText, descriptionText):
                                 ft.Text(
                                     descriptionText,
                                     size=13,
-                                    color=ft.Colors.GREY_700,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
                             ],
                             spacing=4,
@@ -210,7 +210,7 @@ def createProfileTab(page, nickname, email):
     profileEmailText = ft.Text(
         profileData["email"],
         size=14,
-        color=ft.Colors.GREY_600,
+        color=ft.Colors.ON_SURFACE_VARIANT,
     )
 
     headerAvatarControl = ft.CircleAvatar(
@@ -467,26 +467,27 @@ def createProfileTab(page, nickname, email):
         statNumbers['Лайков'].value = str(sum(item['likesCount'] for item in postItems))
 
     def createStatItem(countText, labelText, itemColor, backgroundColor):
-        number = ft.Text(str(countText), size=24, weight=ft.FontWeight.BOLD, color=itemColor)
+        number = ft.Text(str(countText), size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_PRIMARY_CONTAINER)
         statNumbers[labelText] = number
         return ft.Container(
             expand=True,
             padding=12,
             border_radius=12,
-            bgcolor=backgroundColor,
+            bgcolor=ft.Colors.PRIMARY_CONTAINER,
             content=ft.Column(
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     number,
                     ft.Text(
                         labelText,
+                        color=ft.Colors.ON_PRIMARY_CONTAINER,
                         size=12,
                     ),
                 ],
             ),
         )
 
-    return ft.ListView(
+    layout = ft.ListView(
         expand=True,
         spacing=14,
         padding=ft.padding.only(left=16, right=16, top=16, bottom=16),
@@ -506,7 +507,7 @@ def createProfileTab(page, nickname, email):
                                     ft.Text(
                                         "Личный профиль и настройки аккаунта",
                                         size=13,
-                                        color=ft.Colors.GREY_600,
+                                        color=ft.Colors.ON_SURFACE_VARIANT,
                                     ),
                                 ],
                                 spacing=4,
@@ -552,7 +553,7 @@ def createProfileTab(page, nickname, email):
                             ft.Text(
                                 "Любимые цвета, максимум 5",
                                 size=13,
-                                color=ft.Colors.GREY_600,
+                                color=ft.Colors.ON_SURFACE_VARIANT,
                             ),
                             ft.Row(
                                 wrap=True,
@@ -591,7 +592,7 @@ def createProfileTab(page, nickname, email):
                             ft.Text(
                                 "Для смены пароля укажите текущий пароль, новый пароль и подтверждение.",
                                 size=13,
-                                color=ft.Colors.GREY_600,
+                                color=ft.Colors.ON_SURFACE_VARIANT,
                             ),
                             currentPasswordField,
                             newPasswordField,
@@ -709,7 +710,7 @@ def createProfileTab(page, nickname, email):
                                 "Удаление аккаунта находится в самом низу профиля. "
                                 "Это действие нельзя отменить.",
                                 size=13,
-                                color=ft.Colors.GREY_600,
+                                color=ft.Colors.ON_SURFACE_VARIANT,
                             ),
                             deletePasswordField,
                             ft.ElevatedButton(
@@ -731,4 +732,22 @@ def createProfileTab(page, nickname, email):
         ],
     )
 
-
+    from design_system import disclosure, polish, workspace
+    cards=layout.controls
+    library=cards[3].content.content
+    actions=library.controls[1:-1]
+    library.controls=[ft.Text('Моя мастерская',size=18,weight=ft.FontWeight.W_600),
+        ft.Row(actions[1:5],wrap=True,spacing=8,run_spacing=8),library.controls[-1],
+        disclosure('Задания и награды',[actions[7]],ft.Icons.EMOJI_EVENTS_OUTLINED)]
+    settings=cards[4].content.content.controls
+    settings[3].value='Напоминания о сроках, призовых местах и новых реакциях на ваши работы. Полученные уведомления сохраняются.'
+    settings[10].style=ft.ButtonStyle(color=ft.Colors.PRIMARY)
+    layout=workspace(page,'Профиль',[
+        ('Мастерская',[cards[0],cards[3]]),
+        ('Настройки',[
+            disclosure('Редактировать профиль',cards[1].content.content.controls[1:],ft.Icons.EDIT_OUTLINED),
+            disclosure('Внешний вид и уведомления',[settings[1],settings[2],settings[3],settings[5]],ft.Icons.TUNE),
+            disclosure('Пароль и безопасность',cards[2].content.content.controls[1:],ft.Icons.LOCK_OUTLINED),
+            disclosure('Данные и управление',[actions[0],settings[8],settings[9],actions[5],actions[6]],ft.Icons.SETTINGS_OUTLINED),
+            disclosure('Удаление аккаунта',cards[5].content.content.controls[1:],ft.Icons.DELETE_OUTLINE),settings[10]])])
+    return polish(layout)
