@@ -1,5 +1,6 @@
 """Shared, theme-aware presentation. No application data or navigation side effects."""
 import flet as ft
+from localization import tr
 
 PRIMARY_COLOR = '#355F4B'
 SECONDARY_COLOR = '#9A4F36'
@@ -76,12 +77,12 @@ def workspace(page, title, groups):
                 shape=ft.RoundedRectangleBorder(radius=12))
         page.update()
     for i,(label,_) in enumerate(groups):
-        buttons.append(ft.TextButton(label,on_click=lambda e,index=i:select(index),
+        buttons.append(ft.TextButton(tr(page,label),on_click=lambda e,index=i:select(index),
             style=ft.ButtonStyle(bgcolor=ft.Colors.PRIMARY_CONTAINER if i==0 else ft.Colors.SURFACE_CONTAINER_HIGHEST,
                 color=ft.Colors.ON_PRIMARY_CONTAINER if i==0 else ft.Colors.ON_SURFACE_VARIANT,
                 shape=ft.RoundedRectangleBorder(radius=12))))
     view=ft.ListView(expand=True,build_controls_on_demand=False,padding=16,spacing=14,
-        controls=[ft.Text(title,size=24,weight=ft.FontWeight.W_600),ft.Row(buttons,wrap=True,spacing=6,run_spacing=6),*panels])
+        controls=[ft.Text(tr(page,title),size=24,weight=ft.FontWeight.W_600),ft.Row(buttons,wrap=True,spacing=6,run_spacing=6),*panels])
     view.select_workspace=select
     return view
 

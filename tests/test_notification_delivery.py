@@ -38,6 +38,16 @@ class DeliveryTests(unittest.TestCase):
         self.assertTrue(all('Фигура' in i['body'] for i in items))
         self.assertNotEqual(ownerKey(self.user),ownerKey(dict(userId=self.uid,apiUrl='http://192.168.1.2:8000',serverUserId=10)))
 
+    def test_english_alarms_keep_project_title_and_stable_schedule(self):
+        self.enable();self.project(name='Главная')
+        before=buildPlan(self.user,self.now)['items']
+        with db.openDatabase() as c:c.execute("UPDATE users SET languageCode='en' WHERE userId=?",(self.uid,))
+        after=buildPlan(self.user,self.now)['items']
+        self.assertEqual([i['key'] for i in before],[i['key'] for i in after])
+        self.assertEqual([i['at'] for i in before],[i['at'] for i in after])
+        self.assertTrue(all(i['title']=='Project deadline' and i['body'].startswith('Главная: ') for i in after))
+        self.assertEqual(after[-1]['body'],'Главная: today')
+
     def test_global_disable_project_change_and_completion_remove_alarms(self):
         self.enable();self.project()
         with db.openDatabase() as c:pid=c.execute('SELECT projectId FROM projects WHERE userId=?',(self.uid,)).fetchone()[0]

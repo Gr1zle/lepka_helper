@@ -1,3 +1,4 @@
+from localization import tr, term
 """Одна фотография: общий выбор и загрузка для аватара и этапа проекта."""
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -11,7 +12,7 @@ from ui_helpers import authenticatedAction, isWebClient, showMessage
 
 def createPhotoPicker(page, user, onSelected, label='Добавить фото', notifySuccess=True):
     pending = {'token': None}
-    status = ft.Text('JPG, PNG или WebP, до 10 МБ', size=12)
+    status = ft.Text(tr(page, 'JPG, PNG или WebP, до 10 МБ'), size=12)
 
     def reset():
         if pending['token']:
@@ -19,11 +20,11 @@ def createPhotoPicker(page, user, onSelected, label='Добавить фото',
         pending['token'] = None
         chooseButton.disabled = False
         cancelButton.visible = False
-        status.value = 'JPG, PNG или WebP, до 10 МБ'
+        status.value = tr(page, 'JPG, PNG или WebP, до 10 МБ')
 
     def deliver(photo):
         success, message = onSelected(photo)
-        status.value = ('Фотография сохранена' if notifySuccess else message) if success else 'Фотография не сохранена'
+        status.value = (tr(page, 'Фотография сохранена') if notifySuccess else message) if success else tr(page, 'Фотография не сохранена')
         if notifySuccess or not success:showMessage(page, message, not success)
 
     @authenticatedAction(page, user)
@@ -49,7 +50,7 @@ def createPhotoPicker(page, user, onSelected, label='Добавить фото',
                     raise ValueError('Не удалось определить адрес загрузки')
                 token = createPhotoUpload(user, file.name)
                 pending['token'] = token
-                status.value = 'Загрузка фотографии…'
+                status.value = tr(page, 'Загрузка фотографии…')
                 chooseButton.disabled = True
                 cancelButton.visible = True
                 picker.upload([ft.FilePickerUploadFile(name=file.name, id=getattr(file, 'id', None),
@@ -108,7 +109,7 @@ def createPhotoPicker(page, user, onSelected, label='Добавить фото',
         reset()
         page.update()
 
-    chooseButton = ft.OutlinedButton(label, icon=ft.Icons.ADD_PHOTO_ALTERNATE, on_click=choose,
+    chooseButton = ft.OutlinedButton(term(page,label), icon=ft.Icons.ADD_PHOTO_ALTERNATE, on_click=choose,
                                      disabled=user is None)
-    cancelButton = ft.TextButton('Отменить загрузку фото', on_click=cancel, visible=False)
+    cancelButton = ft.TextButton(tr(page, 'Отменить загрузку фото'), on_click=cancel, visible=False)
     return ft.Column(controls=[chooseButton, status, cancelButton], spacing=4)

@@ -1,3 +1,4 @@
+from localization import tr, term
 """Импорт модели на Android/ПК и через одноразовую веб-загрузку."""
 from pathlib import Path
 import sqlite3
@@ -10,13 +11,13 @@ from views.project_transfer import webAddress
 
 def createModelImport(page,user,onImported):
     pending = {'token':None}
-    status = ft.Text('OBJ или ZIP с одним OBJ и MTL, до 3 МБ. Текстуры пока не поддерживаются.',size=12)
+    status = ft.Text(tr(page, 'OBJ или ZIP с одним OBJ и MTL, до 3 МБ. Текстуры пока не поддерживаются.'),size=12)
     def reset():
         if pending['token']: cancelModelUpload(pending['token'],user['userId'])
         pending['token']=None;choose.disabled=user is None;cancel.visible=False
     def preview(filename,content):
         decoded=decodeModel(filename,content)
-        name=ft.TextField(label='Название модели',value=decoded['title'],max_length=80)
+        name=ft.TextField(label=tr(page, 'Название модели'),value=decoded['title'],max_length=80)
         done={'value':False}
         @authenticatedAction(page,user)
         def save(event):
@@ -25,14 +26,14 @@ def createModelImport(page,user,onImported):
             try:
                 modelId=importModel(user['userId'],filename,content,name.value)
                 done['value']=True;page.close(dialog);onImported(modelId)
-                showMessage(page,'Модель сохранена в личной библиотеке')
+                showMessage(page,tr(page, 'Модель сохранена в личной библиотеке'))
             except (ValueError,sqlite3.Error) as error:
                 done['value']=False
                 showMessage(page,str(error) if isinstance(error,ValueError) else 'Не удалось сохранить модель',True)
-        dialog=ft.AlertDialog(modal=True,title=ft.Text('Импорт 3D-модели'),
-            content=ft.Column(tight=True,controls=[name,ft.Text(f"Треугольников: {len(decoded['mesh'].faces)}"),
-                ft.Text('Сохранится на этом устройстве. Цвета MTL поддерживаются, текстуры — пока нет.')]),
-            actions=[ft.TextButton('Отмена',on_click=lambda event:page.close(dialog)),ft.ElevatedButton('Сохранить модель',on_click=save)])
+        dialog=ft.AlertDialog(modal=True,title=ft.Text(tr(page, 'Импорт 3D-модели')),
+            content=ft.Column(tight=True,controls=[name,ft.Text(tr(page, 'Треугольников: {v0}', v0=len(decoded['mesh'].faces))),
+                ft.Text(tr(page, 'Сохранится на этом устройстве. Цвета MTL поддерживаются, текстуры — пока нет.'))]),
+            actions=[ft.TextButton(tr(page, 'Отмена'),on_click=lambda event:page.close(dialog)),ft.ElevatedButton(tr(page, 'Сохранить модель'),on_click=save)])
         page.open(dialog)
     @authenticatedAction(page,user)
     def selected(event):
@@ -45,7 +46,7 @@ def createModelImport(page,user,onImported):
                 raise ValueError('Выберите OBJ или ZIP не больше 3 МБ')
             if isWebClient(page):
                 address=webAddress(page);pending['token']=createModelUpload(user,file.name)
-                choose.disabled=True;cancel.visible=True;status.value='Загрузка модели…'
+                choose.disabled=True;cancel.visible=True;status.value=tr(page, 'Загрузка модели…')
                 picker.upload([ft.FilePickerUploadFile(name=file.name,id=getattr(file,'id',None),
                     upload_url=f"{address}/model-uploads/{pending['token']}")])
             else:
@@ -59,7 +60,7 @@ def createModelImport(page,user,onImported):
         try:
             if event.error:raise ValueError('Не удалось загрузить модель. Проверьте файл и повторите')
             if event.progress==1:
-                filename,content=takeModelUpload(pending['token'],user['userId']);reset();status.value='Модель загружена'
+                filename,content=takeModelUpload(pending['token'],user['userId']);reset();status.value=tr(page, 'Модель загружена')
                 preview(filename,content)
         except ValueError as error:reset();status.value=str(error);showMessage(page,str(error),True)
         page.update()
@@ -73,7 +74,7 @@ def createModelImport(page,user,onImported):
         picker.data={'modelImport':True,'cancel':reset};page.overlay.append(picker);page.update()
         picker.pick_files(allow_multiple=False,file_type=ft.FilePickerFileType.CUSTOM,allowed_extensions=['obj','zip'])
     @authenticatedAction(page,user)
-    def cancelUpload(event):reset();status.value='Загрузка отменена';page.update()
-    choose=ft.ElevatedButton('Импорт 3D-модели',icon=ft.Icons.UPLOAD_FILE_OUTLINED,on_click=select,disabled=user is None)
-    cancel=ft.TextButton('Отменить загрузку модели',on_click=cancelUpload,visible=False)
+    def cancelUpload(event):reset();status.value=tr(page, 'Загрузка отменена');page.update()
+    choose=ft.ElevatedButton(tr(page, 'Импорт 3D-модели'),icon=ft.Icons.UPLOAD_FILE_OUTLINED,on_click=select,disabled=user is None)
+    cancel=ft.TextButton(tr(page, 'Отменить загрузку модели'),on_click=cancelUpload,visible=False)
     return ft.Column(controls=[choose,status,cancel])

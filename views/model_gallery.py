@@ -1,3 +1,4 @@
+from localization import tr, term
 import base64
 import flet as ft
 from model_service import searchModels,MODEL_CATEGORIES,favoriteModelIds,saveModelFavorite
@@ -15,14 +16,14 @@ def modelUser(page):
 
 def createModelFavorite(page,user,modelId):
     selected=user is not None and modelId in favoriteModelIds(user['userId'])
-    button=ft.TextButton('Убрать модель из избранного' if selected else 'Модель в избранное',
+    button=ft.TextButton(tr(page, 'Убрать модель из избранного') if selected else tr(page, 'Модель в избранное'),
                         icon=ft.Icons.BOOKMARK if selected else ft.Icons.BOOKMARK_BORDER,disabled=user is None)
     @authenticatedAction(page,user)
     def save(event):
         nonlocal selected
         try:
             selected=saveModelFavorite(user['userId'],modelId,not selected)
-            button.text='Убрать модель из избранного' if selected else 'Модель в избранное'
+            button.text=tr(page, 'Убрать модель из избранного') if selected else tr(page, 'Модель в избранное')
             button.icon=ft.Icons.BOOKMARK if selected else ft.Icons.BOOKMARK_BORDER
             page.update()
         except ValueError as error:showMessage(page,str(error),True)
@@ -45,19 +46,19 @@ def createModelCard(page,item,onDeleted=None):
                 if onDeleted:onDeleted()
                 else:page.go('/models')
             confirmAction(page,'Удалить личную модель?','Будут удалены модель и её отметка в избранном.',confirmed)
-        actions=[ft.TextButton('Удалить модель',icon=ft.Icons.DELETE_OUTLINED,on_click=remove)]
+        actions=[ft.TextButton(tr(page, 'Удалить модель'),icon=ft.Icons.DELETE_OUTLINED,on_click=remove)]
     return ft.Card(content=ft.Container(padding=12,content=ft.Column(controls=[
         image,
-        ft.Text(item['title'],size=18,weight=ft.FontWeight.BOLD),
-        ft.Text('Личная модель на этом устройстве' if item.get('imported') else f"{item['category']} · встроенная 3D-модель",size=12),
-        ft.TextButton('Открыть 3D',on_click=lambda event:page.go('/models/'+item['modelId'])),*actions])))
+        ft.Text(item['title'] if item.get('imported') else term(page,item['title']),size=18,weight=ft.FontWeight.BOLD),
+        ft.Text(tr(page, 'Личная модель на этом устройстве') if item.get('imported') else tr(page, '{v0} · встроенная 3D-модель', v0=term(page,item['category'])),size=12),
+        ft.TextButton(tr(page, 'Открыть 3D'),on_click=lambda event:page.go('/models/'+item['modelId'])),*actions])))
 
 
 def createModelGallery(page):
     user=modelUser(page)
-    query=ft.TextField(label='Поиск 3D-моделей',max_length=120)
-    category=ft.Dropdown(label='Категория модели',value='Все',options=[ft.dropdown.Option(c) for c in MODEL_CATEGORIES])
-    onlyFavorites=ft.Checkbox(label='Только избранные модели',value=bool(user and page.session.get('modelFavoritesOnly')),disabled=user is None)
+    query=ft.TextField(label=tr(page, 'Поиск 3D-моделей'),max_length=120)
+    category=ft.Dropdown(label=tr(page, 'Категория модели'),value='Все',options=[ft.dropdown.Option(key=c, text=term(page, c)) for c in MODEL_CATEGORIES])
+    onlyFavorites=ft.Checkbox(label=tr(page, 'Только избранные модели'),value=bool(user and page.session.get('modelFavoritesOnly')),disabled=user is None)
     result=ft.ResponsiveRow(spacing=12,run_spacing=12)
     def refresh(event=None):
         try:
@@ -65,7 +66,7 @@ def createModelGallery(page):
             saved=favoriteModelIds(user['userId']) if user else set()
             result.controls=[createModelCard(page,item,refresh) for item in items if not onlyFavorites.value or item['modelId'] in saved]
             for card in result.controls:card.col={'xs':12,'sm':6,'lg':4}
-            if not result.controls:result.controls=[ft.Text('Подходящих моделей пока нет. Измените запрос или фильтры.')]
+            if not result.controls:result.controls=[ft.Text(tr(page, 'Подходящих моделей пока нет. Измените запрос или фильтры.'))]
             query.error_text=None
         except ValueError as error:query.error_text=str(error)
         page.update()
@@ -82,11 +83,11 @@ def createModelGallery(page):
     category.on_change=authenticatedAction(page,user)(refresh) if user else refresh;onlyFavorites.on_change=personalFilter
     refresh()
     return ft.View('/models',padding=12,
-        appbar=ft.AppBar(title=ft.Text('3D-галерея'),leading=ft.IconButton(icon=ft.Icons.ARROW_BACK,on_click=lambda event:page.go('/home'))),
+        appbar=ft.AppBar(title=ft.Text(tr(page, '3D-галерея')),leading=ft.IconButton(icon=ft.Icons.ARROW_BACK,on_click=lambda event:page.go('/home'))),
         controls=[ft.ListView(expand=True,spacing=12,controls=[
-            ft.Text('Поверните фигурку, приблизьте детали и измените свет. Модели входят в приложение.',size=14),
+            ft.Text(tr(page, 'Поверните фигурку, приблизьте детали и измените свет. Модели входят в приложение.'),size=14),
             createModelImport(page,user,lambda modelId:page.go('/models/'+modelId)),
-            ft.TextButton('Мои фотореференсы',icon=ft.Icons.PHOTO_LIBRARY_OUTLINED,on_click=lambda e:page.go('/references')),
+            ft.TextButton(tr(page, 'Мои фотореференсы'),icon=ft.Icons.PHOTO_LIBRARY_OUTLINED,on_click=lambda e:page.go('/references')),
             query,category,onlyFavorites,result])])
 
 
@@ -95,4 +96,4 @@ def createFavoriteModelsButton(page,user):
     def openGallery(event):
         page.session.set('modelFavoritesOnly',True)
         page.go('/models')
-    return ft.TextButton('Избранные модели',icon=ft.Icons.VIEW_IN_AR_OUTLINED,on_click=openGallery)
+    return ft.TextButton(tr(page, 'Избранные модели'),icon=ft.Icons.VIEW_IN_AR_OUTLINED,on_click=openGallery)

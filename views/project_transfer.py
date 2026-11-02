@@ -1,3 +1,4 @@
+from localization import tr, term
 """JSON: одноразовая веб-загрузка, предварительный просмотр и новая копия."""
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -34,11 +35,11 @@ def createProjectExport(page, user, projectId):
                 address = webAddress(page)
                 ticket = createDownload(content, 'lepka-project.json', 'application/json', user)
                 page.launch_url(f'{address}/downloads/{ticket}', web_window_name='_self')
-                showMessage(page, 'JSON проекта передан браузеру для скачивания')
+                showMessage(page, tr(page, 'JSON проекта передан браузеру для скачивания'))
                 return
             if androidClient(page):
                 saveBackup(user['userId'],content)
-                showMessage(page,'JSON-копия сохранена. Для восстановления откройте «Копии в приложении»')
+                showMessage(page,tr(page, 'JSON-копия сохранена. Для восстановления откройте «Копии в приложении»'))
                 return
 
             @authenticatedAction(page, user)
@@ -49,30 +50,30 @@ def createProjectExport(page, user, projectId):
                     path = Path(event.path).with_suffix('.json')
                     with path.open('xb') as stream:
                         stream.write(content)
-                    showMessage(page, 'JSON проекта сохранён')
+                    showMessage(page, tr(page, 'JSON проекта сохранён'))
                 except FileExistsError:
-                    showMessage(page, 'Файл уже существует. Выберите другое имя', True)
+                    showMessage(page, tr(page, 'Файл уже существует. Выберите другое имя'), True)
                 except OSError:
-                    showMessage(page, 'Не удалось сохранить JSON в выбранную папку', True)
+                    showMessage(page, tr(page, 'Не удалось сохранить JSON в выбранную папку'), True)
             picker = ft.FilePicker(on_result=picked)
             page.overlay.append(picker)
             page.update()
             picker.save_file(file_name='lepka-project.json', file_type=ft.FilePickerFileType.CUSTOM, allowed_extensions=['json'])
         except (ValueError, OSError) as error:
             showMessage(page, str(error) if isinstance(error,ValueError) else 'Не удалось сохранить копию проекта', True)
-    return ft.TextButton('Экспорт JSON', icon=ft.Icons.DOWNLOAD_OUTLINED, on_click=export)
+    return ft.TextButton(tr(page, 'Экспорт JSON'), icon=ft.Icons.DOWNLOAD_OUTLINED, on_click=export)
 
 
 def createProjectImport(page, user, onImported):
     pending = {'token': None}
-    status = ft.Text('JSON до 20 МБ. Импорт создаст новый личный проект.', size=12)
+    status = ft.Text(tr(page, 'JSON до 20 МБ. Импорт создаст новый личный проект.'), size=12)
 
     def reset(event=None):
         if pending['token']:
             cancelProjectUpload(pending['token'], user['userId'])
         pending['token'] = None
         choose.disabled, cancel.visible = False, False
-        status.value = 'JSON до 20 МБ. Импорт создаст новый личный проект.'
+        status.value = tr(page, 'JSON до 20 МБ. Импорт создаст новый личный проект.')
         page.update()
 
     def preview(content):
@@ -87,17 +88,17 @@ def createProjectImport(page, user, onImported):
                 importProject(user['userId'], content)
                 page.close(dialog)
                 onImported()
-                showMessage(page, 'Создан новый проект из JSON')
+                showMessage(page, tr(page, 'Создан новый проект из JSON'))
                 page.update()
             except (ValueError,sqlite3.Error) as error:
                 state['done'] = False
                 showMessage(page, str(error) if isinstance(error,ValueError) else 'Не удалось сохранить импортированный проект', True)
-        dialog = ft.AlertDialog(modal=True, title=ft.Text('Импорт проекта'),
+        dialog = ft.AlertDialog(modal=True, title=ft.Text(tr(page, 'Импорт проекта')),
             content=ft.Column(tight=True, controls=[ft.Text(data['project']['projectName']),
-                ft.Text(f"Этапов: {len(data['steps'])}; фотографий: {sum(step['image'] is not None for step in data['steps'])}; рецептов: {len(data['mixtures'])}"),
-                ft.Text('Будет создана новая копия. Существующие проекты сохранятся.')]),
-            actions=[ft.TextButton('Отмена', on_click=lambda event: page.close(dialog)),
-                     ft.ElevatedButton('Импортировать проект', on_click=confirm)])
+                ft.Text(tr(page, 'Этапов: {v0}; фотографий: {v1}; рецептов: {v2}', v0=len(data['steps']), v1=sum((step['image'] is not None for step in data['steps'])), v2=len(data['mixtures']))),
+                ft.Text(tr(page, 'Будет создана новая копия. Существующие проекты сохранятся.'))]),
+            actions=[ft.TextButton(tr(page, 'Отмена'), on_click=lambda event: page.close(dialog)),
+                     ft.ElevatedButton(tr(page, 'Импортировать проект'), on_click=confirm)])
         page.open(dialog)
 
     @authenticatedAction(page, user)
@@ -116,7 +117,7 @@ def createProjectImport(page, user, onImported):
                 address = webAddress(page)
                 pending['token'] = createProjectUpload(user)
                 choose.disabled, cancel.visible = True, True
-                status.value = 'Загрузка JSON…'
+                status.value = tr(page, 'Загрузка JSON…')
                 picker.upload([ft.FilePickerUploadFile(name=file.name, id=getattr(file, 'id', None),
                     upload_url=f"{address}/project-uploads/{pending['token']}")])
             else:
@@ -151,8 +152,8 @@ def createProjectImport(page, user, onImported):
             page.update()
         picker.pick_files(allow_multiple=False, file_type=ft.FilePickerFileType.CUSTOM, allowed_extensions=['json'])
 
-    choose = ft.ElevatedButton('Импорт JSON', icon=ft.Icons.UPLOAD_FILE_OUTLINED, on_click=select)
-    cancel = ft.TextButton('Отменить загрузку', visible=False, on_click=reset)
+    choose = ft.ElevatedButton(tr(page, 'Импорт JSON'), icon=ft.Icons.UPLOAD_FILE_OUTLINED, on_click=select)
+    cancel = ft.TextButton(tr(page, 'Отменить загрузку'), visible=False, on_click=reset)
 
     @authenticatedAction(page,user)
     def openBackups(event=None):
@@ -165,7 +166,7 @@ def createProjectImport(page, user, onImported):
                     page.close(dialog)
                     preview(content)
                 except (OSError,ValueError):
-                    showMessage(page,'Не удалось прочитать копию',True)
+                    showMessage(page,tr(page, 'Не удалось прочитать копию'),True)
 
             @authenticatedAction(page,user)
             def remove(event,name=name):
@@ -176,14 +177,14 @@ def createProjectImport(page, user, onImported):
                         deleteBackup(user['userId'],name)
                         openBackups()
                     except (OSError,ValueError):
-                        showMessage(page,'Не удалось удалить копию',True)
+                        showMessage(page,tr(page, 'Не удалось удалить копию'),True)
                 confirmAction(page,'Удалить JSON-копию?','Личный проект останется в приложении.',confirmed)
             entries.append(ft.Row(controls=[ft.TextButton(name,on_click=restore,expand=True),
-                ft.IconButton(icon=ft.Icons.DELETE_OUTLINE,tooltip='Удалить копию',on_click=remove)]))
-        dialog = ft.AlertDialog(modal=True,title=ft.Text('Копии в приложении'),
-            content=ft.Container(width=360,height=320,content=ft.ListView(controls=entries or [ft.Text('Сохранённых копий пока нет')])),
-            actions=[ft.TextButton('Закрыть',on_click=lambda event:page.close(dialog))])
+                ft.IconButton(icon=ft.Icons.DELETE_OUTLINE,tooltip=tr(page, 'Удалить копию'),on_click=remove)]))
+        dialog = ft.AlertDialog(modal=True,title=ft.Text(tr(page, 'Копии в приложении')),
+            content=ft.Container(width=360,height=320,content=ft.ListView(controls=entries or [ft.Text(tr(page, 'Сохранённых копий пока нет'))])),
+            actions=[ft.TextButton(tr(page, 'Закрыть'),on_click=lambda event:page.close(dialog))])
         page.open(dialog)
 
     return ft.Column(controls=[ft.Row(wrap=True, controls=[choose, cancel,
-        ft.TextButton('Копии в приложении',on_click=openBackups,visible=androidClient(page))]), status])
+        ft.TextButton(tr(page, 'Копии в приложении'),on_click=openBackups,visible=androidClient(page))]), status])

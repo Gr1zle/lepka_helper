@@ -202,8 +202,9 @@ def searchLessons(searchText, categoryName='Все', levelName='Все', maxTime
         maxTime = None
     result = []
     for lesson in LESSON_ITEMS:
-        searchable = ' '.join([lesson['title'], lesson['description'], lesson['level'],
-                               lesson['category'], *lesson['tags'], *lesson['materials']]).casefold().replace('ё','е')
+        from interface_catalog import english
+        words=[lesson['title'],lesson['description'],lesson['level'],lesson['category'],*lesson['tags'],*lesson['materials']]
+        searchable=' '.join(words+[english(w) for w in words]).casefold().replace('ё','е')
         if (categoryName != 'Все' and lesson['category'] != categoryName
                 or levelName != 'Все' and lesson['level'] != levelName
                 or maxTime is not None and lesson['timeMinutes'] > maxTime

@@ -1,3 +1,4 @@
+from localization import tr, term, message as translateMessage
 """Участие в профиле и центр личных уведомлений сообщества."""
 import flet as ft
 from challenge_gateway import ChallengeClient
@@ -18,19 +19,19 @@ def createNoticeButton(page,user,asTab=False):
     counter=ft.Text(size=12)
 
     def summary():
-        try:counter.value='Непрочитанных: '+str(client.noticeSummary()['unread'])
+        try:counter.value=tr(page, 'Непрочитанных: ')+str(client.noticeSummary()['unread'])
         except ApiError as error:
             if error.statusCode==401:raise
-            counter.value='Счётчик временно недоступен'
+            counter.value=tr(page, 'Счётчик временно недоступен')
 
     @authenticatedAction(page,user)
     def openNotices(event):
         offset={'value':0}
         entries=ft.Column(spacing=12)
-        source=ft.Dropdown(label='Источник уведомлений',value='all',options=[ft.dropdown.Option(k,v) for k,v in SOURCES.items()])
-        kind=ft.Dropdown(label='Тип уведомлений',value='all',options=[ft.dropdown.Option(k,v) for k,v in KIND_LABELS.items()])
-        unread=ft.Checkbox(label='Только непрочитанные',value=False)
-        previous=ft.TextButton('Предыдущие');following=ft.TextButton('Следующие');number=ft.Text()
+        source=ft.Dropdown(label=tr(page, 'Источник уведомлений'),value='all',options=[ft.dropdown.Option(k,term(page,v)) for k,v in SOURCES.items()])
+        kind=ft.Dropdown(label=tr(page, 'Тип уведомлений'),value='all',options=[ft.dropdown.Option(k,term(page,v)) for k,v in KIND_LABELS.items()])
+        unread=ft.Checkbox(label=tr(page, 'Только непрочитанные'),value=False)
+        previous=ft.TextButton(tr(page, 'Предыдущие'));following=ft.TextButton(tr(page, 'Следующие'));number=ft.Text()
 
         @authenticatedAction(page,user)
         def openItem(item):
@@ -51,14 +52,14 @@ def createNoticeButton(page,user,asTab=False):
             community=CommunityClient(user)
             post=community.getPost(item['postId'])
             if not post:
-                showMessage(page,'Материал уже недоступен',True);return
+                showMessage(page,tr(page, 'Материал уже недоступен'),True);return
             if asTab:
                 from views.discovery import openPost
                 openPost(page,user,item['postId']);return
             from views.community_tab import createPostCard
-            postDialog=ft.AlertDialog(title=ft.Text('Публикация из уведомления'),content=ft.Container(width=500,height=440,
+            postDialog=ft.AlertDialog(title=ft.Text(tr(page, 'Публикация из уведомления')),content=ft.Container(width=500,height=440,
                 content=ft.ListView(controls=[createPostCard(page,post,user,lambda:page.close(postDialog))])),
-                actions=[ft.TextButton('Закрыть',on_click=lambda e:page.close(postDialog))])
+                actions=[ft.TextButton(tr(page, 'Закрыть'),on_click=lambda e:page.close(postDialog))])
             page.open(postDialog)
 
         def render():
@@ -69,26 +70,26 @@ def createNoticeButton(page,user,asTab=False):
                     @authenticatedAction(page,user)
                     def read(event,nid=item['noticeId']):
                         client.readNotice(nid);render();summary();page.update()
-                    if item['source']!='community':title=item['title']
-                    elif item['kind']=='award':title=f"{item['place']} место: {item['title']}"
+                    if item['source']!='community':title=translateMessage(page,item['title'])
+                    elif item['kind']=='award':title=tr(page,'{v0} место: {v1}',v0=item['place'],v1=item['title'])
                     else:
                         verb={'like':'понравилась ваша работа','comment':'комментирует вашу работу','reply':'отвечает на ваш комментарий'}[item['kind']]
-                        title=f"{item['actor']}: {verb}"
+                        title=f"{item['actor']}: {term(page,verb)}"
                     parts=[ft.Text(title,weight=ft.FontWeight.BOLD)]
                     if item['source']=='community' and item['kind']!='award':parts.append(ft.Text(item['title']))
                     if item.get('preview'):parts.append(ft.Text(item['preview'][:200]))
-                    parts.extend([ft.Text('Прочитано' if item['isRead'] else 'Новое уведомление'),ft.Text(item['createdAt']+(' · дата' if item['source']=='projects' else ' UTC'),size=12),
-                        ft.Row(wrap=True,controls=[ft.TextButton('Открыть проект' if item['source']=='projects' else 'Открыть урок' if item['source']=='learning' else 'Открыть итоги' if item['kind']=='award' else 'Открыть публикацию',
-                            on_click=lambda e,i=item:openItem(i)),ft.TextButton('Прочитано',visible=not item['isRead'],on_click=read)])])
+                    parts.extend([ft.Text(tr(page, 'Прочитано') if item['isRead'] else tr(page, 'Новое уведомление')),ft.Text(item['createdAt']+(tr(page, ' · дата') if item['source']=='projects' else ' UTC'),size=12),
+                        ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Открыть проект') if item['source']=='projects' else tr(page, 'Открыть урок') if item['source']=='learning' else tr(page, 'Открыть итоги') if item['kind']=='award' else tr(page, 'Открыть публикацию'),
+                            on_click=lambda e,i=item:openItem(i)),ft.TextButton(tr(page, 'Прочитано'),visible=not item['isRead'],on_click=read)])])
                     if item['source']=='learning' and item['kind']=='resume':
                         @authenticatedAction(page,user)
                         def snooze(event,nid=item['noticeId']):
                             snoozeLesson(user['userId'],nid,1);render();summary();page.update()
-                        parts.append(ft.TextButton('Напомнить завтра',on_click=snooze))
+                        parts.append(ft.TextButton(tr(page, 'Напомнить завтра'),on_click=snooze))
                     controls.append(ft.Card(content=ft.Container(padding=12,content=ft.Column(controls=parts))))
-                entries.controls=controls or [ft.Text('Уведомлений по этому фильтру нет.')]
+                entries.controls=controls or [ft.Text(tr(page, 'Уведомлений по этому фильтру нет.'))]
                 previous.disabled=offset['value']==0;following.disabled=len(items)<50
-                number.value=f"Страница {offset['value']//50+1}"
+                number.value=tr(page, 'Страница {v0}', v0=offset['value'] // 50 + 1)
             except ApiError as error:
                 if error.statusCode==401:raise
                 entries.controls=[createLoadError(page,error,lambda:(render(),page.update()))]
@@ -107,28 +108,28 @@ def createNoticeButton(page,user,asTab=False):
             kind.disabled=source.value in ('projects','learning')
             reset(event)
         source.on_change=changeSource
-        dialog=ft.AlertDialog(title=ft.Text('Центр уведомлений'),content=ft.Container(width=440,height=430,
+        dialog=ft.AlertDialog(title=ft.Text(tr(page, 'Центр уведомлений')),content=ft.Container(width=440,height=430,
             content=ft.ListView(spacing=12,controls=[source,ft.Container(content=kind,padding=6),unread,
-                ft.TextButton('Настроить личные уведомления',on_click=lambda e:openPersonalNoticeSettings(page,user,lambda:(render(),summary(),page.update()))),
-                ft.Row(wrap=True,controls=[ft.TextButton('Прочитать все уведомления',on_click=readAll),ft.TextButton('Обновить уведомления',on_click=reset)]),
+                ft.TextButton(tr(page, 'Настроить личные уведомления'),on_click=lambda e:openPersonalNoticeSettings(page,user,lambda:(render(),summary(),page.update()))),
+                ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Прочитать все уведомления'),on_click=readAll),ft.TextButton(tr(page, 'Обновить уведомления'),on_click=reset)]),
                 entries,ft.Row(wrap=True,controls=[previous,number,following])])),
-            actions=[ft.TextButton('Закрыть',on_click=lambda e:page.close(dialog))])
+            actions=[ft.TextButton(tr(page, 'Закрыть'),on_click=lambda e:page.close(dialog))])
         render();summary()
         if asTab:
             from design_system import disclosure
             return ft.ListView(expand=True,padding=16,spacing=12,controls=[
-                ft.Text('Уведомления',size=24,weight=ft.FontWeight.W_600),
-                ft.Row(wrap=True,controls=[ft.TextButton('Настроить личные уведомления',on_click=lambda e:openPersonalNoticeSettings(page,user,lambda:(render(),summary(),page.update()))),
-                    ft.TextButton('Доставка уведомлений',on_click=lambda e:openDeliverySettings(page,user))]),
-                disclosure('Фильтры уведомлений',[source,kind,unread],ft.Icons.TUNE),
-                ft.Row(wrap=True,controls=[ft.TextButton('Прочитать все уведомления',on_click=readAll),ft.TextButton('Обновить уведомления',on_click=reset)]),
+                ft.Text(tr(page, 'Уведомления'),size=24,weight=ft.FontWeight.W_600),
+                ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Настроить личные уведомления'),on_click=lambda e:openPersonalNoticeSettings(page,user,lambda:(render(),summary(),page.update()))),
+                    ft.TextButton(tr(page, 'Доставка уведомлений'),on_click=lambda e:openDeliverySettings(page,user))]),
+                disclosure(tr(page, 'Фильтры уведомлений'),[source,kind,unread],ft.Icons.TUNE),
+                ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Прочитать все уведомления'),on_click=readAll),ft.TextButton(tr(page, 'Обновить уведомления'),on_click=reset)]),
                 entries,ft.Row(wrap=True,controls=[previous,number,following])])
         page.open(dialog)
     if asTab:return openNotices(None)
     summary()
     page.session.set('openNoticeCenterCallback',openNotices)
-    return ft.Column(spacing=4,controls=[ft.OutlinedButton('Центр уведомлений',icon=ft.Icons.NOTIFICATIONS_OUTLINED,on_click=openNotices),counter,
-        ft.TextButton('Доставка уведомлений',on_click=lambda e:openDeliverySettings(page,user))])
+    return ft.Column(spacing=4,controls=[ft.OutlinedButton(tr(page, 'Центр уведомлений'),icon=ft.Icons.NOTIFICATIONS_OUTLINED,on_click=openNotices),counter,
+        ft.TextButton(tr(page, 'Доставка уведомлений'),on_click=lambda e:openDeliverySettings(page,user))])
 
 
 def createChallengeProfile(page,user):
@@ -143,12 +144,12 @@ def createChallengeProfile(page,user):
     def refresh(event=None,update=True):
         try:
             items=client.profile()
-            controls=[ft.Text('Задания и награды',size=18,weight=ft.FontWeight.BOLD)]
+            controls=[ft.Text(tr(page, 'Задания и награды'),size=18,weight=ft.FontWeight.BOLD)]
             for item in items[:5]:
                 label=(f"{item['place']} место" if item['place'] else 'Участвую' if item['state']=='open' else 'Завершено' if item['state']=='finished' else 'Отменено')
-                controls.extend([ft.Text(label+': '+item['title']),ft.TextButton('Открыть задание',on_click=lambda e,cid=item['challengeId']:openChallenge(cid))])
-            if not items:controls.append(ft.Text('Вы пока не участвуете в заданиях.'))
-            controls.extend([createNoticeButton(page,user),ft.TextButton('Все задания',on_click=lambda e:openChallenge(None))])
+                controls.extend([ft.Text(label+': '+item['title']),ft.TextButton(tr(page, 'Открыть задание'),on_click=lambda e,cid=item['challengeId']:openChallenge(cid))])
+            if not items:controls.append(ft.Text(tr(page, 'Вы пока не участвуете в заданиях.')))
+            controls.extend([createNoticeButton(page,user),ft.TextButton(tr(page, 'Все задания'),on_click=lambda e:openChallenge(None))])
             result.controls=controls
         except ApiError as error:
             if error.statusCode==401:raise

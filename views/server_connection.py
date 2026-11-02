@@ -1,3 +1,4 @@
+from localization import tr, term, message as translateMessage
 """Настройка подключения до входа; смена сервера требует нового входа."""
 import json
 import os
@@ -9,9 +10,9 @@ from app_paths import DATA_DIRECTORY
 
 
 def openServerConnection(page):
-    address = ft.TextField(label='Адрес сервера', value=getApiUrl(), hint_text='http://192.168.1.20:8000')
-    lan = ft.Checkbox(label='Разрешить HTTP в своей Wi-Fi сети', value=address.value.startswith('http://'))
-    status = ft.Text('Компьютер и телефон должны быть в одной сети. HTTP не шифрует данные.')
+    address = ft.TextField(label=tr(page, 'Адрес сервера'), value=getApiUrl(), hint_text='http://192.168.1.20:8000')
+    lan = ft.Checkbox(label=tr(page, 'Разрешить HTTP в своей Wi-Fi сети'), value=address.value.startswith('http://'))
+    status = ft.Text(tr(page, 'Компьютер и телефон должны быть в одной сети. HTTP не шифрует данные.'))
 
     def checked():
         return validateApiUrl(address.value or '', allowLan=lan.value)
@@ -25,9 +26,9 @@ def openServerConnection(page):
                 response = session.get(url + '/ready', timeout=(3, 5), allow_redirects=False)
             if response.status_code != 200 or response.json().get('status') != 'ready':
                 raise ApiError('Сервер пока не готов')
-            status.value = 'Сервер доступен. Можно сохранить адрес и войти.'
+            status.value = tr(page, 'Сервер доступен. Можно сохранить адрес и войти.')
         except (ApiError, requests.RequestException, ValueError, AttributeError) as error:
-            status.value = str(error) if isinstance(error, ApiError) else 'Нет связи. Проверьте адрес, Wi-Fi и брандмауэр компьютера.'
+            status.value = str(error) if isinstance(error, ApiError) else tr(page, 'Нет связи. Проверьте адрес, Wi-Fi и брандмауэр компьютера.')
         page.update()
 
     def save(e, local=False):
@@ -49,12 +50,12 @@ def openServerConnection(page):
                 page.views[:] = [createAuthView(page)]
                 page.update()
         except (ApiError, OSError) as error:
-            status.value = str(error)
+            status.value = translateMessage(page,str(error))
             page.update()
 
-    dialog = ft.AlertDialog(title=ft.Text('Подключение к серверу'), content=ft.Column(
-        [address, lan, status, ft.TextButton('Проверить связь', on_click=probe)], tight=True, width=360),
-        actions=[ft.TextButton('Локальный режим', on_click=lambda e: save(e, True)),
-                 ft.TextButton('Отмена', on_click=lambda e: page.close(dialog)),
-                 ft.TextButton('Сохранить', on_click=save)])
+    dialog = ft.AlertDialog(title=ft.Text(tr(page, 'Подключение к серверу')), content=ft.Column(
+        [address, lan, status, ft.TextButton(tr(page, 'Проверить связь'), on_click=probe)], tight=True, width=360),
+        actions=[ft.TextButton(tr(page, 'Локальный режим'), on_click=lambda e: save(e, True)),
+                 ft.TextButton(tr(page, 'Отмена'), on_click=lambda e: page.close(dialog)),
+                 ft.TextButton(tr(page, 'Сохранить'), on_click=save)])
     page.open(dialog)

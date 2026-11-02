@@ -1,18 +1,19 @@
+from localization import tr, term
 import flet as ft
 
 def createProfileEditView(page: ft.Page):
 
     currentUser = page.session.get("currentUser")
 
-    nicknameField = ft.TextField(value=currentUser["nickname"], label="Никнейм")
-    bioField = ft.TextField(label="О себе", multiline=True)
+    nicknameField = ft.TextField(value=currentUser["nickname"], label=tr(page, 'Никнейм'))
+    bioField = ft.TextField(label=tr(page, 'О себе'), multiline=True)
 
     ageDropdown = ft.Dropdown(
-        label="Возраст",
+        label=tr(page, 'Возраст'),
         options=[
-            ft.dropdown.Option("child", "Ребёнок"),
-            ft.dropdown.Option("teen", "Подросток"),
-            ft.dropdown.Option("adult", "Взрослый"),
+            ft.dropdown.Option("child", tr(page, 'Ребёнок')),
+            ft.dropdown.Option("teen", tr(page, 'Подросток')),
+            ft.dropdown.Option("adult", tr(page, 'Взрослый')),
         ],
     )
 
@@ -22,7 +23,7 @@ def createProfileEditView(page: ft.Page):
         currentUser["nickname"] = nicknameField.value
         page.session.set("currentUser", currentUser)
 
-        statusText.value = "Сохранено"
+        statusText.value = tr(page, 'Сохранено')
         statusText.color = ft.Colors.GREEN
         page.update()
 
@@ -37,7 +38,7 @@ def createProfileEditView(page: ft.Page):
                     bioField,
                     ageDropdown,
 
-                    ft.ElevatedButton("Сохранить", on_click=saveProfile),
+                    ft.ElevatedButton(tr(page, 'Сохранить'), on_click=saveProfile),
 
                     statusText,
                 ],

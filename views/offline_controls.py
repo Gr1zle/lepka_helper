@@ -1,3 +1,4 @@
+from localization import tr, term
 import asyncio
 import json
 from datetime import datetime
@@ -18,14 +19,14 @@ def createConnectionBanner(page,user):
         state=page.session.get('connectionState') or ('offline' if current.get('offline') else 'online')
         count=len(entries(user,user['apiUrl']))
         banner.visible=state!='online' or count>0
-        text.value={'online':'Сервер доступен','offline':'Оффлайн: личные данные на устройстве','sending':'Отправка очереди…','error':'Ошибка локального кеша или очереди'}[state]+f' · в очереди: {count}'
+        text.value={'online':'Сервер доступен','offline':'Оффлайн: личные данные на устройстве','sending':'Отправка очереди…','error':'Ошибка локального кеша или очереди'}[state]+tr(page, ' · в очереди: {v0}', v0=count)
         try:
             if text.page:page.update()
         except AssertionError:pass
     page.session.set('updateConnectionBanner',refresh)
     # До монтирования Control.page ещё недоступен.
     state='offline' if user.get('offline') else 'online'
-    text.value=('Оффлайн: личные данные на устройстве' if state=='offline' else 'Сервер доступен')+f" · в очереди: {len(entries(user,user['apiUrl']))}"
+    text.value=(tr(page, 'Оффлайн: личные данные на устройстве') if state=='offline' else tr(page, 'Сервер доступен'))+tr(page, ' · в очереди: {v0}', v0=len(entries(user, user['apiUrl'])))
     banner=ft.Container(visible=state!='online' or bool(entries(user,user['apiUrl'])),padding=ft.padding.symmetric(horizontal=16,vertical=4),
         content=ft.Row([ft.Icon(ft.Icons.CLOUD_OUTLINED,size=18,color=ft.Colors.PRIMARY),
             ft.Container(content=text,expand=True),createOutboxButton(page,user)],spacing=8))
@@ -47,15 +48,15 @@ def createOutboxButton(page,user):
                     ft.Text(payload.get('titleText',payload.get('commentText',''))[:100]),ft.Text(row['lastError'],size=12)]
                 @action
                 def discard(event,rid=row['requestId']):remove(user,apiUrl,rid);render();page.update()
-                parts.append(ft.TextButton('Убрать из очереди',disabled=row['state']=='sending',on_click=discard))
+                parts.append(ft.TextButton(tr(page, 'Убрать из очереди'),disabled=row['state']=='sending',on_click=discard))
                 if row['kind']=='publication' and row['state']=='blocked' and not payload.get('projectDetailsJson'):
                     @action
                     def toDraft(event,item=row):
                         saveDraft(user['userId'],apiUrl,json.loads(item['payloadJson']));remove(user,apiUrl,item['requestId']);render();page.update()
-                        showMessage(page,'Работа возвращена в черновики. Откройте её на главной вкладке.')
-                    parts.append(ft.TextButton('Вернуть в черновики',on_click=toDraft))
+                        showMessage(page,tr(page, 'Работа возвращена в черновики. Откройте её на главной вкладке.'))
+                    parts.append(ft.TextButton(tr(page, 'Вернуть в черновики'),on_click=toDraft))
                 controls.append(ft.Card(content=ft.Container(padding=10,content=ft.Column(parts))))
-            items.controls=controls or [ft.Text('Очередь пуста.')]
+            items.controls=controls or [ft.Text(tr(page, 'Очередь пуста.'))]
         @action
         def retry(event):
             if busy['value']:return
@@ -66,15 +67,15 @@ def createOutboxButton(page,user):
                     return current.get('sessionToken')==user.get('sessionToken') and getApiUrl()==apiUrl
                 flush(user,apiUrl,active,force=True);render();page.update()
             finally:busy['value']=False
-        dialog=ft.AlertDialog(title=ft.Text('Очередь отправки'),content=ft.Container(width=440,height=420,content=ft.ListView(controls=[
-            ft.Text('Отправка продолжается при доступном сервере и открытом приложении. Удаление заявки не отменяет действие, которое сервер уже успел принять.'),
-            ft.TextButton('Отправить сейчас',on_click=retry),items])),actions=[ft.TextButton('Закрыть',on_click=lambda e:page.close(dialog))])
+        dialog=ft.AlertDialog(title=ft.Text(tr(page, 'Очередь отправки')),content=ft.Container(width=440,height=420,content=ft.ListView(controls=[
+            ft.Text(tr(page, 'Отправка продолжается при доступном сервере и открытом приложении. Удаление заявки не отменяет действие, которое сервер уже успел принять.')),
+            ft.TextButton(tr(page, 'Отправить сейчас'),on_click=retry),items])),actions=[ft.TextButton(tr(page, 'Закрыть'),on_click=lambda e:page.close(dialog))])
         def refreshIfOpen():
             current=page.session.get('currentUser') or {}
             if dialog.open and current.get('sessionToken')==user.get('sessionToken'):render()
         page.session.set('refreshOutboxDialog',refreshIfOpen)
         render();page.open(dialog)
-    return ft.IconButton(icon=ft.Icons.CLOUD_UPLOAD_OUTLINED,tooltip='Очередь отправки',on_click=openQueue)
+    return ft.IconButton(icon=ft.Icons.CLOUD_UPLOAD_OUTLINED,tooltip=tr(page, 'Очередь отправки'),on_click=openQueue)
 
 
 def createDraftTools(page,user,fields,photos,onPhotos):
@@ -89,7 +90,7 @@ def createDraftTools(page,user,fields,photos,onPhotos):
     def write(event=None):
         data=payload()
         if not data['titleText'] and not data['descriptionText'] and not data['tagsText'] and not photos:return
-        active['id']=saveDraft(user['userId'],apiUrl,data,active['id']);notice.value='Черновик сохранён на устройстве'
+        active['id']=saveDraft(user['userId'],apiUrl,data,active['id']);notice.value=tr(page, 'Черновик сохранён на устройстве')
     def changed(event=None):
         active['generation']+=1;generation=active['generation']
         async def later():
@@ -97,7 +98,7 @@ def createDraftTools(page,user,fields,photos,onPhotos):
             current=page.session.get('currentUser') or {}
             if active['generation']!=generation or current.get('sessionToken')!=user.get('sessionToken') or getApiUrl()!=apiUrl:return
             try:write();page.update()
-            except (ValueError,OSError):notice.value='Не удалось сохранить черновик';page.update()
+            except (ValueError,OSError):notice.value=tr(page, 'Не удалось сохранить черновик');page.update()
         page.run_task(later)
     for name in ('title','description','category','tags','contest'):fields[name].on_change=changed
     def clearAfterSend():
@@ -121,17 +122,17 @@ def createDraftTools(page,user,fields,photos,onPhotos):
                 for key,target in [('titleText','title'),('descriptionText','description'),('categoryName','category'),('tagsText','tags')]:fields[target].value=data.get(key,'')
                 value=str(data.get('challengeId') or '')
                 if value not in [option.key for option in fields['contest'].options]:
-                    fields['contest'].options.append(ft.dropdown.Option(value,'Сохранённое задание: '+value))
+                    fields['contest'].options.append(ft.dropdown.Option(value,tr(page, 'Сохранённое задание: ')+value))
                 fields['contest'].value=value
                 photos[:]=[dict(name=p['name'],data=base64.b64decode(p['imageBase64'])) for p in data.get('photos',[])]
                 page.close(dialog);onPhotos();page.update()
             @action
             def removeDraft(event,key=row['draftId']):deleteDraft(user['userId'],apiUrl,key);page.close(dialog);choose(None)
             controls.append(ft.Card(content=ft.Container(padding=10,content=ft.Column([ft.Text(row['payload'].get('titleText') or 'Без названия'),
-                ft.Row(wrap=True,controls=[ft.TextButton('Открыть черновик',on_click=openDraft),ft.TextButton('Удалить черновик',on_click=removeDraft)])]))))
-        dialog=ft.AlertDialog(title=ft.Text('Мои черновики'),content=ft.Container(width=400,height=350,content=ft.ListView(controls=controls or [ft.Text('Черновиков пока нет.')])),
-            actions=[ft.TextButton('Закрыть',on_click=lambda e:page.close(dialog))])
+                ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Открыть черновик'),on_click=openDraft),ft.TextButton(tr(page, 'Удалить черновик'),on_click=removeDraft)])]))))
+        dialog=ft.AlertDialog(title=ft.Text(tr(page, 'Мои черновики')),content=ft.Container(width=400,height=350,content=ft.ListView(controls=controls or [ft.Text(tr(page, 'Черновиков пока нет.'))])),
+            actions=[ft.TextButton(tr(page, 'Закрыть'),on_click=lambda e:page.close(dialog))])
         page.open(dialog)
     fields['saveDraft']=action(write);fields['draftChanged']=changed;fields['clearDraft']=clearAfterSend
-    return ft.Column([ft.Row(wrap=True,controls=[ft.TextButton('Сохранить черновик',on_click=action(lambda e:(write(),page.update()))),
-        ft.TextButton('Мои черновики',on_click=choose),ft.TextButton('Новый черновик',on_click=new)]),notice])
+    return ft.Column([ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Сохранить черновик'),on_click=action(lambda e:(write(),page.update()))),
+        ft.TextButton(tr(page, 'Мои черновики'),on_click=choose),ft.TextButton(tr(page, 'Новый черновик'),on_click=new)]),notice])

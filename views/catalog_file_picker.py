@@ -1,3 +1,4 @@
+from localization import tr, term
 from pathlib import Path
 import flet as ft
 from catalog_client import CatalogClient
@@ -14,7 +15,7 @@ def createCatalogFilePicker(page,user,kind,onSelected,label):
     def reset():
         if state['ticket']:cancelUpload(state['ticket'],user['userId'])
         state['ticket']=None;button.disabled=False;cancel.visible=False
-    def deliver(result):onSelected(result);status.value='Файл загружен: '+result['name']
+    def deliver(result):onSelected(result);status.value=tr(page, 'Файл загружен: ')+result['name']
     @authenticatedAction(page,user)
     def picked(event):
         if event.control is not state['picker'] or not event.files:return
@@ -23,7 +24,7 @@ def createCatalogFilePicker(page,user,kind,onSelected,label):
             if len(event.files)!=1 or file.name.rsplit('.',1)[-1].lower() not in extensions or not 0<file.size<=MAX_ASSET:raise ValueError('Выберите один файл подходящего типа, до 12 МБ (модель до 3 МБ)')
             if isWebClient(page):
                 state['ticket']=createUpload(user,file.name,kind);button.disabled=True;cancel.visible=True
-                status.value='Загрузка…'
+                status.value=tr(page, 'Загрузка…')
                 state['picker'].upload([ft.FilePickerUploadFile(name=file.name,id=getattr(file,'id',None),upload_url=webAddress(page)+'/catalog-uploads/'+state['ticket'])])
             else:
                 with Path(file.path).open('rb') as stream:raw=stream.read(MAX_ASSET+1)
@@ -48,5 +49,5 @@ def createCatalogFilePicker(page,user,kind,onSelected,label):
         page.overlay.append(picker);page.update()
         picker.pick_files(allow_multiple=False,file_type=ft.FilePickerFileType.CUSTOM,allowed_extensions=extensions)
     button=ft.OutlinedButton(label,on_click=choose)
-    cancel=ft.TextButton('Отменить загрузку',visible=False,on_click=lambda e:(reset(),page.update()))
+    cancel=ft.TextButton(tr(page, 'Отменить загрузку'),visible=False,on_click=lambda e:(reset(),page.update()))
     return ft.Column(spacing=2,controls=[button,status,cancel])

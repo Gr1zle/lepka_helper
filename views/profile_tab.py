@@ -1,3 +1,4 @@
+from localization import tr, term
 from views.community_notices import createChallengeProfile
 """Профиль, настройки и действия с аккаунтом — отдельно от ленты и инструментов."""
 import flet as ft
@@ -106,16 +107,16 @@ def createProfileTab(page, nickname, email):
         userLikesCount = stats['likes']
 
     nicknameField = ft.TextField(
-        label="Никнейм",
+        label=tr(page, 'Никнейм'),
         value=profileData["nickname"],
         prefix_icon=ft.Icons.PERSON,
         border_radius=12,
     )
 
     bioField = ft.TextField(
-        label="О себе",
+        label=tr(page, 'О себе'),
         value=profileData["bioText"],
-        hint_text="Например: люблю лепить животных и персонажей",
+        hint_text=tr(page, 'Например: люблю лепить животных и персонажей'),
         multiline=True,
         min_lines=3,
         max_lines=5,
@@ -123,11 +124,11 @@ def createProfileTab(page, nickname, email):
     )
 
     ageDropdown = ft.Dropdown(
-        label="Возрастная категория",
+        label=tr(page, 'Возрастная категория'),
         value=profileData["ageCategory"],
         border_radius=12,
         options=[
-            ft.dropdown.Option(ageCategory)
+            ft.dropdown.Option(key=ageCategory, text=term(page, ageCategory))
             for ageCategory in AGE_CATEGORIES
         ],
     )
@@ -137,38 +138,38 @@ def createProfileTab(page, nickname, email):
     currentNotificationsEnabled = profileData.get("notificationsEnabled", True)
 
     themeDropdown = ft.Dropdown(
-        label="Тема приложения",
+        label=tr(page, 'Тема приложения'),
         value=currentThemeMode,
         border_radius=12,
         options=[
             ft.dropdown.Option(
                 key=themeItem["value"],
-                text=themeItem["name"],
+                text=term(page, themeItem['name']),
             )
             for themeItem in THEME_OPTIONS
         ],
     )
 
     languageDropdown = ft.Dropdown(
-        label="Язык приложения",
+        label=tr(page, 'Язык приложения'),
         value=currentLanguageCode,
         border_radius=12,
         options=[
             ft.dropdown.Option(
                 key=languageItem["value"],
-                text=languageItem["name"],
+                text=term(page, languageItem['name']),
             )
             for languageItem in LANGUAGE_OPTIONS
         ],
     )
 
     notificationsSwitch = ft.Switch(
-        label="Уведомления",
+        label=tr(page, 'Уведомления'),
         value=currentNotificationsEnabled,
     )
 
     currentPasswordField = ft.TextField(
-        label="Текущий пароль",
+        label=tr(page, 'Текущий пароль'),
         password=True,
         can_reveal_password=True,
         prefix_icon=ft.Icons.LOCK,
@@ -176,7 +177,7 @@ def createProfileTab(page, nickname, email):
     )
 
     newPasswordField = ft.TextField(
-        label="Новый пароль",
+        label=tr(page, 'Новый пароль'),
         password=True,
         can_reveal_password=True,
         prefix_icon=ft.Icons.LOCK_RESET,
@@ -184,7 +185,7 @@ def createProfileTab(page, nickname, email):
     )
 
     repeatPasswordField = ft.TextField(
-        label="Повторите новый пароль",
+        label=tr(page, 'Повторите новый пароль'),
         password=True,
         can_reveal_password=True,
         prefix_icon=ft.Icons.LOCK_RESET,
@@ -192,7 +193,7 @@ def createProfileTab(page, nickname, email):
     )
 
     deletePasswordField = ft.TextField(
-        label="Пароль для удаления аккаунта",
+        label=tr(page, 'Пароль для удаления аккаунта'),
         password=True,
         can_reveal_password=True,
         prefix_icon=ft.Icons.LOCK,
@@ -237,7 +238,7 @@ def createProfileTab(page, nickname, email):
         color=ft.Colors.WHITE,
     )
 
-    avatarHintText = ft.Text('Фото сохраняется сразу. Обрезка до круга — по центру, 512 × 512.', size=12)
+    avatarHintText = ft.Text(tr(page, 'Фото сохраняется сразу. Обрезка до круга — по центру, 512 × 512.'), size=12)
 
     def refreshAvatar():
         letter = nicknameField.value[:1].upper() if nicknameField.value else '?'
@@ -266,7 +267,7 @@ def createProfileTab(page, nickname, email):
         showMessage(message, not success)
         page.update()
 
-    avatarPickerControl = createPhotoPicker(page, currentUser, avatarSelected, 'Выбрать аватар')
+    avatarPickerControl = createPhotoPicker(page, currentUser, avatarSelected, tr(page,'Выбрать аватар'))
     refreshAvatar()
 
     def showMessage(messageText, isError=False):
@@ -279,14 +280,14 @@ def createProfileTab(page, nickname, email):
     @authenticatedAction(page, currentUser)
     def handleSaveProfile(event):
         if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
+            showMessage(tr(page, 'Сначала войдите в аккаунт'), True)
             return
 
         selectedFavoriteColors = []
 
         for checkboxControl in favoriteColorCheckboxes:
             if checkboxControl.value:
-                selectedFavoriteColors.append(checkboxControl.label)
+                selectedFavoriteColors.append(checkboxControl.data)
 
         successStatus, messageText, updatedProfile = saveUserProfile(
             currentUser["userId"],
@@ -320,9 +321,9 @@ def createProfileTab(page, nickname, email):
 
     @authenticatedAction(page, currentUser)
     def handleChangeEmail(event):
-        emailField = ft.TextField(label='Новый email')
-        passwordField = ft.TextField(label='Текущий пароль', password=True, can_reveal_password=True)
-        codeField = ft.TextField(label='Код из письма')
+        emailField = ft.TextField(label=tr(page, 'Новый email'))
+        passwordField = ft.TextField(label=tr(page, 'Текущий пароль'), password=True, can_reveal_password=True)
+        codeField = ft.TextField(label=tr(page, 'Код из письма'))
 
         @authenticatedAction(page, currentUser)
         def sendCode(event):
@@ -337,18 +338,18 @@ def createProfileTab(page, nickname, email):
             showMessage(message, not success)
 
         dialog = ft.AlertDialog(
-            modal=True, title=ft.Text('Изменение email'),
+            modal=True, title=ft.Text(tr(page, 'Изменение email')),
             content=ft.Column(tight=True, controls=[emailField, passwordField,
-                ft.OutlinedButton(text='Получить код', on_click=sendCode), codeField]),
-            actions=[ft.TextButton(text='Отмена', on_click=lambda event: page.close(dialog)),
-                     ft.ElevatedButton(text='Подтвердить email', on_click=confirmCode)],
+                ft.OutlinedButton(text=tr(page, 'Получить код'), on_click=sendCode), codeField]),
+            actions=[ft.TextButton(text=tr(page, 'Отмена'), on_click=lambda event: page.close(dialog)),
+                     ft.ElevatedButton(text=tr(page, 'Подтвердить email'), on_click=confirmCode)],
         )
         page.open(dialog)
 
     @authenticatedAction(page, currentUser)
     def handleChangePassword(event):
         if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
+            showMessage(tr(page, 'Сначала войдите в аккаунт'), True)
             return
 
         successStatus, messageText = changeUserPassword(
@@ -372,7 +373,7 @@ def createProfileTab(page, nickname, email):
     @authenticatedAction(page, currentUser)
     def handleSaveSettings(event):
         if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
+            showMessage(tr(page, 'Сначала войдите в аккаунт'), True)
             return
 
         successStatus, messageText, updatedProfile = saveUserSettings(
@@ -392,17 +393,19 @@ def createProfileTab(page, nickname, email):
         else:
             page.theme_mode = ft.ThemeMode.LIGHT
 
+        from localization import setLanguage
+        setLanguage(page,updatedProfile["languageCode"])
         showMessage(messageText)
         page.go("/home")
 
     @authenticatedAction(page, currentUser)
     def handleDeleteAccount(event):
         if currentUser is None:
-            showMessage("Сначала войдите в аккаунт", True)
+            showMessage(tr(page, 'Сначала войдите в аккаунт'), True)
             return
 
         if not deletePasswordField.value:
-            showMessage("Введите пароль для подтверждения", True)
+            showMessage(tr(page, 'Введите пароль для подтверждения'), True)
             return
 
         def closeDialog(event):
@@ -427,18 +430,17 @@ def createProfileTab(page, nickname, email):
 
         confirmDialog = ft.AlertDialog(
             modal=True,
-            title=ft.Text("Удаление аккаунта"),
+            title=ft.Text(tr(page, 'Удаление аккаунта')),
             content=ft.Text(
-                "Все ваши данные, публикации, проекты, комментарии и цветовые смеси "
-                "будут безвозвратно удалены. Продолжить?"
+                tr(page, 'Все ваши данные, публикации, проекты, комментарии и цветовые смеси будут безвозвратно удалены. Продолжить?')
             ),
             actions=[
                 ft.TextButton(
-                    text="Отмена",
+                    text=tr(page, 'Отмена'),
                     on_click=closeDialog,
                 ),
                 ft.TextButton(
-                    text="Удалить",
+                    text=tr(page, 'Удалить'),
                     on_click=confirmDelete,
                     style=ft.ButtonStyle(color=ft.Colors.RED_400),
                 ),
@@ -452,7 +454,8 @@ def createProfileTab(page, nickname, email):
 
     for colorName in FAVORITE_COLOR_OPTIONS:
         checkboxControl = ft.Checkbox(
-            label=colorName,
+            label=term(page,colorName),
+            data=colorName,
             value=colorName in profileData["favoriteColors"],
             on_change=lambda event: page.update(),
         )
@@ -479,7 +482,7 @@ def createProfileTab(page, nickname, email):
                 controls=[
                     number,
                     ft.Text(
-                        labelText,
+                        term(page,labelText),
                         color=ft.Colors.ON_PRIMARY_CONTAINER,
                         size=12,
                     ),
@@ -505,7 +508,7 @@ def createProfileTab(page, nickname, email):
                                     profileNameText,
                                     profileEmailText,
                                     ft.Text(
-                                        "Личный профиль и настройки аккаунта",
+                                        tr(page, 'Личный профиль и настройки аккаунта'),
                                         size=13,
                                         color=ft.Colors.ON_SURFACE_VARIANT,
                                     ),
@@ -525,7 +528,7 @@ def createProfileTab(page, nickname, email):
                     content=ft.Column(
                         controls=[
                             ft.Text(
-                                "Редактирование профиля",
+                                tr(page, 'Редактирование профиля'),
                                 size=18,
                                 weight=ft.FontWeight.BOLD,
                             ),
@@ -537,7 +540,7 @@ def createProfileTab(page, nickname, email):
                                         controls=[
                                             avatarHintText,
                                             avatarPickerControl,
-                                            ft.OutlinedButton('Убрать аватар', icon=ft.Icons.DELETE_OUTLINE,
+                                            ft.OutlinedButton(tr(page, 'Убрать аватар'), icon=ft.Icons.DELETE_OUTLINE,
                                                               on_click=handleRemoveAvatar),
                                         ],
                                         spacing=8,
@@ -547,11 +550,11 @@ def createProfileTab(page, nickname, email):
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             ),
                             nicknameField,
-                            ft.OutlinedButton(text="Изменить email", on_click=handleChangeEmail),
+                            ft.OutlinedButton(text=tr(page, 'Изменить email'), on_click=handleChangeEmail),
                             bioField,
                             ageDropdown,
                             ft.Text(
-                                "Любимые цвета, максимум 5",
+                                tr(page, 'Любимые цвета, максимум 5'),
                                 size=13,
                                 color=ft.Colors.ON_SURFACE_VARIANT,
                             ),
@@ -562,7 +565,7 @@ def createProfileTab(page, nickname, email):
                                 run_spacing=0,
                             ),
                             ft.ElevatedButton(
-                                text="Сохранить профиль",
+                                text=tr(page, 'Сохранить профиль'),
                                 icon=ft.Icons.SAVE,
                                 height=48,
                                 style=ft.ButtonStyle(
@@ -585,12 +588,12 @@ def createProfileTab(page, nickname, email):
                     content=ft.Column(
                         controls=[
                             ft.Text(
-                                "Безопасность",
+                                tr(page, 'Безопасность'),
                                 size=18,
                                 weight=ft.FontWeight.BOLD,
                             ),
                             ft.Text(
-                                "Для смены пароля укажите текущий пароль, новый пароль и подтверждение.",
+                                tr(page, 'Для смены пароля укажите текущий пароль, новый пароль и подтверждение.'),
                                 size=13,
                                 color=ft.Colors.ON_SURFACE_VARIANT,
                             ),
@@ -598,7 +601,7 @@ def createProfileTab(page, nickname, email):
                             newPasswordField,
                             repeatPasswordField,
                             ft.ElevatedButton(
-                                text="Изменить пароль",
+                                text=tr(page, 'Изменить пароль'),
                                 icon=ft.Icons.LOCK_RESET,
                                 height=48,
                                 style=ft.ButtonStyle(
@@ -621,7 +624,7 @@ def createProfileTab(page, nickname, email):
                     content=ft.Column(
                         controls=[
                             ft.Text(
-                                "Статистика",
+                                tr(page, 'Статистика'),
                                 size=18,
                                 weight=ft.FontWeight.BOLD,
                             ),
@@ -654,16 +657,16 @@ def createProfileTab(page, nickname, email):
                     content=ft.Column(
                         controls=[
                             ft.Text(
-                                "Настройки приложения",
+                                tr(page, 'Настройки приложения'),
                                 size=18,
                                 weight=ft.FontWeight.BOLD,
                             ),
                             themeDropdown,
                             notificationsSwitch,
-                            ft.Text('Настройка управляет созданием напоминаний о сроках и уведомлений о призовых местах, лайках, комментариях и ответах внутри приложения. Ранее полученные уведомления сохраняются. Фоновые push ещё не подключены.',size=12),
-                            ft.Text('Язык интерфейса: русский', size=12),
+                            ft.Text(tr(page, 'Настройка управляет созданием напоминаний о сроках и уведомлений о призовых местах, лайках, комментариях и ответах внутри приложения. Ранее полученные уведомления сохраняются. Фоновые push ещё не подключены.'),size=12),
+                            ft.Text(tr(page, 'Язык интерфейса: русский'), size=12),
                             ft.ElevatedButton(
-                                text="Сохранить настройки",
+                                text=tr(page, 'Сохранить настройки'),
                                 icon=ft.Icons.SAVE,
                                 height=48,
                                 style=ft.ButtonStyle(
@@ -674,11 +677,11 @@ def createProfileTab(page, nickname, email):
                                 on_click=handleSaveSettings,
                             ),
                             ft.Divider(),
-                            ft.Text('Сохранённые рецепты находятся на вкладке «Цвета».', size=12),
-                            ft.TextButton('О приложении', on_click=lambda event: showAbout(page)),
-                            ft.TextButton('Условия использования и данные', on_click=lambda event: showDataInfo(page)),
+                            ft.Text(tr(page, 'Сохранённые рецепты находятся на вкладке «Цвета».'), size=12),
+                            ft.TextButton(tr(page, 'О приложении'), on_click=lambda event: showAbout(page)),
+                            ft.TextButton(tr(page, 'Условия использования и данные'), on_click=lambda event: showDataInfo(page)),
                             ft.ElevatedButton(
-                                text="Выйти из аккаунта",
+                                text=tr(page, 'Выйти из аккаунта'),
                                 icon=ft.Icons.LOGOUT,
                                 height=48,
                                 style=ft.ButtonStyle(
@@ -701,20 +704,19 @@ def createProfileTab(page, nickname, email):
                     content=ft.Column(
                         controls=[
                             ft.Text(
-                                "Опасная зона",
+                                tr(page, 'Опасная зона'),
                                 size=18,
                                 weight=ft.FontWeight.BOLD,
                                 color=ft.Colors.RED_400,
                             ),
                             ft.Text(
-                                "Удаление аккаунта находится в самом низу профиля. "
-                                "Это действие нельзя отменить.",
+                                tr(page, 'Удаление аккаунта находится в самом низу профиля. Это действие нельзя отменить.'),
                                 size=13,
                                 color=ft.Colors.ON_SURFACE_VARIANT,
                             ),
                             deletePasswordField,
                             ft.ElevatedButton(
-                                text="Удалить аккаунт",
+                                text=tr(page, 'Удалить аккаунт'),
                                 icon=ft.Icons.DELETE_FOREVER,
                                 height=48,
                                 style=ft.ButtonStyle(
@@ -736,18 +738,18 @@ def createProfileTab(page, nickname, email):
     cards=layout.controls
     library=cards[3].content.content
     actions=library.controls[1:-1]
-    library.controls=[ft.Text('Моя мастерская',size=18,weight=ft.FontWeight.W_600),
+    library.controls=[ft.Text(tr(page, 'Моя мастерская'),size=18,weight=ft.FontWeight.W_600),
         ft.Row(actions[1:5],wrap=True,spacing=8,run_spacing=8),library.controls[-1],
-        disclosure('Задания и награды',[actions[7]],ft.Icons.EMOJI_EVENTS_OUTLINED)]
+        disclosure(tr(page, 'Задания и награды'),[actions[7]],ft.Icons.EMOJI_EVENTS_OUTLINED)]
     settings=cards[4].content.content.controls
-    settings[3].value='Напоминания о сроках, призовых местах и новых реакциях на ваши работы. Полученные уведомления сохраняются.'
+    settings[3].value=tr(page,'Напоминания о сроках, призовых местах и новых реакциях на ваши работы. Полученные уведомления сохраняются.')
     settings[10].style=ft.ButtonStyle(color=ft.Colors.PRIMARY)
-    layout=workspace(page,'Профиль',[
-        ('Мастерская',[cards[0],cards[3]]),
-        ('Настройки',[
-            disclosure('Редактировать профиль',cards[1].content.content.controls[1:],ft.Icons.EDIT_OUTLINED),
-            disclosure('Внешний вид и уведомления',[settings[1],settings[2],settings[3],settings[5]],ft.Icons.TUNE),
-            disclosure('Пароль и безопасность',cards[2].content.content.controls[1:],ft.Icons.LOCK_OUTLINED),
-            disclosure('Данные и управление',[actions[0],settings[8],settings[9],actions[5],actions[6]],ft.Icons.SETTINGS_OUTLINED),
-            disclosure('Удаление аккаунта',cards[5].content.content.controls[1:],ft.Icons.DELETE_OUTLINE),settings[10]])])
+    layout=workspace(page,tr(page, 'Профиль'),[
+        (tr(page, 'Мастерская'),[cards[0],cards[3]]),
+        (tr(page, 'Настройки'),[
+            disclosure(tr(page,'Редактировать профиль'),cards[1].content.content.controls[1:],ft.Icons.EDIT_OUTLINED),
+            disclosure(tr(page,'Внешний вид и уведомления'),[settings[1],settings[2],settings[3],settings[5]],ft.Icons.TUNE),
+            disclosure(tr(page,'Пароль и безопасность'),cards[2].content.content.controls[1:],ft.Icons.LOCK_OUTLINED),
+            disclosure(tr(page,'Данные и управление'),[actions[0],settings[8],settings[9],actions[5],actions[6]],ft.Icons.SETTINGS_OUTLINED),
+            disclosure(tr(page,'Удаление аккаунта'),cards[5].content.content.controls[1:],ft.Icons.DELETE_OUTLINE),settings[10]])])
     return polish(layout)

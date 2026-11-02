@@ -1,3 +1,4 @@
+from localization import tr, term
 import flet as ft
 
 def createProfileView(page: ft.Page):
@@ -21,11 +22,11 @@ def createProfileView(page: ft.Page):
 
                     ft.Container(height=20),
 
-                    ft.ElevatedButton("Редактировать профиль", on_click=goToEdit),
+                    ft.ElevatedButton(tr(page, 'Редактировать профиль'), on_click=goToEdit),
 
                     ft.Container(height=20),
 
-                    ft.ElevatedButton("Выйти", on_click=lambda e: logout(page)),
+                    ft.ElevatedButton(tr(page, 'Выйти'), on_click=lambda e: logout(page)),
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 expand=True,

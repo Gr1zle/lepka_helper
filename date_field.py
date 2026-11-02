@@ -1,11 +1,12 @@
+from localization import tr, term
 """Дедлайн можно ввести вручную или выбрать календарём."""
 from datetime import datetime
 import flet as ft
 
 
 def createDeadlineField(page, value=''):
-    field = ft.TextField(label='Дедлайн', value=value or '',
-                         hint_text='ДД.ММ.ГГГГ, можно оставить пустым', border_radius=12)
+    field = ft.TextField(label=tr(page, 'Дедлайн'), value=value or '',
+                         hint_text=tr(page, 'ДД.ММ.ГГГГ, можно оставить пустым'), border_radius=12)
 
     def changed(event):
         if event.control.value:
@@ -24,5 +25,5 @@ def createDeadlineField(page, value=''):
             picker.value = None
         page.open(picker)
 
-    field.suffix = ft.IconButton(icon=ft.Icons.CALENDAR_MONTH, tooltip='Выбрать дату', on_click=openCalendar)
+    field.suffix = ft.IconButton(icon=ft.Icons.CALENDAR_MONTH, tooltip=tr(page, 'Выбрать дату'), on_click=openCalendar)
     return field
