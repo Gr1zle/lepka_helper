@@ -17,12 +17,18 @@ class DesignTests(unittest.IsolatedAsyncioTestCase):
         root=self.mount(createHomeView(self.page))
         navigate=self.page.session.get('navigateHomeTab')
         navigate(3)
-        field=harness.find(root,ft.TextField,label='Название проекта')
+        from views.discovery import openCreate
+        openCreate(self.page,self.user)
+        menu=next(c for c in reversed(self.page.overlay) if isinstance(c,ft.AlertDialog) and c.open)
+        option=next(c for c in harness.walk(menu) if isinstance(c,ft.ListTile) and c.title.value=='Личный проект')
+        option.on_click(None)
+        editor=next(c for c in reversed(self.page.overlay) if isinstance(c,ft.AlertDialog) and c.open)
+        field=harness.find(editor,ft.TextField,label='Название проекта')
         field.value='Не сохранённая фигурка'
         for width in (320,820,1440,390):
             self.page._set_attr('width',width)
             self.page.session.get('resizeHomeView')(SimpleNamespace())
-            self.assertIs(harness.find(root,ft.TextField,label='Название проекта'),field)
+            self.assertIs(harness.find(editor,ft.TextField,label='Название проекта'),field)
             self.assertEqual(field.value,'Не сохранённая фигурка')
             self.assertEqual(harness.find(root,ft.NavigationBar).visible,width<760)
         rail=harness.find(root,ft.NavigationRail)

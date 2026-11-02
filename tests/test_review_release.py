@@ -162,13 +162,12 @@ class ReviewUiTests(unittest.IsolatedAsyncioTestCase):
         with patch('views.home_view.createSearchTab', side_effect=[ApiError('Сервер недоступен'), ft.Text('Поиск восстановлен')]):
             view = self.mount(createHomeView(self.page))
             nav = find(view, ft.NavigationBar)
-            nav.selected_index = 1
-            nav.on_change(SimpleNamespace(control=nav))
+            self.page.session.get('navigateHomeTab')(1)
             self.assertTrue(any(isinstance(item, ft.Text) and item.value == 'Не удалось открыть раздел' for item in walk(view)))
             self.assertFalse(any(isinstance(item, ft.Text) and item.value.startswith('Привет,') for item in walk(view)))
             find(view, ft.ElevatedButton, text='Повторить загрузку').on_click(None)
             self.assertTrue(any(isinstance(item, ft.Text) and item.value == 'Поиск восстановлен' for item in walk(view)))
-            self.assertEqual(nav.selected_index, 1)
+            self.assertEqual(nav.selected_index, 0)
             self.assertIsNotNone(self.page.session.get('currentUser'))
 
     async def test_initial_feed_error_keeps_navigation_and_retry_rechecks_session(self):

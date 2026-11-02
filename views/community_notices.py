@@ -12,7 +12,7 @@ from views.notification_delivery import openDeliverySettings
 KIND_LABELS={'all':'Все события','award':'Призовые места','like':'Лайки','comment':'Комментарии','reply':'Ответы'}
 
 
-def createNoticeButton(page,user):
+def createNoticeButton(page,user,asTab=False):
     if not user:return ft.Container()
     client=NoticeCenter(user)
     counter=ft.Text(size=12)
@@ -34,7 +34,7 @@ def createNoticeButton(page,user):
 
         @authenticatedAction(page,user)
         def openItem(item):
-            page.close(dialog)
+            if not asTab:page.close(dialog)
             if item['source']=='projects':
                 from views.project_planner import openPlannerProject
                 openPlannerProject(page,user,item['projectId']);return
@@ -52,6 +52,9 @@ def createNoticeButton(page,user):
             post=community.getPost(item['postId'])
             if not post:
                 showMessage(page,'Материал уже недоступен',True);return
+            if asTab:
+                from views.discovery import openPost
+                openPost(page,user,item['postId']);return
             from views.community_tab import createPostCard
             postDialog=ft.AlertDialog(title=ft.Text('Публикация из уведомления'),content=ft.Container(width=500,height=440,
                 content=ft.ListView(controls=[createPostCard(page,post,user,lambda:page.close(postDialog))])),
@@ -110,7 +113,18 @@ def createNoticeButton(page,user):
                 ft.Row(wrap=True,controls=[ft.TextButton('Прочитать все уведомления',on_click=readAll),ft.TextButton('Обновить уведомления',on_click=reset)]),
                 entries,ft.Row(wrap=True,controls=[previous,number,following])])),
             actions=[ft.TextButton('Закрыть',on_click=lambda e:page.close(dialog))])
-        render();summary();page.open(dialog)
+        render();summary()
+        if asTab:
+            from design_system import disclosure
+            return ft.ListView(expand=True,padding=16,spacing=12,controls=[
+                ft.Text('Уведомления',size=24,weight=ft.FontWeight.W_600),
+                ft.Row(wrap=True,controls=[ft.TextButton('Настроить личные уведомления',on_click=lambda e:openPersonalNoticeSettings(page,user,lambda:(render(),summary(),page.update()))),
+                    ft.TextButton('Доставка уведомлений',on_click=lambda e:openDeliverySettings(page,user))]),
+                disclosure('Фильтры уведомлений',[source,kind,unread],ft.Icons.TUNE),
+                ft.Row(wrap=True,controls=[ft.TextButton('Прочитать все уведомления',on_click=readAll),ft.TextButton('Обновить уведомления',on_click=reset)]),
+                entries,ft.Row(wrap=True,controls=[previous,number,following])])
+        page.open(dialog)
+    if asTab:return openNotices(None)
     summary()
     page.session.set('openNoticeCenterCallback',openNotices)
     return ft.Column(spacing=4,controls=[ft.OutlinedButton('Центр уведомлений',icon=ft.Icons.NOTIFICATIONS_OUTLINED,on_click=openNotices),counter,

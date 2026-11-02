@@ -17,6 +17,7 @@ def createConnectionBanner(page,user):
         if current.get('userId')!=user['userId']:return
         state=page.session.get('connectionState') or ('offline' if current.get('offline') else 'online')
         count=len(entries(user,user['apiUrl']))
+        banner.visible=state!='online' or count>0
         text.value={'online':'Сервер доступен','offline':'Оффлайн: личные данные на устройстве','sending':'Отправка очереди…','error':'Ошибка локального кеша или очереди'}[state]+f' · в очереди: {count}'
         try:
             if text.page:page.update()
@@ -25,9 +26,10 @@ def createConnectionBanner(page,user):
     # До монтирования Control.page ещё недоступен.
     state='offline' if user.get('offline') else 'online'
     text.value=('Оффлайн: личные данные на устройстве' if state=='offline' else 'Сервер доступен')+f" · в очереди: {len(entries(user,user['apiUrl']))}"
-    return ft.Container(padding=ft.padding.symmetric(horizontal=16,vertical=4),
+    banner=ft.Container(visible=state!='online' or bool(entries(user,user['apiUrl'])),padding=ft.padding.symmetric(horizontal=16,vertical=4),
         content=ft.Row([ft.Icon(ft.Icons.CLOUD_OUTLINED,size=18,color=ft.Colors.PRIMARY),
             ft.Container(content=text,expand=True),createOutboxButton(page,user)],spacing=8))
+    return banner
 
 
 def createOutboxButton(page,user):

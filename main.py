@@ -138,7 +138,10 @@ def main(page: ft.Page):
             return
         if len(page.views) > 1:
             removedView = page.views.pop()
-            if removedView.route.startswith('/workshop/'):
+            if removedView.route=='/discovery/color-photo':
+                restore=page.session.get('restoreColorScan')
+                if callable(restore):restore()
+            if removedView.route.startswith(('/workshop/','/discovery/')):
                 page.update()  # Сохраняем вкладку поиска, фильтры и позицию ленты.
             else:
                 page.go(page.views[-1].route)

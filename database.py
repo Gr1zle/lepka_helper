@@ -531,23 +531,23 @@ def createUser(email, passwordHash, passwordSalt, nickname, emailVerified=True):
 
 
 def createColorMixture(userId, mixtureName, resultHex, totalWeight, recipeJson):
-    connection = getConnection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        INSERT INTO colorMixtures (userId, mixtureName, resultHex, totalWeight, recipeJson)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (userId, mixtureName, resultHex, totalWeight, recipeJson),
-    )
-
-    mixtureId = cursor.lastrowid
-
-    connection.commit()
-    connection.close()
-
-    return mixtureId
+    connection=getConnection()
+    try:
+        connection.execute('BEGIN IMMEDIATE')
+        # Match the visible identity, independently of the ingredients order.
+        records=connection.execute('SELECT mixtureName,resultHex,totalWeight FROM colorMixtures WHERE userId=?',(userId,)).fetchall()
+        name=' '.join(mixtureName.split()).casefold()
+        def same(row):
+            try:return (' '.join(row['mixtureName'].split()).casefold()==name and row['resultHex'].upper()==resultHex.upper()
+                and round(float(row['totalWeight']),2)==round(float(totalWeight),2))
+            except (ValueError,TypeError):return False
+        if any(same(row) for row in records):
+            raise ValueError('Смесь с таким названием, цветом и весом уже сохранена')
+        cursor=connection.execute('INSERT INTO colorMixtures (userId,mixtureName,resultHex,totalWeight,recipeJson) VALUES (?,?,?,?,?)',
+            (userId,mixtureName,resultHex,totalWeight,recipeJson))
+        connection.commit()
+        return cursor.lastrowid
+    finally:connection.close()
 
 def deleteColorMixtureById(userId, mixtureId):
     connection = getConnection()
