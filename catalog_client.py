@@ -69,7 +69,7 @@ class CatalogClient:
             raw=base64.b64decode(record['contentBase64'],validate=True)
             if record['kind']!=kind or hashlib.sha256(kind.encode()+raw).hexdigest()!=assetId:raise ValueError('Контрольная сумма учебного файла не совпала')
             validateAsset(record['name'],raw,kind)
-            assets[assetId]=record;size+=len(record['contentBase64'])
+            assets[assetId]={**record,'assetId':assetId};size+=len(record['contentBase64'])
             if size>MAX_CACHE_BYTES:raise ValueError('Материал не помещается в кеш 100 МБ')
         infoJson=json.dumps(info,ensure_ascii=False);assetsJson=json.dumps(assets)
         size=len(infoJson.encode())+len(assetsJson.encode())
