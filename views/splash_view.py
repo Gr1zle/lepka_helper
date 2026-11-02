@@ -5,8 +5,8 @@ from ui_helpers import getCurrentUser, showMessage
 from api_client import ApiError
 from app_info import APP_TITLE, APP_VERSION
 
-PRIMARY_COLOR = "#FF6B6B"
-SECONDARY_COLOR = "#4ECDC4"
+from design_system import PRIMARY_COLOR
+from design_system import SECONDARY_COLOR
 
 
 def createSplashView(page):
@@ -45,7 +45,7 @@ def createSplashView(page):
             color=ft.Colors.with_opacity(0.24, ft.Colors.BLACK),
             offset=ft.Offset(0, 8),
         ),
-        content=ft.Icon(name=ft.Icons.BRUSH, size=68, color=ft.Colors.WHITE),
+        content=ft.Image(src="icon.png",width=122,height=122,border_radius=36),
     )
 
     centerContent = ft.Column(
@@ -63,11 +63,11 @@ def createSplashView(page):
                         "Мобильный помощник для лепки из пластилина",
                         size=15,
                         text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.GREY_700,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
                     ),
                 ],
             ),
-            ft.ProgressRing(width=34, height=34, stroke_width=3, color=SECONDARY_COLOR),
+            ft.ProgressRing(width=34, height=34, stroke_width=3, color=ft.Colors.SECONDARY),
         ],
     )
 
@@ -81,7 +81,7 @@ def createSplashView(page):
                 gradient=ft.LinearGradient(
                     begin=ft.alignment.top_left,
                     end=ft.alignment.bottom_right,
-                    colors=["#FFF6F6", "#FFFFFF", "#EFFFFD"],
+                    colors=[ft.Colors.SURFACE, ft.Colors.SURFACE, ft.Colors.SURFACE_CONTAINER_HIGHEST],
                 ),
                 content=ft.SafeArea(
                     expand=True,
@@ -101,7 +101,7 @@ def createSplashView(page):
                                 content=ft.Text(
                                     'Версия ' + APP_VERSION,
                                     size=12,
-                                    color=ft.Colors.GREY_600,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
                                     text_align=ft.TextAlign.CENTER,
                                 ),
                             ),

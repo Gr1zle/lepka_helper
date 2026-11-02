@@ -1,3 +1,7 @@
+[Скачать APK 0.13.0 — редизайн, Android 9+ / ARM64](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.13.0-design-arm64.apk) · [Изменения №29](https://github.com/Gr1zle/lepka_helper/pull/29).
+
+[№29: редизайн, адаптивная навигация и иконка](docs/design_system.md) · [№28: камера, экспорт и референсы](docs/color_camera_references.md).
+
 [№25: офлайн-вход, черновики и автоматическая очередь](docs/offline_session_outbox.md).
 
 [Оставшиеся блоки приложения](docs/remaining_work.md) · [№24: личные данные и синхронизация](docs/personal_vault_sync.md).

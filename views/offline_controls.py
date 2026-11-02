@@ -25,7 +25,9 @@ def createConnectionBanner(page,user):
     # До монтирования Control.page ещё недоступен.
     state='offline' if user.get('offline') else 'online'
     text.value=('Оффлайн: личные данные на устройстве' if state=='offline' else 'Сервер доступен')+f" · в очереди: {len(entries(user,user['apiUrl']))}"
-    return ft.Container(padding=8,content=ft.Column([text,createOutboxButton(page,user)],spacing=0))
+    return ft.Container(padding=ft.padding.symmetric(horizontal=16,vertical=4),
+        content=ft.Row([ft.Icon(ft.Icons.CLOUD_OUTLINED,size=18,color=ft.Colors.PRIMARY),
+            ft.Container(content=text,expand=True),createOutboxButton(page,user)],spacing=8))
 
 
 def createOutboxButton(page,user):
@@ -70,7 +72,7 @@ def createOutboxButton(page,user):
             if dialog.open and current.get('sessionToken')==user.get('sessionToken'):render()
         page.session.set('refreshOutboxDialog',refreshIfOpen)
         render();page.open(dialog)
-    return ft.TextButton('Очередь отправки',icon=ft.Icons.CLOUD_UPLOAD_OUTLINED,on_click=openQueue)
+    return ft.IconButton(icon=ft.Icons.CLOUD_UPLOAD_OUTLINED,tooltip='Очередь отправки',on_click=openQueue)
 
 
 def createDraftTools(page,user,fields,photos,onPhotos):

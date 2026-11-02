@@ -58,12 +58,13 @@ def createModelGallery(page):
     query=ft.TextField(label='Поиск 3D-моделей',max_length=120)
     category=ft.Dropdown(label='Категория модели',value='Все',options=[ft.dropdown.Option(c) for c in MODEL_CATEGORIES])
     onlyFavorites=ft.Checkbox(label='Только избранные модели',value=bool(user and page.session.get('modelFavoritesOnly')),disabled=user is None)
-    result=ft.Column(spacing=8)
+    result=ft.ResponsiveRow(spacing=12,run_spacing=12)
     def refresh(event=None):
         try:
             items=searchModels(query.value or '',category.value,userId=user['userId'] if user else None)
             saved=favoriteModelIds(user['userId']) if user else set()
             result.controls=[createModelCard(page,item,refresh) for item in items if not onlyFavorites.value or item['modelId'] in saved]
+            for card in result.controls:card.col={'xs':12,'sm':6,'lg':4}
             if not result.controls:result.controls=[ft.Text('Подходящих моделей пока нет. Измените запрос или фильтры.')]
             query.error_text=None
         except ValueError as error:query.error_text=str(error)

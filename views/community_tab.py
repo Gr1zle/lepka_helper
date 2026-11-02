@@ -17,8 +17,8 @@ from views.moderation_actions import createReportButton,createModerationDelete
 from views.community_notices import createNoticeButton
 from views.admin_permissions import panelAccess
 
-PRIMARY_COLOR = '#FF6B6B'
-SECONDARY_COLOR = '#4ECDC4'
+from design_system import PRIMARY_COLOR
+from design_system import SECONDARY_COLOR
 
 
 def webAddress(page, path):
@@ -355,7 +355,7 @@ def createHomeTab(page, currentUser, nickname):
     draftTools=createDraftTools(page,currentUser,draftFields,photos,refreshPhotos)
     page.session.set('refreshCommunityFeed',lambda:(refreshPosts(),page.update()))
     refreshPosts()
-    return ft.ListView(expand=True, build_controls_on_demand=False, padding=16, spacing=12, controls=[
+    layout = ft.ListView(expand=True, build_controls_on_demand=False, padding=16, spacing=12, controls=[
         ft.Text(f'Привет, {nickname}!', size=22, weight=ft.FontWeight.BOLD),
         createDeadlineSummary(page,currentUser),
         createNoticeButton(page,currentUser),
@@ -375,6 +375,14 @@ def createHomeTab(page, currentUser, nickname):
         ft.Container(content=feedCategory,padding=ft.padding.symmetric(vertical=6)),
         ft.Container(content=feedSort,padding=ft.padding.symmetric(vertical=6)),onlyMine,
         ft.OutlinedButton('Обновить ленту', on_click=lambda event: (refreshPosts(), page.update())), posts,more])
+    from design_system import disclosure, polish
+    c=layout.controls
+    layout.controls=[c[0],ft.Text('Ваша мастерская и сообщество',color=ft.Colors.ON_SURFACE_VARIANT),
+        c[1],ft.Row([c[2],c[3]],wrap=True),c[4],
+        disclosure('Опубликовать работу',[c[6]],ft.Icons.ADD_PHOTO_ALTERNATE_OUTLINED),
+        c[7],c[8],disclosure('Фильтры ленты',c[9:12],ft.Icons.FILTER_LIST),*c[12:]]
+    return polish(layout)
+
 
 
 def createMyWorksButton(page, currentUser, onChanged=None):
