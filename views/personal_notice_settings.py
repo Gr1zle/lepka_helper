@@ -17,6 +17,6 @@ def openPersonalNoticeSettings(page,user,onSaved):
         page.close(dialog);onSaved();showMessage(page,'Настройки личных уведомлений сохранены')
     dialog=ft.AlertDialog(title=ft.Text('Личные уведомления'),content=ft.Column(tight=True,controls=[ft.Row([projects,ft.Text('Напоминания о дедлайнах',expand=True)]),
         ft.Row([lessons,ft.Text('Уроки и учебные достижения',expand=True)]),days,
-        ft.Text('События появляются при открытии приложения. Общий переключатель уведомлений находится в профиле. Настройки действуют на этом устройстве.'),error]),
+        ft.Text('Общий переключатель уведомлений находится в профиле. Настройки действуют на этом устройстве. Android-напоминания и письма настраиваются отдельно в «Доставке уведомлений».'),error]),
         actions=[ft.TextButton('Отмена',on_click=lambda e:page.close(dialog)),ft.TextButton('Сохранить настройки уведомлений',on_click=save)])
     page.open(dialog)

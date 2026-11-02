@@ -45,6 +45,20 @@ def addColumnIfNotExists(cursor, tableName, columnName, columnSql):
 def initializeDatabase():
     connection = getConnection()
     cursor = connection.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS deliverySettings (
+        userId INTEGER PRIMARY KEY REFERENCES users(userId) ON DELETE CASCADE,
+        deviceEnabled INTEGER NOT NULL DEFAULT 0, likes INTEGER NOT NULL DEFAULT 1,
+        comments INTEGER NOT NULL DEFAULT 1, replies INTEGER NOT NULL DEFAULT 1,
+        awards INTEGER NOT NULL DEFAULT 1, projects INTEGER NOT NULL DEFAULT 1,
+        learning INTEGER NOT NULL DEFAULT 1, emailEnabled INTEGER NOT NULL DEFAULT 0)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS notificationMailState (
+        userId INTEGER PRIMARY KEY REFERENCES users(userId) ON DELETE CASCADE, since TEXT NOT NULL)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS notificationMailQueue (
+        mailId TEXT PRIMARY KEY, userId INTEGER NOT NULL REFERENCES users(userId) ON DELETE CASCADE,
+        email TEXT NOT NULL, eventKey TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL,
+        state TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
+        nextAttempt REAL NOT NULL DEFAULT 0, leaseUntil REAL NOT NULL DEFAULT 0,
+        createdAt REAL NOT NULL, lastError TEXT NOT NULL DEFAULT '')''')
 
     cursor.execute(
         """
