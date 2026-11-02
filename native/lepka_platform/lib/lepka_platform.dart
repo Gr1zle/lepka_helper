@@ -31,13 +31,14 @@ class ProtectedSession extends StatefulWidget {
 class _ProtectedSessionState extends State<ProtectedSession> {
   static const channel = MethodChannel('ru.gr1zle.lepka/protected_session');
   String last = '';
+  String lastUi = '';
   Future<void> run(String command) async {
     String requestId = '';
     try {
       final decoded = jsonDecode(command) as Map<String, dynamic>;
       requestId = decoded['requestId'] as String;
       final operation = decoded['operation'] as String;
-      if (!['read', 'write', 'delete', 'notifyStatus', 'notifyPermission', 'notifySync', 'notifyClear', 'notifyOpen', 'notifyShow', 'notifyTest'].contains(operation)) throw const FormatException();
+      if (!['read', 'write', 'delete', 'notifyStatus', 'notifyPermission', 'notifySync', 'notifyClear', 'notifyOpen', 'notifyShow', 'notifyTest', 'fileSave', 'cameraCapture'].contains(operation)) throw const FormatException();
       final value = await channel.invokeMethod<String>(operation, {'value': decoded['value']});
       widget.backend.triggerControlEvent(widget.control.id, 'result', jsonEncode({'requestId': requestId, 'ok': true, 'value': value}));
     } catch (_) {
@@ -49,6 +50,11 @@ class _ProtectedSessionState extends State<ProtectedSession> {
     if (command.isNotEmpty && command != last) {
       last = command;
       WidgetsBinding.instance.addPostFrameCallback((_) => run(command));
+    }
+    final uiCommand = widget.control.attrString('uiCommand', '')!;
+    if (uiCommand.isNotEmpty && uiCommand != lastUi) {
+      lastUi = uiCommand;
+      WidgetsBinding.instance.addPostFrameCallback((_) => run(uiCommand));
     }
     return const SizedBox.shrink();
   }

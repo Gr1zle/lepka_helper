@@ -19,6 +19,7 @@ from views.model_view import createModelView
 from views.project_planner import createProjectPlanner
 from views.admin_view import createAdminView
 from views.challenge_view import createChallengeView
+from views.reference_gallery import createReferenceGallery
 from views.learning_catalog import createCatalogView,createCatalogDetail,createCatalogEditor
 
 PRIMARY_COLOR = "#FF6B6B"
@@ -98,6 +99,9 @@ def main(page: ft.Page):
             elif page.route.startswith('/catalog-edit/'):catalogView=createCatalogEditor(page,page.route[len('/catalog-edit/'):])
             else:catalogView=createCatalogDetail(page,page.route[len('/catalog/'):])
             page.views[:]=[root,catalogView];page.update();return
+        elif page.route == '/references':
+            root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
+            page.views[:]=[root,createReferenceGallery(page)];page.update();return
         elif page.route == '/models':
             root=page.views[0] if page.views and page.views[0].route=='/home' else createHomeView(page)
             page.views[:]=[root,createModelGallery(page)]

@@ -8,11 +8,15 @@ from PIL import Image, ImageDraw, ImageFont, PngImagePlugin
 from color_service import calculateMixedColor, calculateRecipe, normalizeSelectedColors, normalizeWeight
 
 
-def createRecipePng(mixtureName, selectedColors, totalWeight):
+def createRecipePng(mixtureName, selectedColors, totalWeight, calibration=None):
     colors = normalizeSelectedColors(selectedColors, minimumCount=2)
     weight = normalizeWeight(totalWeight)
     recipe = calculateRecipe(colors, weight)
     resultHex = calculateMixedColor(colors)
+    lengths=None
+    if calibration is not None:
+        from clay_tools import recipeLengths
+        lengths=recipeLengths(recipe,*calibration)
     name = ' '.join((mixtureName or '').split()) or 'Моя смесь'
     if not 1 <= len(name) <= 80:
         raise ValueError('Название должно быть не длиннее 80 символов')
@@ -40,12 +44,25 @@ def createRecipePng(mixtureName, selectedColors, totalWeight):
         draw.text((110, top + 8), item['name'], font=font, fill='#252535')
         draw.text((510, top + 8), f"{item['percent']:g}%", font=font, fill='#252535')
         draw.text((690, top + 8), f"{item['grams']:g} г", font=font, fill='#252535')
+        if lengths:draw.text((830,top+8),f"{lengths[index]['centimeters']:g} см",font=smallFont,fill='#252535')
     footer = 320 + offset + len(recipe) * 75
     draw.text((40, footer), 'RGB-предпросмотр приблизительный: реальный пластилин может отличаться.',
               font=smallFont, fill='#555566')
+    if calibration:
+        draw.text((40,footer+30),f'Брусок: {calibration[0]} г / {calibration[1]} см. Длины приблизительные.',font=smallFont,fill='#555566')
     meta = PngImagePlugin.PngInfo()
     meta.add_text('Recipe', json.dumps({'name': name, 'resultHex': resultHex,
                                       'totalWeight': weight, 'items': recipe}, ensure_ascii=False))
     result = BytesIO()
     canvas.save(result, format='PNG', pnginfo=meta)
     return result.getvalue()
+
+
+def createRecipePdf(mixtureName,selectedColors,totalWeight,calibration=None):
+    # Render the bundled Cyrillic font before writing PDF: no platform font substitution.
+    png=createRecipePng(mixtureName,selectedColors,totalWeight,calibration)
+    with Image.open(BytesIO(png)) as image:
+        image=image.convert('RGB');image.thumbnail((1120,1500))
+        page=Image.new('RGB',(1240,1754),'white');page.paste(image,((1240-image.width)//2,70))
+    output=BytesIO();page.save(output,format='PDF',resolution=150,title='Lepka Helper — рецепт смеси')
+    return output.getvalue()

@@ -3,6 +3,17 @@ import math
 import time
 
 
+def recipeLengths(recipe,barMass,barLength):
+    mass=positiveNumber(barMass,'Масса целого бруска, г',10000)
+    length=positiveNumber(barLength,'Длина целого бруска, см',1000)
+    result=[]
+    for item in recipe:
+        grams=item.get('grams')
+        if isinstance(grams,bool) or not isinstance(grams,(float,int)) or not math.isfinite(grams) or grams<0:raise ValueError('Некорректная масса компонента')
+        result.append({**item,'centimeters':round(grams/mass*length,2)})
+    return result
+
+
 def positiveNumber(value, name, maximum=1_000_000):
     try:
         if isinstance(value, bool):

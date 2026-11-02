@@ -10,6 +10,7 @@ from project_upload import uploadProject
 from model_upload import uploadModel
 from catalog_upload import upload as uploadCatalog
 from catalog_media import media as catalogMedia
+from camera_web import cameraPage
 
 
 def createWebApp():
@@ -30,5 +31,6 @@ def createWebApp():
     application.router.routes.insert(0, Route('/model-uploads/{ticket}', uploadModel, methods=['PUT']))
     application.router.routes.insert(0, Route('/catalog-uploads/{ticket}', uploadCatalog, methods=['PUT']))
     application.router.routes.insert(0, Route('/catalog-media/{ticket}', catalogMedia, methods=['GET','HEAD']))
+    application.router.routes.insert(0, Route('/color-camera/{ticket}', cameraPage, methods=['GET']))
     application.router.routes.insert(0, Route('/post-photos/{photoId:int}', publishedPhoto, methods=['GET']))
     return application

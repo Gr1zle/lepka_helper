@@ -20,7 +20,10 @@ from color_service import (
 )
 from lesson_service import (SEARCH_CATEGORIES, IDEA_THEMES, IDEA_LEVELS, IDEA_PALETTES,
                             generateRandomIdea, getLessonById, searchLessons, getUserLessonState, saveUserLessonState)
-from color_export import createRecipePng
+from color_export import createRecipePng,createRecipePdf
+from file_export import exportBytes
+from clay_tools import recipeLengths
+from views.color_scan import openColorScan
 from download_service import createDownload
 from date_field import createDeadlineField
 from photo_picker import createPhotoPicker
@@ -747,6 +750,10 @@ def createSearchTab(page, currentUser):
 
 def createColorsTab(page, currentUser):
     selectedColors = []
+    barMassField=ft.TextField(label='Масса целого бруска, г',value='20',keyboard_type=ft.KeyboardType.NUMBER)
+    barLengthField=ft.TextField(label='Длина целого бруска, см',value='8',keyboard_type=ft.KeyboardType.NUMBER)
+    lengthEnabled=ft.Checkbox(label='Показывать длину в сантиметрах',value=False)
+    mixtureSearch=ft.TextField(label='Поиск моих смесей по названию или HEX',max_length=120)
     recipeSearchState = {"token": 0}
 
     recipeColumn = ft.Column(spacing=8)
@@ -904,6 +911,9 @@ def createColorsTab(page, currentUser):
             )
             return
 
+        words=(mixtureSearch.value or '').casefold().split()
+        mixtures=[m for m in mixtures if all(word in (m['mixtureName']+' '+m['resultHex']).casefold() for word in words)]
+        if not mixtures:savedMixturesColumn.controls.append(ft.Text('Смесей по этому запросу нет.'))
         for mixture in mixtures:
             @authenticatedAction(page, currentUser)
             def handleDeleteMixture(event, currentMixtureId=mixture["mixtureId"]):
@@ -1103,6 +1113,12 @@ def createColorsTab(page, currentUser):
                 )
             )
 
+        if lengthEnabled.value and recipeItems:
+            try:
+                for item in recipeLengths(recipeItems,barMassField.value,barLengthField.value):
+                    recipeColumn.controls.append(ft.Text(f"{item['name']}: {item['centimeters']:g} см"))
+            except ValueError as error:recipeColumn.controls.append(ft.Text(str(error),color=ft.Colors.RED))
+
         if not recipeItems:
             recipeColumn.controls.append(
                 ft.Text("Рецепт появится после выбора минимум одного цвета.", color=ft.Colors.GREY_600)
@@ -1270,47 +1286,19 @@ def createColorsTab(page, currentUser):
         return authenticatedAction(page, currentUser)(callback) if currentUser else callback
 
     @colorAction
-    def handleExportRecipe(event):
+    def handleExportRecipe(event,asPdf=False):
         try:
-            png = createRecipePng(mixtureNameField.value, selectedColors, getTotalWeight())
-        except ValueError as error:
-            showMessage(str(error), True)
-            return
-        if isWebClient(page):
-            try:
-                ticket = createDownload(png)
-                address = urlsplit(page.url)
-                scheme = {'ws': 'http', 'wss': 'https'}.get(address.scheme, address.scheme)
-                if scheme not in ('http', 'https') or not address.netloc:
-                    raise ValueError('Не удалось определить адрес скачивания')
-                page.launch_url(f'{scheme}://{address.netloc}/downloads/{ticket}', web_window_name='_self')
-            except ValueError as error:
-                showMessage(str(error), True)
-                return
-            showMessage('PNG-рецепт передан браузеру для скачивания')
-        else:
-            @colorAction
-            def savePicked(result):
-                if not result.path:
-                    return
-                path = Path(result.path)
-                if path.suffix.lower() != '.png':
-                    path = path.with_suffix('.png')
-                try:
-                    with path.open('xb') as output:
-                        output.write(png)
-                except FileExistsError:
-                    showMessage('Файл уже существует. Выберите другое имя', True)
-                    return
-                except OSError:
-                    showMessage('Не удалось сохранить файл в выбранную папку', True)
-                    return
-                showMessage('PNG-рецепт сохранён')
-            picker = ft.FilePicker(on_result=savePicked)
-            page.overlay[:] = [control for control in page.overlay if not isinstance(control, ft.FilePicker)]
-            page.overlay.append(picker)
-            page.update()
-            picker.save_file(file_name='lepka-recipe.png', file_type=ft.FilePickerFileType.CUSTOM, allowed_extensions=['png'])
+            calibration=(barMassField.value,barLengthField.value) if lengthEnabled.value else None
+            content=(createRecipePdf if asPdf else createRecipePng)(mixtureNameField.value,selectedColors,getTotalWeight(),calibration)
+            exportBytes(page,currentUser,content,'lepka-recipe.'+('pdf' if asPdf else 'png'),'application/pdf' if asPdf else 'image/png')
+        except (ValueError,OSError) as error:showMessage(str(error),True)
+
+    @colorAction
+    def scanColor(event):
+        if not currentUser:showMessage('Войдите для выбора цвета с камеры или фото',True);return
+        def apply(hexColor):
+            targetHexField.value=hexColor;updateTargetSelectedPreview(hexColor);page.update()
+        openColorScan(page,currentUser,apply,lambda color:handleColorClick(None,color))
 
     def createPaletteButton(colorItem, onTap):
         return ft.GestureDetector(
@@ -1353,10 +1341,18 @@ def createColorsTab(page, currentUser):
     )
     for color in BASE_COLORS:
         colorGrid.controls.append(createPaletteButton(color, handleColorClick))
+    paletteSearch=ft.TextField(label='Поиск базового цвета по названию или HEX',max_length=120)
+    def filterPalette(event):
+        query=(paletteSearch.value or '').strip().casefold().replace('ё','е').lstrip('#')
+        colorGrid.controls=[createPaletteButton(c,handleColorClick) for c in BASE_COLORS if query in c['name'].casefold().replace('ё','е') or query in c['hex'].casefold().lstrip('#')]
+        page.update()
+    paletteSearch.on_change=colorAction(filterPalette)
+    mixtureSearch.on_change=colorAction(lambda e:(refreshSavedMixtures(),page.update()))
 
     targetColorWheel = createRealColorWheel()
 
     totalWeightField.on_change = lambda event: (refreshRecipe(), page.update())
+    lengthEnabled.on_change=lambda event:(refreshRecipe(),page.update())
 
     updateTargetSelectedPreview(targetHexField.value)
     refreshRecipe()
@@ -1374,6 +1370,7 @@ def createColorsTab(page, currentUser):
 
             ft.Text("Базовая палитра", size=18, weight=ft.FontWeight.BOLD),
             ft.Text("Нажмите на цвет, чтобы добавить его в смесь.", size=13, color=ft.Colors.GREY_600),
+            paletteSearch,
             colorGrid,
 
             ft.Row(
@@ -1386,6 +1383,9 @@ def createColorsTab(page, currentUser):
             selectedColorsColumn,
 
             totalWeightField,
+            ft.ExpansionTile(title=ft.Text('Расчёт длины пластилина (см)'),controls=[ft.Container(padding=12,content=ft.Column(spacing=12,controls=[barMassField,barLengthField,lengthEnabled,
+                ft.Text('Введите массу и длину своего целого бруска. Формула: масса компонента / масса бруска × длина бруска. Для всех цветов предполагаются одинаковые бруски.'),
+                ft.TextButton('Пересчитать сантиметры',on_click=lambda e:(refreshRecipe(),page.update()))]))]),
             mixtureNameField,
 
             ft.Column(
@@ -1401,6 +1401,7 @@ def createColorsTab(page, currentUser):
                         icon=ft.Icons.FILE_DOWNLOAD,
                         on_click=handleExportRecipe,
                     ),
+                    ft.OutlinedButton('Экспорт PDF',icon=ft.Icons.PICTURE_AS_PDF,on_click=lambda e:handleExportRecipe(e,asPdf=True)),
                 ],
                 spacing=10,
             ),
@@ -1410,6 +1411,7 @@ def createColorsTab(page, currentUser):
 
             ft.Divider(),
             ft.Text("Подбор рецепта", size=18, weight=ft.FontWeight.BOLD),
+            ft.OutlinedButton('Сканировать цвет с камеры',icon=ft.Icons.CAMERA_ALT_OUTLINED,on_click=scanColor),
             targetHexField,
             ft.ElevatedButton(
                 "Подобрать рецепт",
@@ -1439,6 +1441,7 @@ def createColorsTab(page, currentUser):
 
             ft.Divider(),
             ft.Text("Мои смеси", size=18, weight=ft.FontWeight.BOLD),
+            mixtureSearch,
             savedMixturesColumn,
         ],
     )
