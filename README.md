@@ -1,3 +1,19 @@
+# Android 0.11.0 — учебный каталог и редактор материалов
+
+[Скачать APK 0.11.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.11.0-catalog-arm64.apk) · [Сервер 0.11.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.11.0.zip).
+
+Android 9+, ARM64, около 38 МБ, versionCode 2008. Установить поверх 0.10.0 без удаления приложения: подпись сохранена. Исходники: feature/learning-catalog, 6b4ee66, PR №27. Все 447 тестов прошли на GitHub. Проверены актуальные исходники/ресурсы APK, подпись, целостность, native libmpv/MediaKit, защищённое хранилище/receiver в DEX и отсутствие личных баз/токенов/секретов.
+
+Поиск → «Учебный каталог»: новые уроки и модели сотрудников, фильтры, скачивание полных копий с фото/MP4/OBJ для офлайн-просмотра, чек-листы, заметки, избранное и подписки на категории. До 20 копий/100 МБ на владельца и API. Встроенные материалы сохранены. 3D открывается в прежнем полноэкранном просмотре. Новый кеш/прогресс каталога пока не переносятся снимком №24.
+
+Администратор/сотрудник с правом catalog.manage: структурированный редактор, черновики/публикация/архив, версии/конфликты, журнал и статистика уникальных читателей/завершивших. Фото до 10 МБ, MP4 до 12 МБ (H.264/AAC рекомендуются), OBJ/ZIP до 3 МБ; серверный каталог до 200 материалов/128 МБ. Android-видео использует включённый модуль flet-video; кодеки и воспроизведение нужно проверить на устройстве. Веб-видео и офлайн-урок/OBJ проверены с настоящим API и независимой клиентской базой.
+
+Обновить сервер: остановить старый процесс, распаковать новую папку отдельно, использовать прежний --data-dir и сохранить LepkaHelperServer/accounts.db. Затем обновить APK. Письма остаются необязательными и выключенными по умолчанию. Удалённые FCM push на закрытый телефон не добавлены.
+
+[Отчёт №27](https://github.com/Gr1zle/lepka_helper/blob/feature/learning-catalog/docs/learning_catalog.md) · [Следующие три группы, включая камеру в №28](https://github.com/Gr1zle/lepka_helper/blob/feature/learning-catalog/docs/remaining_work.md).
+
+---
+
 # Android 0.10.0 — уведомления и необязательные письма
 
 [Скачать APK 0.10.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.10.0-notifications-arm64.apk) · [Сервер 0.10.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.10.0.zip).
