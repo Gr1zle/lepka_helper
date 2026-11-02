@@ -185,6 +185,7 @@ class BackendTests(unittest.TestCase):
     def test_server_database_is_separate_from_client_default(self):
         self.assertEqual(database.DATABASE_PATH, Path(self.folder.name) / 'accounts.db')
         self.assertEqual(self.client.get('/health').json(), {'status': 'ok'})
+        self.assertEqual(self.client.get('/capabilities').json()['projectWorkflow'],2)
         self.assertEqual(database.getUserByEmail('owner@example.com')['email'], 'owner@example.com')
 
 

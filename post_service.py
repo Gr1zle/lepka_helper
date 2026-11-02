@@ -112,6 +112,8 @@ def savePost(userId, titleText, descriptionText, categoryName, tagsText, photoFi
         if details is None or any(step['photoPosition'] is not None and step['photoPosition'] >= len(photos)
                                   for step in details['steps']):
             return False, 'Проверьте данные мастер-класса и фотографии шагов', None
+        if any(step['photoPosition'] is None for step in details['steps']):
+            return False,'Для каждого публикуемого этапа нужно фото',None
         if 'workshopInfo' in details:
             details['formatVersion'] = 2
         projectDetailsJson = json.dumps(details, ensure_ascii=False)

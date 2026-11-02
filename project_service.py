@@ -139,6 +139,8 @@ def getProjectSteps(projectId, userId):
                 "stepId": stepRecord["stepId"],
                 "projectId": stepRecord["projectId"],
                 "stepDescription": stepRecord["stepDescription"],
+                "title": stepRecord["stepDescription"],
+                "details": stepRecord["detailsText"],
                 "isCompleted": bool(stepRecord["isCompleted"]),
                 "hasPhoto": bool(stepRecord['hasPhoto']),
                 "createdAt": stepRecord["createdAt"],
@@ -165,7 +167,7 @@ def calculateProjectProgress(projectId, userId):
     stepItems = getProjectSteps(projectId, userId)
 
     if len(stepItems) == 0:
-        return 0
+        return 100 if getProjectById(projectId,userId)["isFinished"] else 0
 
     completedCount = 0
 
@@ -207,6 +209,9 @@ def getUserProjects(userId):
                 "deadlineDate": projectRecord["deadlineDate"],
                 "descriptionText": projectRecord["descriptionText"],
                 "progressPercent": progressPercent,
+                "isFinished": bool(projectRecord["isFinished"]),
+                "hasFinalPhoto": bool(projectRecord["hasFinalPhoto"]),
+                "completedAt": projectRecord["completedAt"],
                 "stepItems": stepItems,
                 "createdAt": projectRecord["createdAt"],
             }
@@ -235,9 +240,6 @@ def saveProjectStep(projectId, stepDescription, userId):
 
 
 def changeProjectStepStatus(projectId, stepId, isCompleted, userId):
-    step = next((item for item in getProjectSteps(projectId, userId) if item['stepId'] == stepId), None)
-    if step and isCompleted is True and not step['hasPhoto'] and not step['isCompleted']:
-        raise ValueError('Перед завершением этапа добавьте фото результата')
     if not updateProjectStepStatus(projectId, stepId, isCompleted, userId):
         return None
     progressPercent = refreshProjectProgress(projectId, userId)
@@ -259,7 +261,7 @@ def saveProjectStepPhoto(projectId, stepId, userId, photo):
 
 def removeProjectStepPhoto(projectId, stepId, userId):
     if not setProjectStepPhoto(projectId, stepId, userId, None):
-        return False, 'Этап недоступен или уже завершён. Сначала снимите отметку выполнения'
+        return False, 'Этап не найден или недоступен'
     return True, 'Фото этапа удалено'
 
 
@@ -289,3 +291,46 @@ def editProjectStep(projectId, stepId, userId, description):
     if not updateProjectStepDescription(projectId, stepId, userId, description.strip()):
         return False, 'Этап не найден или недоступен'
     return True, 'Этап изменён'
+
+
+def saveStep(projectId,userId,title,details='',stepId=None):
+    from database import updateStepDetails
+    error=validateStepDescription(title)
+    if error:return False,error.replace('Описание','Название').replace('описание','название'),None
+    if not isinstance(details,str) or len(details)>900:return False,'Описание этапа: до 900 символов',None
+    if stepId is None:
+        # Both fields are committed together: no half-created stages on failure.
+        from database import openDatabase
+        with openDatabase() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            count=connection.execute('SELECT COUNT(*) FROM projectSteps s JOIN projects p ON p.projectId=s.projectId WHERE p.projectId=? AND p.userId=?',(projectId,userId)).fetchone()[0]
+            if count>=100:return False,'Допускается не больше 100 этапов',None
+            cursor=connection.execute("""INSERT INTO projectSteps(projectId,stepDescription,detailsText,sortOrder)
+                SELECT projectId,?,?,COALESCE((SELECT MAX(sortOrder) FROM projectSteps WHERE projectId=?),-1)+1 FROM projects WHERE projectId=? AND userId=?""",
+                (title.strip(),details.strip(),projectId,projectId,userId))
+            if not cursor.rowcount:return False,'Проект недоступен',None
+            stepId=cursor.lastrowid
+            connection.execute('UPDATE projects SET isFinished=0,completedAt=NULL WHERE projectId=? AND userId=?',(projectId,userId))
+        refreshProjectProgress(projectId,userId)
+    elif not updateStepDetails(projectId,stepId,userId,title.strip(),details.strip()):return False,'Этап недоступен',None
+    return True,'Этап сохранён',stepId
+
+
+def saveFinalPhoto(projectId,userId,photo):
+    from database import setFinalPhoto
+    try:data=preparePhoto(photo.get('name'),photo.get('data'))['data']
+    except (ValueError,AttributeError) as error:return False,str(error)
+    return (True,'Финальное фото сохранено') if setFinalPhoto(projectId,userId,data) else (False,'Проект недоступен')
+
+
+def removeFinalPhoto(projectId,userId):
+    from database import setFinalPhoto
+    return (True,'Финальное фото удалено') if setFinalPhoto(projectId,userId,None) else (False,'Сначала верните проект в работу')
+
+
+def finishProject(projectId,userId,finished=True):
+    from database import finishProjectRecord
+    if type(finished) is not bool:return False,'Некорректный статус'
+    try:ok=finishProjectRecord(projectId,userId,finished)
+    except ValueError as error:return False,str(error)
+    return ok,('Проект завершён' if finished else 'Проект возвращён в работу') if ok else 'Проект недоступен'

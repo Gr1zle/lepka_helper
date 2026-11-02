@@ -734,7 +734,7 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         view = self.mount(ft.View('/projects', controls=[createProjectsTab(self.page, self.user)]))
         find(view, ft.TextButton, text='Порядок этапов').on_click(None)
         dialog = next(c for c in self.page.overlay if isinstance(c, ft.AlertDialog) and c.open)
-        find(dialog, ft.IconButton, tooltip='Этап ниже').on_click(None)
+        find(dialog,ft.ReorderableListView).on_reorder(SimpleNamespace(old_index=0,new_index=1))
         self.assertEqual([s['stepId'] for s in projects.getProjectSteps(projectId, self.user['userId'])], ids)
         find(dialog, ft.TextButton, text='Отмена').on_click(None)
         self.assertEqual([s['stepId'] for s in projects.getProjectSteps(projectId, self.user['userId'])], ids)

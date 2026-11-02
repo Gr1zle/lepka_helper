@@ -1,3 +1,5 @@
+[№31: этапы, финальное фото и завершение проекта](docs/project_workflow.md) · [Актуальная очередь](docs/remaining_work.md).
+
 [Скачать APK 0.14.0 — новая главная и навигация](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.14.0-discovery-arm64.apk) · [PR №30](https://github.com/Gr1zle/lepka_helper/pull/30).
 
 [№30: новая главная, поиск, создание и проекты](docs/discovery_navigation.md) · [Актуальная очередь переделки](docs/remaining_work.md).

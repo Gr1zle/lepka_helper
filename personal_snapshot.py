@@ -121,6 +121,8 @@ def applySnapshot(userId,content,connection):
         stepIds=[row[0] for row in connection.execute('SELECT stepId FROM projectSteps WHERE projectId=? ORDER BY sortOrder,stepId',(projectId,))]
         for stepId,step in zip(stepIds,item['archive']['steps']):
             if step['photo'] is not None:connection.execute('UPDATE projectSteps SET photoImage=? WHERE stepId=?',(base64.b64decode(step['photo'],validate=True),stepId))
+        final=item['archive']['project'].get('finalPhoto')
+        if final is not None:connection.execute('UPDATE projects SET finalPhotoImage=? WHERE projectId=?',(base64.b64decode(final,validate=True),projectId))
     for item in cleanMixtures:
         connection.execute('INSERT INTO colorMixtures(userId,mixtureName,resultHex,totalWeight,recipeJson) VALUES (?,?,?,?,?)',
                            (userId,item['mixtureName'],item['resultHex'],item['totalWeight'],json.dumps(item['recipeItems'],ensure_ascii=False)))

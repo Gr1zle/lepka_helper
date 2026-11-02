@@ -24,7 +24,7 @@ def getWorkshop(postId, existingConnection=None):
             return None
         info = details.get('workshopInfo')
         # Старый формат начинался с результата; при чтении переносим его в конец.
-        steps = details['steps'] if info else [*details['steps'][1:], details['steps'][0]]
+        steps = details['steps'] if info or details.get('formatVersion')==2 else [*details['steps'][1:], details['steps'][0]]
         return {'postId': postId, 'title': record['titleText'], 'description': record['descriptionText'],
                 'category': record['categoryName'], 'nickname': record['nickname'],
                 'level': info['level'] if info else None, 'timeMinutes': info['timeMinutes'] if info else None,
@@ -80,7 +80,10 @@ def addWorkshopAsProject(postId, userId, workshopData=None):
             info += f"Сложность: {workshop['level']}\nВремя: {workshop['timeMinutes']} мин\n"
         info += 'Материалы и инструменты: ' + ', '.join([*workshop['materials'], *workshop['tools']]) + '\n'
         projectId = createProjectWithSteps(userId, workshop['title'][:80], workshop['category'], '',
-            (info + workshop['description'])[:1500], [step['description'] for step in workshop['steps']], connection)
+            (info + workshop['description'])[:1500], [step.get('title',step['description']) for step in workshop['steps'] if not step.get('result')], connection)
+        ids=[row[0] for row in connection.execute('SELECT stepId FROM projectSteps WHERE projectId=? ORDER BY sortOrder,stepId',(projectId,))]
+        copied=[step for step in workshop['steps'] if not step.get('result')]
+        connection.executemany('UPDATE projectSteps SET detailsText=? WHERE stepId=?',[(step.get('details',''),sid) for sid,step in zip(ids,copied)])
         connection.executemany('INSERT INTO projectMixtures (projectId, mixtureJson) VALUES (?, ?)',
             [(projectId, json.dumps(mixture, ensure_ascii=False)) for mixture in workshop['mixtures']])
     return True, 'Мастер-класс добавлен в проекты. Добавьте фото своих этапов по мере работы', projectId

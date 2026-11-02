@@ -66,9 +66,9 @@ class ProjectArchiveTests(unittest.TestCase):
     def test_invalid_files_never_leave_partial_records(self):
         body = json.loads(exportProject(self.project, self.user['userId']))
         variants = [b'not json', b'[]', b'\xff']
-        for mutate in (lambda d: d.update(version=2), lambda d: d.update(userId=self.other),
+        for mutate in (lambda d: d.update(version=99), lambda d: d.update(userId=self.other),
                        lambda d: d['steps'][0].update(photo='broken'),
-                       lambda d: d['steps'][1].update(completed=True),
+                       lambda d: d['project'].update(finished=True),
                        lambda d: d['project'].update(deadline='31.04.2026'),
                        lambda d: d.update(mixtures=[{}])):
             item = copy.deepcopy(body)
@@ -149,6 +149,9 @@ class ProjectArchiveTests(unittest.TestCase):
     def test_completion_statistics_transition_reopen_and_imported_undated(self):
         projects.saveProjectStepPhoto(self.project, self.ids[1], self.user['userId'], photo())
         projects.changeProjectStepStatus(self.project, self.ids[1], True, self.user['userId'])
+        self.assertIsNone(db.getProjectById(self.project,self.user['userId'])['completedAt'])
+        projects.saveFinalPhoto(self.project,self.user['userId'],photo())
+        self.assertTrue(projects.finishProject(self.project,self.user['userId'])[0])
         stamp = db.getProjectById(self.project, self.user['userId'])['completedAt']
         self.assertTrue(stamp)
         with db.openDatabase() as c:

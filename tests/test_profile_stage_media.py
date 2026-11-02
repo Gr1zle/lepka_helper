@@ -76,8 +76,7 @@ class MediaTests(unittest.TestCase):
         self.assertEqual(projects.getUserProjects(self.owner)[0]['progressPercent'], 100)
         self.assertFalse(projects.getProjectSteps(self.project, self.owner)[0]['hasPhoto'])
         projects.changeProjectStepStatus(self.project, self.step, False, self.owner)
-        with self.assertRaises(ValueError):
-            projects.changeProjectStepStatus(self.project, self.step, True, self.owner)
+        self.assertEqual(projects.changeProjectStepStatus(self.project,self.step,True,self.owner),100)
 
     def test_step_photo_is_private_and_wrong_project_or_owner_cannot_replace_it(self):
         self.assertTrue(projects.saveProjectStepPhoto(self.project, self.step, self.owner, photo())[0])
@@ -90,19 +89,13 @@ class MediaTests(unittest.TestCase):
         self.assertFalse(projects.removeProjectStepPhoto(self.project, self.step, self.other)[0])
         self.assertEqual(db.getProjectStepPhoto(self.project, self.step, self.owner), old)
 
-    def test_completion_requires_photo_in_both_service_and_sql(self):
-        self.assertFalse(db.updateProjectStepStatus(self.project, self.step, True, self.owner))
-        with self.assertRaises(ValueError):
-            projects.changeProjectStepStatus(self.project, self.step, True, self.owner)
-        self.assertEqual(projects.getUserProjects(self.owner)[0]['progressPercent'], 0)
-        self.assertTrue(projects.saveProjectStepPhoto(self.project, self.step, self.owner, photo())[0])
-        self.assertEqual(projects.changeProjectStepStatus(self.project, self.step, True, self.owner), 100)
-        self.assertFalse(projects.removeProjectStepPhoto(self.project, self.step, self.owner)[0])
-        self.assertTrue(projects.saveProjectStepPhoto(self.project, self.step, self.owner, photo())[0])
-        self.assertEqual(projects.getUserProjects(self.owner)[0]['progressPercent'], 100)
-        projects.changeProjectStepStatus(self.project, self.step, False, self.owner)
-        self.assertTrue(projects.removeProjectStepPhoto(self.project, self.step, self.owner)[0])
-        self.assertIsNone(db.getProjectStepPhoto(self.project, self.step, self.owner))
+    def test_personal_steps_allow_completion_and_photo_removal_without_a_photo(self):
+        self.assertTrue(db.updateProjectStepStatus(self.project,self.step,True,self.owner))
+        self.assertEqual(projects.changeProjectStepStatus(self.project,self.step,True,self.owner),100)
+        self.assertFalse(db.getProjectById(self.project,self.owner)['isFinished'])
+        projects.saveProjectStepPhoto(self.project,self.step,self.owner,photo())
+        self.assertTrue(projects.removeProjectStepPhoto(self.project,self.step,self.owner)[0])
+        self.assertTrue(projects.getProjectSteps(self.project,self.owner)[0]['isCompleted'])
 
     def test_invalid_step_image_does_not_replace_existing_photo(self):
         projects.saveProjectStepPhoto(self.project, self.step, self.owner, photo())
@@ -210,7 +203,7 @@ class MediaUiTests(unittest.IsolatedAsyncioTestCase):
         checkbox = find(view, ft.Checkbox)
         checkbox.value = True
         checkbox.on_change(SimpleNamespace(control=checkbox))
-        self.assertEqual(projects.getUserProjects(self.user['userId'])[0]['progressPercent'], 0)
+        self.assertEqual(projects.getUserProjects(self.user['userId'])[0]['progressPercent'], 100)
         self.pick(view, 'Добавить фото этапа')
         self.assertIsNotNone(db.getProjectStepPhoto(project, step, self.user['userId']))
         checkbox = find(view, ft.Checkbox)
@@ -218,4 +211,4 @@ class MediaUiTests(unittest.IsolatedAsyncioTestCase):
         checkbox.on_change(SimpleNamespace(control=checkbox))
         self.assertEqual(projects.getUserProjects(self.user['userId'])[0]['progressPercent'], 100)
         find(view, ft.TextButton, text='Убрать фото этапа').on_click(None)
-        self.assertIsNotNone(db.getProjectStepPhoto(project, step, self.user['userId']))
+        self.assertIsNone(db.getProjectStepPhoto(project, step, self.user['userId']))

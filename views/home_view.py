@@ -1467,6 +1467,9 @@ def createColorsTab(page, currentUser):
 
 
 def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=None, onChanged=None):
+    if mode=='detail':
+        from views.project_editor import createProjectEditor
+        return createProjectEditor(page,currentUser,projectId,onChanged)
     projectListColumn = ft.Column(spacing=10)
     statisticsCard = createProjectStatistics(page, currentUser) if currentUser and mode!='create' else ft.Container()
     deadlineSummary = ft.Container()
@@ -1559,12 +1562,12 @@ def createProjectsTab(page, currentUser, mode="all", onCreated=None, projectId=N
 
         for projectItem in projectItems:
             if mode=='list':
-                from views.discovery import creationDialog
+                from views.discovery import openPage
                 @authenticatedAction(page,currentUser)
                 def openProject(event,pid=projectItem['projectId']):
                     body=createProjectsTab(page,currentUser,mode='detail',projectId=pid,
                         onChanged=lambda:(refreshProjectList(),page.update()))
-                    creationDialog(page,'Проект',body)
+                    openPage(page,'Проект',body,'/discovery/project/'+str(pid))
                 newProjectControls.append(ft.Card(data=projectItem['projectId'],content=ft.ListTile(
                     title=ft.Text(projectItem['projectName'],weight=ft.FontWeight.W_600),
                     subtitle=ft.Text(projectItem['categoryName']+' · '+(projectItem['deadlineDate'] or 'Без дедлайна')),

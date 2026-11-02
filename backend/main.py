@@ -204,6 +204,14 @@ def createApp(dataDirectory=None):
             raise HTTPException(503,'Серверная база пока недоступна') from None
         return {'status':'ready'}
 
+    @application.get('/capabilities')
+    def capabilities():
+        return {'projectArchiveVersion':2,'projectWorkflow':2}
+
+    @application.get('/community/capabilities')
+    def communityCapabilities():
+        return {'data':capabilities()}
+
     @application.get('/health')
     def health():
         return {'status': 'ok'}
