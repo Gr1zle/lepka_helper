@@ -1,3 +1,17 @@
+# Android 0.10.0 — уведомления и необязательные письма
+
+[Скачать APK 0.10.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.10.0-notifications-arm64.apk) · [Сервер 0.10.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.10.0.zip).
+
+Android 9+, ARM64, около 31 МБ, versionCode 2007. Установить поверх 0.9.0 без удаления. Подпись совпадает с предыдущими версиями; актуальные исходники/ресурсы APK, DEX и разрешения проверены, личных баз/сессий/секретов нет. Исходники: feature/notification-delivery, 2eb72ec, PR №26. Локально 430 тестов прошли. Физическая проверка разрешений, будильников и перезагрузки остаётся на устройстве пользователя.
+
+Центр уведомлений → «Доставка уведомлений»: включить Android, разрешить канал, проверить разрешение и тестовое уведомление, сохранить. Дедлайны планируются за 2 дня, за день и в сам день в 10:00 по Москве; уроки — по интервалу перерыва с учётом откладывания. Android может задерживать неточные будильники. Выход очищает расписание, системная принудительная остановка блокирует доставку до запуска. Новые события сообщества требуют работающего приложения и связи с сервером: это не FCM push на закрытый телефон.
+
+Обновить сервер: остановить прежний процесс, распаковать ZIP отдельно, использовать прежний --data-dir, сохранить LepkaHelperServer/accounts.db. Почтовая очередь выключена по умолчанию; для неё нужны настройка Resend на компьютере, флаг --notification-mail и отдельное согласие пользователя. Для писем о сроках отправить актуальный личный снимок. Реальная почта при разработке не отправлялась.
+
+[Отчёт №26 и инструкция](https://github.com/Gr1zle/lepka_helper/blob/feature/notification-delivery/docs/notification_delivery.md) · [Остаток работы и камера в №28](https://github.com/Gr1zle/lepka_helper/blob/feature/notification-delivery/docs/remaining_work.md).
+
+---
+
 # Android 0.9.0 — офлайн-вход, черновики и очередь
 
 [Скачать APK 0.9.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.9.0-offline-arm64.apk) · [Сервер 0.9.0](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.9.0.zip).
