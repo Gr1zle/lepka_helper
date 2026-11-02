@@ -21,7 +21,7 @@ class DesignTests(unittest.IsolatedAsyncioTestCase):
         openCreate(self.page,self.user)
         menu=next(c for c in reversed(self.page.overlay) if isinstance(c,ft.AlertDialog) and c.open)
         option=next(c for c in harness.walk(menu) if isinstance(c,ft.ListTile) and c.title.value=='Личный проект')
-        option.on_click(None)
+        option.on_click(None);menu.on_dismiss(None)
         editor=next(c for c in reversed(self.page.overlay) if isinstance(c,ft.AlertDialog) and c.open)
         field=harness.find(editor,ft.TextField,label='Название проекта')
         field.value='Не сохранённая фигурка'

@@ -34,14 +34,14 @@ class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
         category.value='Животные';category.on_change(SimpleNamespace(control=category))
         self.assertTrue(any(isinstance(c,ft.TextButton) and c.text=='Открыть' for c in harness.walk(root)))
 
-    async def test_global_creation_opens_a_modal_without_changing_current_tab(self):
+    async def test_global_creation_opens_fullscreen_post_without_changing_current_tab(self):
         root=self.mount(createHomeView(self.page))
         self.page.session.get('navigateHomeTab')(2)
         harness.find(root,ft.IconButton,tooltip='Создать').on_click(None)
         option=next(c for c in harness.walk(self.dialog()) if isinstance(c,ft.ListTile) and c.title.value=='Публикация')
-        option.on_click(None)
+        menu=self.dialog();option.on_click(None);menu.on_dismiss(None)
         self.assertEqual(self.page.session.get('homeTab'),2)
-        self.assertIsNotNone(harness.find(self.dialog(),ft.TextField,label='Название работы'))
+        self.assertIsNotNone(harness.find(self.page.views[-1],ft.TextField,label='Название работы'))
 
     async def test_project_summary_hides_steps_until_opened_and_edits_refresh_the_modal(self):
         ok,_,pid=saveProject(self.user['userId'],'Фигурка','Животные','','Заметка')

@@ -119,9 +119,33 @@ class CommunityClient:
             except ApiError as error:
                 if error.statusCode == 404: return None
                 raise
-        with db.openDatabase() as connection:
-            row = connection.execute('SELECT userId FROM posts WHERE postId=? AND isDeleted=0', (postId,)).fetchone()
-        return next((item for item in posts.getUserPosts(row['userId']) if item['postId']==postId), None) if row else None
+        return posts.getPost(postId,self.user['userId'] if self.user else None)
+
+    def getPostDetail(self,postId):
+        if not self.remote:return posts.postDetail(postId,self.user)
+        try:return self.request('GET',f'/posts/{postId}/detail')
+        except ApiError as error:
+            if error.statusCode not in (0,404) and error.statusCode<500:raise
+        # Servers 0.15/0.16 remain usable; the page is already visible while loading.
+        item=self.getPost(postId)
+        if item is None:return None
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            from moderation_gateway import ModerationClient
+            def accessSnapshot():
+                try:return ModerationClient(self.user).access()
+                except ApiError as error:
+                    if error.statusCode==0 or error.statusCode>=500:return {'permissions':[]}
+                    raise
+            access=pool.submit(accessSnapshot) if self.user else None
+            comments=pool.submit(self.getCommentsPage,postId)
+            workshop=pool.submit(self.getWorkshop,postId)
+            photo=pool.submit(self.getThumbnail,item['photoIds'][0]) if item['photoIds'] else None
+            images={}
+            if photo:
+                data=photo.result()
+                if data:images[str(item['photoIds'][0])]=base64.b64encode(data).decode()
+            return dict(post=item,comments=comments.result(),workshop=workshop.result(),photos=images,access=access.result() if access else {'permissions':[]})
 
     def getComments(self, postId):
         if not self.remote:

@@ -1,3 +1,5 @@
+[№33: исправления открытия постов, языка и публикации](docs/interaction_fixes.md).
+
 [Скачать APK 0.16.0 — English и сообщество](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.16.0-english-arm64.apk) · [Wi-Fi-сервер 0.16](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.16.0.zip) · [PR №32](https://github.com/Gr1zle/lepka_helper/pull/32).
 
 [№32: английский интерфейс и проверка общего сообщества](docs/english_community.md) · [Актуальный остаток работы](docs/remaining_work.md).

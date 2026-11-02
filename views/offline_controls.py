@@ -85,7 +85,7 @@ def createDraftTools(page,user,fields,photos,onPhotos):
     def payload():
         import base64
         return dict(titleText=fields['title'].value or '',descriptionText=fields['description'].value or '',categoryName=fields['category'].value,
-            tagsText=fields['tags'].value or '',challengeId=int(fields['contest'].value) if fields['contest'].value else None,
+            tagsText=fields['tags'].value or '',challengeId=__import__('views.contest_picker',fromlist=['selectedContest']).selectedContest(fields['contest']),
             photos=[dict(name=photo['name'],imageBase64=base64.b64encode(photo['data']).decode()) for photo in photos])
     def write(event=None):
         data=payload()

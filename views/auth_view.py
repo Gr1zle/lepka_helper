@@ -6,7 +6,7 @@ from account_gateway import (changePasswordByEmail, loginUser, registerUser,
 from account_gateway import confirmRegistration, logoutUser
 from api_client import getApiUrl
 from ui_helpers import serverAction, showMessage as showPageMessage
-from account_gateway import getUserProfile
+from account_gateway import getUserProfile,saveUserSettings
 from validators import validateEmail, validateNickname, validatePassword, validatePasswordConfirmation
 from app_info import APP_TITLE
 from views.about_dialog import showDataInfo
@@ -69,7 +69,19 @@ def createAuthView(page):
         page.session.set("currentUser", userData)
         profileData = getUserProfile(userData["userId"], userData.get("sessionToken"))
         from localization import setLanguage
-        if profileData:setLanguage(page,profileData.get('languageCode','ru'))
+        choice=page.session.get('loginLanguageChoice')
+        if choice in ('ru','en'):
+            setLanguage(page,choice)
+            if profileData and profileData.get('languageCode')!=choice:
+                try:
+                    ok,text,_=saveUserSettings(userData['userId'],profileData['themeMode'],choice,
+                        profileData['notificationsEnabled'],sessionToken=userData.get('sessionToken'))
+                    if not ok:showMessage(text,True)
+                except __import__('api_client').ApiError as error:
+                    if error.statusCode==401:raise
+                    showMessage(str(error),True)
+            page.session.set('loginLanguageChoice',None)
+        elif profileData:setLanguage(page,profileData.get('languageCode','ru'))
         page.theme_mode = ft.ThemeMode.DARK if profileData and profileData["themeMode"] == "dark" else ft.ThemeMode.LIGHT
         sessionSaved = saveDeviceSession(page, userData,rememberSession.value)
         showMessage(messageText)
@@ -261,7 +273,9 @@ def createAuthView(page):
     from localization import language,setLanguage
     def changeLanguage(event):
         setLanguage(page,event.control.value)
-        page.go('/auth')
+        page.session.set('loginLanguageChoice',event.control.value)
+        from localization import rebuildCurrentRoute
+        rebuildCurrentRoute(page)
     languagePicker=ft.Dropdown(label=tr(page,'Язык приложения'),value=language(page),width=180,
         options=[ft.dropdown.Option('ru','Русский'),ft.dropdown.Option('en','English')],on_change=changeLanguage)
     authTabs = ft.Tabs(

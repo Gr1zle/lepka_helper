@@ -28,19 +28,57 @@ def openBuiltinCatalog(page,user):
     return openPage(page,tr(page, 'Учебный каталог'),createSearchTab(page,user,catalogMode=True),'/discovery/catalog')
 
 
+# Only protect navigation-state changes; never hold this lock during network I/O.
+import threading
+_navigationLock=threading.RLock()
+
+
 def openPost(page,user,postId,onChanged=None):
     from community_gateway import CommunityClient
     from views.community_tab import createPostCard
+    import asyncio
+    route='/discovery/post/'+str(postId)
+    token=user.get('sessionToken') if user else None
+    with _navigationLock:
+        if (page.session.get('currentUser') or {}).get('sessionToken')!=token:return None
+        existing=next((v for v in page.views if v.route==route),None)
+        if existing is not None:return existing
+        body=ft.ListView(expand=True,padding=16,spacing=12)
+        body.controls=[ft.ProgressRing(),ft.Text(tr(page,'Загрузка публикации…'))]
+        view=openPage(page,tr(page,'Работа'),body,route)
     client=CommunityClient(user)
-    def render(changed=True):
-        item=client.getPost(postId)
-        body.controls=[createPostCard(page,item,user,render)] if item else [ft.Text(tr(page, 'Публикация недоступна'))]
-        polish(body)
-        if changed and onChanged:onChanged()
-        page.update()
-    body=ft.ListView(expand=True,padding=16,spacing=12)
-    render(False)
-    return openPage(page,tr(page, 'Работа'),body,'/discovery/post/'+str(postId))
+    def active():
+        owner=page.session.get('currentUser') or {}
+        return view in page.views and owner.get('sessionToken')==token
+    loading={'value':False}
+    async def load(changed=False):
+        try:
+            data=await asyncio.to_thread(client.getPostDetail,postId)
+            if not active():return
+            body.controls=[createPostCard(page,data['post'],user,lambda:schedule(True),initial=data)] if data else [ft.Text(tr(page,'Публикация недоступна'))]
+            polish(body);page.update()
+            if changed and onChanged:onChanged()
+        except ApiError as error:
+            if not active():return
+            if error.statusCode==401:
+                from ui_helpers import serverAction
+                @serverAction(page)
+                def fail():raise error
+                fail();return
+            body.controls=[createLoadError(page,error,lambda:schedule())];page.update()
+        except Exception:
+            import logging
+            logging.exception('Post detail rendering failed')
+            if active():
+                body.controls=[createLoadError(page,tr(page,'Не удалось загрузить публикацию'),lambda:schedule())];page.update()
+        finally:loading['value']=False
+    def schedule(changed=False):
+        if not active() or loading['value']:return
+        loading['value']=True
+        body.controls=[ft.ProgressRing(),ft.Text(tr(page,'Загрузка публикации…'))];page.update()
+        view._load_future=page.run_task(load,changed)
+    schedule()
+    return view
 
 
 def createPostTile(page,item,user,onChanged=None):
@@ -59,7 +97,7 @@ def createPostTile(page,item,user,onChanged=None):
             data=client.getThumbnail(photoIds[0])
             if data:image.src_base64=base64.b64encode(data).decode()
         if image.src or image.src_base64:cover=image
-    action=authenticatedAction(page,user) if user else serverAction(page)
+    action=serverAction(page)
     tile=ft.Container(col={'xs':6,'md':4,'xl':3},border_radius=14,clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,padding=0,
         on_click=action(lambda e:openPost(page,user,item['postId'],onChanged)),
@@ -83,26 +121,41 @@ def creationDialog(page,title,body,compact=False):
 
 
 def openCreate(page,user):
+    chosen={'value':False}
     @authenticatedAction(page,user)
     def choose(event,kind):
+        if chosen['value']:return
+        chosen['value']=True
+        # Wait for the modal route to leave before pushing a full page.
+        opened={'value':False}
+        def dismissed(event):
+            if opened['value']:return
+            opened['value']=True
+            if (page.session.get('currentUser') or {}).get('sessionToken')!=user.get('sessionToken'):return
+            from views.home_view import createProjectsTab
+            from views.community_tab import createHomeTab
+            if kind=='post':
+                def published():
+                    if view in page.views:page.views.remove(view)
+                    page.update()
+                    callback=page.session.get('refreshCommunityFeed')
+                    if callable(callback):callback()
+                    page.update()
+                body=createHomeTab(page,user,user['nickname'],mode='compose',onPublished=published)
+                view=openPage(page,tr(page,'Новая публикация'),body,'/discovery/compose')
+            else:
+                def created(projectId):
+                    page.close(dialog)
+                    navigate=page.session.get('navigateHomeTab')
+                    if callable(navigate):navigate(3)
+                body=createProjectsTab(page,user,mode='create',onCreated=created)
+                dialog=creationDialog(page,'Новый проект',body,compact=True)
+        menu.on_dismiss=dismissed
         page.close(menu)
-        from views.home_view import createProjectsTab
-        from views.community_tab import createHomeTab
-        def published():
-            page.close(dialog)
-            callback=page.session.get('refreshCommunityFeed')
-            if callable(callback):callback()
-        def created(projectId):
-            page.close(dialog)
-            navigate=page.session.get('navigateHomeTab')
-            if callable(navigate):navigate(3)
-        body=(createHomeTab(page,user,user['nickname'],mode='compose',onPublished=published) if kind=='post'
-            else createProjectsTab(page,user,mode='create',onCreated=created))
-        dialog=creationDialog(page,'Новая публикация' if kind=='post' else 'Новый проект',body,compact=True)
-    menu=ft.AlertDialog(title=ft.Text(tr(page, 'Создать')),content=ft.Column(tight=True,controls=[
-        ft.ListTile(leading=ft.Icon(ft.Icons.ADD_PHOTO_ALTERNATE_OUTLINED),title=ft.Text(tr(page, 'Публикация')),subtitle=ft.Text(tr(page, 'Фото и описание работы')),on_click=lambda e:choose(e,'post')),
-        ft.ListTile(leading=ft.Icon(ft.Icons.CHECKLIST),title=ft.Text(tr(page, 'Личный проект')),subtitle=ft.Text(tr(page, 'План и этапы лепки')),on_click=lambda e:choose(e,'project'))]),
-        actions=[ft.TextButton(tr(page, 'Отмена'),on_click=lambda e:page.close(menu))])
+    menu=ft.AlertDialog(title=ft.Text(tr(page,'Создать')),content=ft.Column(tight=True,controls=[
+        ft.ListTile(leading=ft.Icon(ft.Icons.ADD_PHOTO_ALTERNATE_OUTLINED),title=ft.Text(tr(page,'Публикация')),subtitle=ft.Text(tr(page,'Фото и описание работы')),on_click=lambda e:choose(e,'post')),
+        ft.ListTile(leading=ft.Icon(ft.Icons.CHECKLIST),title=ft.Text(tr(page,'Личный проект')),subtitle=ft.Text(tr(page,'План и этапы лепки')),on_click=lambda e:choose(e,'project'))]),
+        actions=[ft.TextButton(tr(page,'Отмена'),on_click=lambda e:page.close(menu))])
     page.open(menu)
 
 

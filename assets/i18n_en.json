@@ -1952,5 +1952,10 @@
   "ё": "e",
   "← Назад": "← Back",
   "← Назад к поиску": "← Back to search",
-  "Один участник — одна заявка. Конкурсный тег занимает один из 10 тегов.": "One entry per participant. The challenge uses one of your 10 tag slots."
+  "Один участник — одна заявка. Конкурсный тег занимает один из 10 тегов.": "One entry per participant. The challenge uses one of your 10 tag slots.",
+  "Загрузка публикации…": "Loading post…",
+  "Не удалось загрузить публикацию": "Could not load the post",
+  "Публикация отправляется…": "Publishing…",
+  "Проверьте поля и повторите публикацию": "Check the fields and try publishing again",
+  "Выберите конкурс из списка или вариант «Без конкурса»": "Choose a challenge from the list or select No challenge"
 }

@@ -163,6 +163,18 @@ def createProfileTab(page, nickname, email):
         ],
     )
 
+    @authenticatedAction(page,currentUser)
+    def changeLanguage(event):
+        ok,text,updated=saveUserSettings(currentUser['userId'],profileData['themeMode'],event.control.value,
+            profileData['notificationsEnabled'],sessionToken=currentUser.get('sessionToken'))
+        if not ok:showMessage(text,True);return
+        from localization import setLanguage
+        setLanguage(page,updated['languageCode'])
+        page.session.set('profileSettingsOpen',True)
+        from localization import rebuildCurrentRoute
+        rebuildCurrentRoute(page)
+    languageDropdown.on_change=changeLanguage
+
     notificationsSwitch = ft.Switch(
         label=tr(page, 'Уведомления'),
         value=currentNotificationsEnabled,
@@ -664,7 +676,7 @@ def createProfileTab(page, nickname, email):
                             themeDropdown,
                             notificationsSwitch,
                             ft.Text(tr(page, 'Настройка управляет созданием напоминаний о сроках и уведомлений о призовых местах, лайках, комментариях и ответах внутри приложения. Ранее полученные уведомления сохраняются. Фоновые push ещё не подключены.'),size=12),
-                            ft.Text(tr(page, 'Язык интерфейса: русский'), size=12),
+                            languageDropdown,
                             ft.ElevatedButton(
                                 text=tr(page, 'Сохранить настройки'),
                                 icon=ft.Icons.SAVE,
@@ -747,9 +759,12 @@ def createProfileTab(page, nickname, email):
     layout=workspace(page,tr(page, 'Профиль'),[
         (tr(page, 'Мастерская'),[cards[0],cards[3]]),
         (tr(page, 'Настройки'),[
+            languageDropdown,
             disclosure(tr(page,'Редактировать профиль'),cards[1].content.content.controls[1:],ft.Icons.EDIT_OUTLINED),
             disclosure(tr(page,'Внешний вид и уведомления'),[settings[1],settings[2],settings[3],settings[5]],ft.Icons.TUNE),
             disclosure(tr(page,'Пароль и безопасность'),cards[2].content.content.controls[1:],ft.Icons.LOCK_OUTLINED),
             disclosure(tr(page,'Данные и управление'),[actions[0],settings[8],settings[9],actions[5],actions[6]],ft.Icons.SETTINGS_OUTLINED),
             disclosure(tr(page,'Удаление аккаунта'),cards[5].content.content.controls[1:],ft.Icons.DELETE_OUTLINE),settings[10]])])
+    if page.session.get('profileSettingsOpen'):
+        page.session.set('profileSettingsOpen',False);layout.select_workspace(1)
     return polish(layout)

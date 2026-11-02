@@ -142,18 +142,17 @@ def installCommunityRoutes(application, currentUser, optionalUser):
             item['isLiked'] = bool(user and posts.checkPostLikedByUser(item['postId'], user['userId']))
         return {'data': {'items': items, 'hasMore': offset + len(items) < total}}
 
+    @application.get('/community/posts/{postId}/detail')
+    def postDetail(postId: int,user=Depends(optionalUser)):
+        data=posts.postDetail(postId,user)
+        if data is None:raise HTTPException(404,'Работа недоступна')
+        return {'data':data}
+
     @application.get('/community/posts/{postId}')
-    def singlePost(postId: int, user=Depends(optionalUser)):
-        requirePost(postId)
-        with db.openDatabase() as connection:
-            row = connection.execute('SELECT userId FROM posts WHERE postId=?', (postId,)).fetchone()
-        items = posts.getUserPosts(row['userId'])
-        item = next((item for item in items if item['postId'] == postId and not item['isDeleted']), None)
-        if item is None:
-            raise HTTPException(404, 'Работа недоступна')
-        item['isOwn'] = bool(user and item['userId'] == user['userId'])
-        item['isLiked'] = bool(user and posts.checkPostLikedByUser(postId, user['userId']))
-        return {'data': item}
+    def singlePost(postId: int,user=Depends(optionalUser)):
+        item=posts.getPost(postId,user['userId'] if user else None)
+        if item is None:raise HTTPException(404,'Работа недоступна')
+        return {'data':item}
 
     @application.post('/community/posts')
     def publish(body: PostInput, user=Depends(currentUser)):

@@ -365,6 +365,25 @@ uvicorn.run(app, host='127.0.0.1', port=int(__import__('sys').argv[1]), access_l
             result=client.publishProject(pid,'Новый котик','Подробная общая работа','Животные','кот',None,[sid],[])
         self.assertFalse(result[0]);self.assertIn('Обновите',result[1])
 
+    async def test_detail_bundle_loads_in_one_client_request_with_real_server(self):
+        from community_gateway import CommunityClient
+        from image_fixtures import photo
+        user=self.login();client=CommunityClient(user)
+        ok,text,pid=client.publishPost('Быстрая работа','Открыть одним запросом','Животные','кот',[photo()])
+        self.assertTrue(ok,text)
+        with patch.object(client,'request',wraps=client.request) as calls:
+            data=client.getPostDetail(pid)
+        self.assertEqual(calls.call_count,1)
+        self.assertEqual(data['post']['postId'],pid);self.assertTrue(data['post']['isOwn'])
+        self.assertTrue(data['photos']);self.assertEqual(data['comments']['items'],[])
+        original=client.request
+        def oldServer(method,path,*args,**kwargs):
+            if path.endswith('/detail'):raise api_client.ApiError('Not found',404)
+            return original(method,path,*args,**kwargs)
+        with patch.object(client,'request',side_effect=oldServer):fallback=client.getPostDetail(pid)
+        self.assertEqual(fallback['post']['postId'],pid);self.assertTrue(fallback['photos'])
+        self.assertEqual(fallback['comments']['items'],[])
+
     async def test_two_separate_client_databases_share_only_server_community(self):
         from community_gateway import CommunityClient
         from challenge_gateway import ChallengeClient
