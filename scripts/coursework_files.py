@@ -64,5 +64,6 @@ FILES = (
     'docs/coursework_final/evidence/screenshots/final-projects-order-after.png',
     'docs/coursework_final/evidence/screenshots/final-projects-order-before.png',
     'docs/coursework_final/evidence/screenshots/final-projects-publication.png',
+    'docs/coursework_final/evidence/server_package_smoke.json',
     'docs/coursework_final/evidence/source_state.json',
 )

@@ -27,6 +27,7 @@
 | Браузерные проекты | B10–B15 PASS: drag-and-drop, описание, необязательные фото личных этапов, обязательное итоговое фото, завершение, публикация, скачанный JSON v2, отмена удаления, тёмная тема |
 | Размеры экрана | Браузер: 320, 390, 820 и 1440 px; [снимки](evidence/screenshots/). Это не испытание физических планшетов/телефонов |
 | База/API | Свежая временная БД: 58 прикладных таблиц, 76 деклараций FK, integrity_check=ok, foreign_key_check без нарушений. OpenAPI: 69 путей / 81 операция. Это не аудит содержимого личной БД пользователя |
+| Готовый серверный пакет | Реально запущен через scripts.run_wifi_server с новой временной БД; /ready → 200 ready, штатно остановлен. [Протокол](evidence/server_package_smoke.json) |
 | Зависимости | pip check: ошибок нет |
 | Демонстрационные файлы | JSON проекта декодирован приложением; OBJ/MTL ZIP импортирован; PNG/PDF действительно сформированы; [SHA256](demo/SHA256.json) |
 | Android | Сборка и проверка файла — см. ниже; физическая установка, камера, SAF, уведомления ОС, холодный старт и домашняя Wi-Fi-сеть: NOT TESTED, подключённых ADB-устройств 0 |
@@ -69,11 +70,10 @@ SHA-256 APK: `cda8cce116ea56e1f08b4c45893f45597c65c293cacec8c49c10b969a072d571`.
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m scripts.run_wifi_server --data-dir "$HOME\LepkaHelperServer" --check
 .\.venv\Scripts\python.exe -m scripts.run_wifi_server --data-dir "$HOME\LepkaHelperServer"
 ```
 
-Сервер оставить запущенным. Другой терминал — независимый клиент ПК:
+Сервер оставить запущенным; в другом терминале выполнить `Invoke-RestMethod http://127.0.0.1:8000/ready` и проверить `status=ready`. Другой терминал — независимый клиент ПК:
 
 ```powershell
 $env:LEPKA_DATA_DIR = "$HOME\LepkaDefenseClientA"

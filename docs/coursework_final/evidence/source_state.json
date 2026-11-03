@@ -1,21 +1,9 @@
 {
-  "baseCommit": "e713009d527774eff77f1f8d0ce37736b044684e",
+  "baseCommit": "50d036ffded77cb8f598b784f080d54b2a011639",
   "changedFiles": [
-    " M README.md",
-    " M app_info.py",
-    " M docs/remaining_work.md",
-    " M scripts/prepare_review.py",
-    " M scripts/prepare_server.py",
-    " M tests/test_startup.py",
-    " M views/challenge_view.py",
-    " M views/discovery.py",
-    "?? DEMO_SCENARIO.md",
-    "?? FINAL_REPORT.md",
-    "?? docs/coursework_final/",
-    "?? scripts/coursework_files.py",
-    "?? scripts/generate_coursework_demo.py",
-    "?? scripts/generate_final_inventory.py",
-    "?? scripts/run_final_checks.py",
-    "?? tests/test_final_acceptance.py"
+    " M docs/coursework_final/FINAL_REPORT.md",
+    " M docs/coursework_final/evidence/modules.json",
+    " M scripts/coursework_files.py",
+    "?? docs/coursework_final/evidence/server_package_smoke.json"
   ]
 }

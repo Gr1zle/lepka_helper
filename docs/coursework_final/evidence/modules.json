@@ -1365,8 +1365,8 @@
   },
   {
     "path": "scripts/coursework_files.py",
-    "lines": 68,
-    "sha256": "aff0e4ed75d663bae912345d9da0497bb47ae6abc7abdeb81038e2e3fe034ab7",
+    "lines": 69,
+    "sha256": "ce12e32a24d0caed58e1c465d8500877eaa92f61acf77e3de7a9f06eeb933185",
     "description": "Explicit final coursework delivery allowlist; never glob application data.",
     "functions": [],
     "android": false,

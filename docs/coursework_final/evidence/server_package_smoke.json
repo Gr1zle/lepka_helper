@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "sourceCommit": "50d036ffded77cb8f598b784f080d54b2a011639",
+  "command": "python -m scripts.run_wifi_server --data-dir <new temporary directory> --port 8608",
+  "readyHTTP": 200,
+  "readyStatus": "ready",
+  "database": "New temporary database, removed after shutdown; existing user data never selected",
+  "mail": "Disabled; no real mail sent",
+  "note": "Checked prepared server package, not only source tree; later changes are documentation only."
+}

@@ -89,7 +89,7 @@ AST-инвентаризация текущего дерева, не утвер�
 | `remote_account_cache.py` | 69 | да | — | Привязка серверного аккаунта к отдельному владельцу локальных проектов. |
 | `role_service.py` | 87 | да | да | Явные полномочия администрирования; встроенные роли не редактируются. |
 | `scripts/__init__.py` | 1 | — | — | Служебные команды проекта; не содержат пользовательских данных и секретов. |
-| `scripts/coursework_files.py` | 68 | — | — | Explicit final coursework delivery allowlist; never glob application data. |
+| `scripts/coursework_files.py` | 69 | — | — | Explicit final coursework delivery allowlist; never glob application data. |
 | `scripts/create_server_demo.py` | 45 | — | — | Однократное создание тестового пользователя в существующей серверной базе. |
 | `scripts/generate_coursework_demo.py` | 64 | — | — | Generate portable sample assets using a temporary DB; never provision a real server account. |
 | `scripts/generate_final_inventory.py` | 54 | — | — | Export schema/API/source inventory from an isolated fresh database, never a user database. |
