@@ -1,0 +1,52 @@
+{
+  "mode": "Two Flet Web processes, separate client directories, real HTTP API, synthetic accounts",
+  "cases": [
+    {
+      "id": "B01",
+      "description": "English before login applies to existing Russian account",
+      "status": "PASS"
+    },
+    {
+      "id": "B02",
+      "description": "Fullscreen post with photo and No challenge, no refresh, exactly one server post",
+      "status": "PASS"
+    },
+    {
+      "id": "B03",
+      "description": "Thirty real semantic events cause one detail request and one page",
+      "status": "PASS",
+      "coldMs": 317,
+      "warmMs": 534
+    },
+    {
+      "id": "B04",
+      "description": "Visible language field in Profile, immediate switch to Russian",
+      "status": "PASS"
+    },
+    {
+      "id": "B05",
+      "description": "Challenge shortcut -> preselected full-page composer -> photo publication -> entry and return",
+      "status": "PASS"
+    },
+    {
+      "id": "B06",
+      "description": "Two independent clients: post, like, comment, reply relationship verified through API",
+      "status": "PASS"
+    },
+    {
+      "id": "B07",
+      "description": "Both inbox views open; reader reply notice verified through authenticated API",
+      "status": "PASS"
+    },
+    {
+      "id": "B08",
+      "description": "Real API process restart preserves post, likes and unrevoked session",
+      "status": "PASS"
+    },
+    {
+      "id": "B09",
+      "description": "Main feed rendered at 320 and 1440 px",
+      "status": "PASS"
+    }
+  ]
+}

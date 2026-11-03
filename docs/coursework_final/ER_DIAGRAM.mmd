@@ -1,0 +1,540 @@
+erDiagram
+    accountCodes {
+        TEXT email PK
+        TEXT purpose PK
+        INTEGER userId FK
+        TEXT codeHash
+        REAL expiresAt
+        REAL sentAt
+        INTEGER attempts
+    }
+    accountEvents {
+        INTEGER eventId PK
+        INTEGER userId
+        TEXT eventName
+        TEXT createdAt
+    }
+    accountSessions {
+        TEXT tokenHash PK
+        INTEGER userId FK
+        REAL expiresAt
+    }
+    activityNotices {
+        INTEGER noticeId PK
+        INTEGER userId FK
+        INTEGER actorId FK
+        TEXT kind
+        INTEGER postId FK
+        INTEGER commentId FK
+        TEXT eventKey
+        INTEGER isRead
+        TEXT createdAt
+    }
+    adminAudit {
+        INTEGER eventId PK
+        INTEGER actorId FK
+        TEXT actorNickname
+        TEXT action
+        TEXT targetType
+        INTEGER targetId
+        TEXT reason
+        TEXT createdAt
+    }
+    challengeAwards {
+        INTEGER challengeId PK,FK
+        INTEGER place PK
+        INTEGER postId FK
+        INTEGER userId FK
+        INTEGER votes
+    }
+    challengeEntries {
+        INTEGER challengeId PK,FK
+        INTEGER userId PK,FK
+        INTEGER postId FK
+        TEXT createdAt
+    }
+    challengeOptOuts {
+        INTEGER challengeId PK,FK
+        INTEGER userId PK,FK
+    }
+    challengeVotes {
+        INTEGER challengeId PK,FK
+        INTEGER postId PK,FK
+        INTEGER userId PK,FK
+    }
+    challenges {
+        INTEGER challengeId PK
+        TEXT title
+        TEXT rules
+        TEXT deadline
+        TEXT state
+        INTEGER createdBy FK
+        INTEGER winnerPostId FK
+        TEXT result
+        TEXT createdAt
+        TEXT startsOn
+        TEXT theme
+        TEXT resultMode
+    }
+    colorMixtures {
+        INTEGER mixtureId PK
+        INTEGER userId FK
+        TEXT mixtureName
+        TEXT resultHex
+        REAL totalWeight
+        TEXT recipeJson
+        TEXT createdAt
+    }
+    commentEvents {
+        INTEGER userId FK
+        TEXT createdAt
+    }
+    communityActionReceipts {
+        INTEGER userId PK,FK
+        TEXT requestId PK
+        TEXT kind
+        TEXT payloadHash
+        TEXT resultJson
+    }
+    communityCache {
+        INTEGER userId PK,FK
+        TEXT apiUrl PK
+        TEXT cacheKey PK
+        TEXT contentJson
+        REAL updatedAt
+    }
+    communityNotices {
+        INTEGER noticeId PK
+        INTEGER userId FK
+        INTEGER challengeId FK
+        INTEGER place
+        INTEGER isRead
+        TEXT createdAt
+    }
+    communityOutbox {
+        TEXT requestId PK
+        INTEGER userId FK
+        TEXT apiUrl
+        INTEGER serverUserId
+        TEXT kind
+        TEXT payloadJson
+        TEXT payloadHash
+        TEXT state
+        INTEGER attempts
+        REAL nextAttemptAt
+        REAL leaseUntil
+        TEXT leaseToken
+        TEXT lastError
+        TEXT resultJson
+        REAL createdAt
+    }
+    communityRequests {
+        INTEGER userId PK,FK
+        TEXT requestId PK
+        TEXT payloadHash
+        INTEGER postId FK
+    }
+    customRoles {
+        TEXT roleCode PK
+        TEXT title
+        TEXT permissionsJson
+    }
+    deliverySettings {
+        INTEGER userId PK,FK
+        INTEGER deviceEnabled
+        INTEGER likes
+        INTEGER comments
+        INTEGER replies
+        INTEGER awards
+        INTEGER projects
+        INTEGER learning
+        INTEGER emailEnabled
+    }
+    importedModels {
+        TEXT modelId PK
+        INTEGER userId FK
+        TEXT title
+        TEXT objText
+        TEXT materialText
+        BLOB previewImage
+        TEXT createdAt
+    }
+    learningAssets {
+        TEXT assetId PK
+        TEXT kind
+        TEXT name
+        TEXT mime
+        BLOB content
+        INTEGER creatorId FK
+        REAL createdAt
+    }
+    learningCache {
+        INTEGER userId PK,FK
+        TEXT apiUrl PK
+        TEXT contentId PK
+        INTEGER revision
+        TEXT documentJson
+        TEXT assetsJson
+        INTEGER byteCount
+        REAL downloadedAt
+    }
+    learningCatalog {
+        TEXT contentId PK
+        INTEGER revision
+        TEXT state
+        TEXT documentJson
+        INTEGER creatorId FK
+        TEXT updatedAt
+    }
+    learningCatalogNotices {
+        INTEGER userId PK,FK
+        TEXT apiUrl PK
+        TEXT contentId PK
+        INTEGER revision PK
+        TEXT title
+        INTEGER isRead
+        TEXT createdAt
+    }
+    learningIndex {
+        INTEGER userId PK,FK
+        TEXT apiUrl PK
+        TEXT itemsJson
+    }
+    learningNotices {
+        INTEGER noticeId PK
+        INTEGER userId FK
+        INTEGER lessonId
+        TEXT kind
+        TEXT eventKey
+        TEXT createdAt
+        INTEGER isRead
+        TEXT snoozedUntil
+    }
+    learningPersonal {
+        INTEGER userId PK,FK
+        TEXT apiUrl PK
+        TEXT contentId PK
+        INTEGER revision
+        TEXT checkedJson
+        INTEGER favorite
+        TEXT note
+        INTEGER viewPending
+        INTEGER completePending
+    }
+    learningSubscriptions {
+        INTEGER userId PK,FK
+        TEXT apiUrl PK
+        TEXT category PK
+    }
+    learningUsage {
+        INTEGER userId PK,FK
+        TEXT contentId PK,FK
+        INTEGER revision PK
+        TEXT viewedAt
+        TEXT completedAt
+    }
+    lessonFavorites {
+        INTEGER userId PK,FK
+        INTEGER lessonId PK
+        TEXT savedAt
+    }
+    lessonNotes {
+        INTEGER userId PK,FK
+        INTEGER lessonId PK
+        TEXT noteText
+        TEXT updatedAt
+    }
+    lessonProgress {
+        INTEGER userId PK,FK
+        INTEGER lessonId PK
+        TEXT stateJson
+        TEXT updatedAt
+    }
+    localPostExports {
+        TEXT apiUrl PK
+        INTEGER userId PK,FK
+        INTEGER localPostId PK,FK
+        TEXT requestId
+        INTEGER serverPostId
+    }
+    modelFavorites {
+        INTEGER userId PK,FK
+        TEXT modelId PK
+    }
+    moderationReports {
+        INTEGER reportId PK
+        INTEGER reporterId FK
+        TEXT targetType
+        INTEGER targetId
+        TEXT reason
+        TEXT status
+        TEXT resolution
+        INTEGER resolvedBy FK
+        TEXT createdAt
+        TEXT resolvedAt
+    }
+    notificationMailQueue {
+        TEXT mailId PK
+        INTEGER userId FK
+        TEXT email
+        TEXT eventKey
+        TEXT subject
+        TEXT body
+        TEXT state
+        INTEGER attempts
+        REAL nextAttempt
+        REAL leaseUntil
+        REAL createdAt
+        TEXT lastError
+    }
+    notificationMailState {
+        INTEGER userId PK,FK
+        TEXT since
+    }
+    personalCheckpoints {
+        TEXT checkpointId PK
+        INTEGER userId FK
+        TEXT title
+        BLOB content
+        TEXT checksum
+        TEXT createdAt
+    }
+    personalNoticeSettings {
+        INTEGER userId PK,FK
+        INTEGER projectsEnabled
+        INTEGER lessonsEnabled
+        INTEGER resumeDays
+    }
+    personalSyncState {
+        INTEGER userId PK,FK
+        TEXT apiUrl PK
+        INTEGER revision
+        TEXT checksum
+        INTEGER pending
+    }
+    personalVault {
+        INTEGER userId PK,FK
+        INTEGER revision
+        TEXT checksum
+        TEXT snapshotJson
+        TEXT deviceId
+        TEXT updatedAt
+    }
+    personalVaultHistory {
+        INTEGER userId PK,FK
+        INTEGER revision PK
+        TEXT checksum
+        TEXT snapshotJson
+        TEXT deviceId
+        TEXT updatedAt
+    }
+    postComments {
+        INTEGER commentId PK
+        INTEGER postId FK
+        INTEGER userId FK
+        TEXT commentText
+        TEXT createdAt
+        INTEGER replyToId FK
+    }
+    postLikes {
+        INTEGER likeId PK
+        INTEGER postId FK
+        INTEGER userId FK
+        TEXT createdAt
+    }
+    postPhotos {
+        INTEGER photoId PK
+        INTEGER postId FK
+        INTEGER position
+        BLOB imageData
+    }
+    posts {
+        INTEGER postId PK
+        INTEGER userId FK
+        TEXT titleText
+        TEXT descriptionText
+        TEXT categoryName
+        TEXT tagsText
+        INTEGER likesCount
+        TEXT createdAt
+        INTEGER isDeleted
+        TEXT projectDetailsJson
+    }
+    projectMixtures {
+        INTEGER projectMixtureId PK
+        INTEGER projectId FK
+        TEXT mixtureJson
+    }
+    projectReminders {
+        INTEGER reminderId PK
+        INTEGER userId FK
+        INTEGER projectId FK
+        TEXT deadlineDate
+        TEXT kind
+        TEXT generatedDate
+        INTEGER isRead
+    }
+    projectSteps {
+        INTEGER stepId PK
+        INTEGER projectId FK
+        TEXT stepDescription
+        INTEGER isCompleted
+        TEXT createdAt
+        BLOB photoImage
+        TEXT detailsText
+        INTEGER sortOrder
+    }
+    projects {
+        INTEGER projectId PK
+        INTEGER userId FK
+        TEXT projectName
+        TEXT categoryName
+        TEXT deadlineDate
+        TEXT descriptionText
+        REAL progressPercent
+        TEXT createdAt
+        BLOB finalPhotoImage
+        INTEGER isFinished
+        TEXT completedAt
+    }
+    publicationDrafts {
+        TEXT draftId PK
+        INTEGER userId FK
+        TEXT apiUrl
+        TEXT payloadJson
+        REAL updatedAt
+    }
+    referenceImages {
+        TEXT referenceId PK
+        INTEGER userId FK
+        TEXT apiUrl
+        TEXT title
+        BLOB image
+        REAL createdAt
+    }
+    remoteAccounts {
+        TEXT apiUrl PK
+        INTEGER remoteUserId PK
+        INTEGER localUserId FK
+        TEXT displayNickname
+    }
+    remoteProfileCache {
+        INTEGER userId PK,FK
+        TEXT apiUrl PK
+        TEXT profileJson
+    }
+    remoteSessionBindings {
+        TEXT tokenHash PK
+        TEXT apiUrl
+        INTEGER localUserId FK
+    }
+    searchHistory {
+        INTEGER userId PK,FK
+        TEXT queryKey PK
+        TEXT queryText
+        INTEGER lastUsed
+    }
+    users {
+        INTEGER userId PK
+        TEXT email
+        TEXT passwordHash
+        TEXT passwordSalt
+        TEXT nickname
+        TEXT roleName
+        INTEGER isBlocked
+        TEXT createdAt
+        INTEGER emailVerified
+        INTEGER loginFailures
+        REAL loginBlockedUntil
+        INTEGER passwordFailures
+        REAL passwordBlockedUntil
+        TEXT bioText
+        TEXT ageCategory
+        TEXT favoriteColorsJson
+        TEXT themeMode
+        TEXT languageCode
+        INTEGER notificationsEnabled
+        TEXT avatarPath
+        BLOB avatarImage
+    }
+    workshopProgress {
+        INTEGER userId PK,FK
+        INTEGER postId PK,FK
+        TEXT stateJson
+    }
+    users ||--o{ accountCodes : "userId"
+    users ||--o{ accountSessions : "userId"
+    postComments |o--o{ activityNotices : "commentId"
+    posts ||--o{ activityNotices : "postId"
+    users ||--o{ activityNotices : "actorId"
+    users ||--o{ activityNotices : "userId"
+    users |o--o{ adminAudit : "actorId"
+    users |o--o{ challengeAwards : "userId"
+    posts |o--o{ challengeAwards : "postId"
+    challenges ||--o{ challengeAwards : "challengeId"
+    posts ||--o{ challengeEntries : "postId"
+    users ||--o{ challengeEntries : "userId"
+    challenges ||--o{ challengeEntries : "challengeId"
+    users ||--o{ challengeOptOuts : "userId"
+    challenges ||--o{ challengeOptOuts : "challengeId"
+    users ||--o{ challengeVotes : "userId"
+    challengeEntries ||--o{ challengeVotes : "challengeId"
+    challengeEntries ||--o{ challengeVotes : "postId"
+    posts |o--o{ challenges : "winnerPostId"
+    users |o--o{ challenges : "createdBy"
+    users ||--o{ colorMixtures : "userId"
+    users ||--o{ commentEvents : "userId"
+    users ||--o{ communityActionReceipts : "userId"
+    users ||--o{ communityCache : "userId"
+    challenges ||--o{ communityNotices : "challengeId"
+    users ||--o{ communityNotices : "userId"
+    users ||--o{ communityOutbox : "userId"
+    posts ||--o{ communityRequests : "postId"
+    users ||--o{ communityRequests : "userId"
+    users ||--o{ deliverySettings : "userId"
+    users ||--o{ importedModels : "userId"
+    users |o--o{ learningAssets : "creatorId"
+    users |o--o{ learningCache : "userId"
+    users |o--o{ learningCatalog : "creatorId"
+    users |o--o{ learningCatalogNotices : "userId"
+    users |o--o{ learningIndex : "userId"
+    users ||--o{ learningNotices : "userId"
+    users |o--o{ learningPersonal : "userId"
+    users |o--o{ learningSubscriptions : "userId"
+    learningCatalog |o--o{ learningUsage : "contentId"
+    users |o--o{ learningUsage : "userId"
+    users ||--o{ lessonFavorites : "userId"
+    users ||--o{ lessonNotes : "userId"
+    users ||--o{ lessonProgress : "userId"
+    posts ||--o{ localPostExports : "localPostId"
+    users ||--o{ localPostExports : "userId"
+    users ||--o{ modelFavorites : "userId"
+    users |o--o{ moderationReports : "resolvedBy"
+    users |o--o{ moderationReports : "reporterId"
+    users ||--o{ notificationMailQueue : "userId"
+    users ||--o{ notificationMailState : "userId"
+    users ||--o{ personalCheckpoints : "userId"
+    users ||--o{ personalNoticeSettings : "userId"
+    users ||--o{ personalSyncState : "userId"
+    users ||--o{ personalVault : "userId"
+    users ||--o{ personalVaultHistory : "userId"
+    users ||--o{ postComments : "userId"
+    posts ||--o{ postComments : "postId"
+    postComments |o--o{ postComments : "replyToId"
+    users ||--o{ postLikes : "userId"
+    posts ||--o{ postLikes : "postId"
+    posts ||--o{ postPhotos : "postId"
+    users ||--o{ posts : "userId"
+    projects ||--o{ projectMixtures : "projectId"
+    projects ||--o{ projectReminders : "projectId"
+    users ||--o{ projectReminders : "userId"
+    projects ||--o{ projectSteps : "projectId"
+    users ||--o{ projects : "userId"
+    users ||--o{ publicationDrafts : "userId"
+    users ||--o{ referenceImages : "userId"
+    users ||--o{ remoteAccounts : "localUserId"
+    users ||--o{ remoteProfileCache : "userId"
+    users ||--o{ remoteSessionBindings : "localUserId"
+    users ||--o{ searchHistory : "userId"
+    posts ||--o{ workshopProgress : "postId"
+    users ||--o{ workshopProgress : "userId"

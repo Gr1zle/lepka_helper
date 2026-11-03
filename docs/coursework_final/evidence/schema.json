@@ -1,0 +1,5052 @@
+{
+  "foreignKeysEnabled": 1,
+  "integrity": "ok",
+  "foreignKeyViolations": [],
+  "tables": [
+    {
+      "name": "accountCodes",
+      "sql": "CREATE TABLE accountCodes (\n        email TEXT NOT NULL, purpose TEXT NOT NULL, userId INTEGER NOT NULL,\n        codeHash TEXT NOT NULL, expiresAt REAL NOT NULL, sentAt REAL NOT NULL,\n        attempts INTEGER NOT NULL DEFAULT 0,\n        PRIMARY KEY (email, purpose), FOREIGN KEY (userId) REFERENCES users(userId)\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "email",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "purpose",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "codeHash",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "expiresAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "sentAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "attempts",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_accountCodes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "email"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "purpose"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "accountEvents",
+      "sql": "CREATE TABLE accountEvents (\n        eventId INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER NOT NULL,\n        eventName TEXT NOT NULL, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "eventId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "eventName",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": []
+    },
+    {
+      "name": "accountSessions",
+      "sql": "CREATE TABLE accountSessions (\n        tokenHash TEXT PRIMARY KEY, userId INTEGER NOT NULL, expiresAt REAL NOT NULL,\n        FOREIGN KEY (userId) REFERENCES users(userId)\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "tokenHash",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "expiresAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_accountSessions_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "tokenHash"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "activityNotices",
+      "sql": "CREATE TABLE activityNotices (\n        noticeId INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER NOT NULL, actorId INTEGER NOT NULL,\n        kind TEXT NOT NULL, postId INTEGER NOT NULL, commentId INTEGER, eventKey TEXT NOT NULL,\n        isRead INTEGER NOT NULL DEFAULT 0, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        UNIQUE(userId,eventKey),\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE,\n        FOREIGN KEY(actorId) REFERENCES users(userId) ON DELETE CASCADE,\n        FOREIGN KEY(postId) REFERENCES posts(postId) ON DELETE CASCADE,\n        FOREIGN KEY(commentId) REFERENCES postComments(commentId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "noticeId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "actorId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "kind",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "commentId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "eventKey",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "isRead",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "postComments",
+          "from": "commentId",
+          "to": "commentId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "posts",
+          "from": "postId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 2,
+          "seq": 0,
+          "table": "users",
+          "from": "actorId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 3,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "activityRecipient",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 0,
+              "name": "noticeId"
+            }
+          ]
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_activityNotices_1",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 6,
+              "name": "eventKey"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "adminAudit",
+      "sql": "CREATE TABLE adminAudit (\n        eventId INTEGER PRIMARY KEY AUTOINCREMENT, actorId INTEGER,\n        actorNickname TEXT NOT NULL, action TEXT NOT NULL,\n        targetType TEXT NOT NULL, targetId INTEGER NOT NULL, reason TEXT NOT NULL,\n        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        FOREIGN KEY(actorId) REFERENCES users(userId) ON DELETE SET NULL)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "eventId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "actorId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "actorNickname",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "action",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "targetType",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "targetId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "reason",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "actorId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "challengeAwards",
+      "sql": "CREATE TABLE challengeAwards (\n        challengeId INTEGER NOT NULL, place INTEGER NOT NULL, postId INTEGER, userId INTEGER,\n        votes INTEGER NOT NULL, PRIMARY KEY(challengeId,place),\n        FOREIGN KEY(challengeId) REFERENCES challenges(challengeId) ON DELETE CASCADE,\n        FOREIGN KEY(postId) REFERENCES posts(postId) ON DELETE SET NULL,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE SET NULL)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "challengeId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "place",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "votes",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "posts",
+          "from": "postId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 2,
+          "seq": 0,
+          "table": "challenges",
+          "from": "challengeId",
+          "to": "challengeId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_challengeAwards_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "challengeId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "place"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "challengeEntries",
+      "sql": "CREATE TABLE challengeEntries (\n        challengeId INTEGER NOT NULL, userId INTEGER NOT NULL, postId INTEGER NOT NULL,\n        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        PRIMARY KEY(challengeId,userId), UNIQUE(challengeId,postId),\n        FOREIGN KEY(challengeId) REFERENCES challenges(challengeId) ON DELETE CASCADE,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE,\n        FOREIGN KEY(postId) REFERENCES posts(postId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "challengeId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "posts",
+          "from": "postId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 2,
+          "seq": 0,
+          "table": "challenges",
+          "from": "challengeId",
+          "to": "challengeId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_challengeEntries_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "challengeId"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "postId"
+            }
+          ]
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_challengeEntries_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "challengeId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "userId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "challengeOptOuts",
+      "sql": "CREATE TABLE challengeOptOuts (\n        challengeId INTEGER NOT NULL,userId INTEGER NOT NULL,PRIMARY KEY(challengeId,userId),\n        FOREIGN KEY(challengeId) REFERENCES challenges(challengeId) ON DELETE CASCADE,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "challengeId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "challenges",
+          "from": "challengeId",
+          "to": "challengeId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_challengeOptOuts_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "challengeId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "userId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "challengeVotes",
+      "sql": "CREATE TABLE challengeVotes (\n        challengeId INTEGER NOT NULL, postId INTEGER NOT NULL, userId INTEGER NOT NULL,\n        PRIMARY KEY(challengeId,postId,userId),\n        FOREIGN KEY(challengeId,postId) REFERENCES challengeEntries(challengeId,postId) ON DELETE CASCADE,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "challengeId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 3
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "challengeEntries",
+          "from": "challengeId",
+          "to": "challengeId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 1,
+          "table": "challengeEntries",
+          "from": "postId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_challengeVotes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "challengeId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "postId"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "userId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "challenges",
+      "sql": "CREATE TABLE challenges (\n        challengeId INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,\n        rules TEXT NOT NULL, deadline TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'open',\n        createdBy INTEGER, winnerPostId INTEGER, result TEXT NOT NULL DEFAULT '',\n        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, startsOn TEXT NOT NULL DEFAULT '', theme TEXT NOT NULL DEFAULT '', resultMode TEXT NOT NULL DEFAULT 'manual',\n        FOREIGN KEY(createdBy) REFERENCES users(userId) ON DELETE SET NULL,\n        FOREIGN KEY(winnerPostId) REFERENCES posts(postId) ON DELETE SET NULL)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "challengeId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "rules",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "deadline",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "state",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'open'",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "createdBy",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "winnerPostId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "result",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "startsOn",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "theme",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 11,
+          "name": "resultMode",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'manual'",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "posts",
+          "from": "winnerPostId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "users",
+          "from": "createdBy",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "colorMixtures",
+      "sql": "CREATE TABLE colorMixtures (\n            mixtureId INTEGER PRIMARY KEY AUTOINCREMENT,\n            userId INTEGER NOT NULL,\n            mixtureName TEXT NOT NULL,\n            resultHex TEXT NOT NULL,\n            totalWeight REAL NOT NULL,\n            recipeJson TEXT NOT NULL,\n            createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n            FOREIGN KEY (userId) REFERENCES users(userId)\n        )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "mixtureId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "mixtureName",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "resultHex",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "totalWeight",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "recipeJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "commentEvents",
+      "sql": "CREATE TABLE commentEvents (\n        userId INTEGER NOT NULL, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        FOREIGN KEY (userId) REFERENCES users(userId)\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 1,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "commentEventsUserTime",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "createdAt"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "communityActionReceipts",
+      "sql": "CREATE TABLE communityActionReceipts (\n        userId INTEGER NOT NULL,requestId TEXT NOT NULL,kind TEXT NOT NULL,payloadHash TEXT NOT NULL,resultJson TEXT NOT NULL,\n        PRIMARY KEY(userId,requestId),FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "requestId",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "kind",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "payloadHash",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "resultJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_communityActionReceipts_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "requestId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "communityCache",
+      "sql": "CREATE TABLE communityCache (\n        userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,cacheKey TEXT NOT NULL,contentJson TEXT NOT NULL,updatedAt REAL NOT NULL,\n        PRIMARY KEY(userId,apiUrl,cacheKey),FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "cacheKey",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 3
+        },
+        {
+          "cid": 3,
+          "name": "contentJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "updatedAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_communityCache_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "apiUrl"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "cacheKey"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "communityNotices",
+      "sql": "CREATE TABLE communityNotices (\n        noticeId INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER NOT NULL,\n        challengeId INTEGER NOT NULL, place INTEGER NOT NULL, isRead INTEGER NOT NULL DEFAULT 0,\n        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(userId,challengeId,place),\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE,\n        FOREIGN KEY(challengeId) REFERENCES challenges(challengeId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "noticeId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "challengeId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "place",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "isRead",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "challenges",
+          "from": "challengeId",
+          "to": "challengeId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_communityNotices_1",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "challengeId"
+            },
+            {
+              "seqno": 2,
+              "cid": 3,
+              "name": "place"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "communityOutbox",
+      "sql": "CREATE TABLE communityOutbox (\n        requestId TEXT PRIMARY KEY,userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,serverUserId INTEGER NOT NULL,\n        kind TEXT NOT NULL,payloadJson TEXT NOT NULL,payloadHash TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,\n        nextAttemptAt REAL NOT NULL DEFAULT 0,leaseUntil REAL NOT NULL DEFAULT 0,leaseToken TEXT NOT NULL DEFAULT '',\n        lastError TEXT NOT NULL DEFAULT '',resultJson TEXT,createdAt REAL NOT NULL,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "requestId",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "serverUserId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "kind",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "payloadJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "payloadHash",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "state",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'pending'",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "attempts",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "nextAttemptAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "leaseUntil",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 11,
+          "name": "leaseToken",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 12,
+          "name": "lastError",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 13,
+          "name": "resultJson",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 14,
+          "name": "createdAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_communityOutbox_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "requestId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "communityRequests",
+      "sql": "CREATE TABLE communityRequests (\n        userId INTEGER NOT NULL, requestId TEXT NOT NULL, payloadHash TEXT NOT NULL, postId INTEGER NOT NULL,\n        PRIMARY KEY (userId, requestId),\n        FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE,\n        FOREIGN KEY (postId) REFERENCES posts(postId) ON DELETE CASCADE\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "requestId",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "payloadHash",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "posts",
+          "from": "postId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_communityRequests_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "requestId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "customRoles",
+      "sql": "CREATE TABLE customRoles (\n        roleCode TEXT PRIMARY KEY,title TEXT NOT NULL,permissionsJson TEXT NOT NULL)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "roleCode",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "permissionsJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_customRoles_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "roleCode"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "deliverySettings",
+      "sql": "CREATE TABLE deliverySettings (\n        userId INTEGER PRIMARY KEY REFERENCES users(userId) ON DELETE CASCADE,\n        deviceEnabled INTEGER NOT NULL DEFAULT 0, likes INTEGER NOT NULL DEFAULT 1,\n        comments INTEGER NOT NULL DEFAULT 1, replies INTEGER NOT NULL DEFAULT 1,\n        awards INTEGER NOT NULL DEFAULT 1, projects INTEGER NOT NULL DEFAULT 1,\n        learning INTEGER NOT NULL DEFAULT 1, emailEnabled INTEGER NOT NULL DEFAULT 0)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "deviceEnabled",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "likes",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "comments",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "replies",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "awards",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "projects",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "learning",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "emailEnabled",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "importedModels",
+      "sql": "CREATE TABLE importedModels (\n        modelId TEXT PRIMARY KEY, userId INTEGER NOT NULL, title TEXT NOT NULL,\n        objText TEXT NOT NULL, materialText TEXT NOT NULL, previewImage BLOB NOT NULL,\n        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "modelId",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "objText",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "materialText",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "previewImage",
+          "type": "BLOB",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_importedModels_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "modelId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "learningAssets",
+      "sql": "CREATE TABLE learningAssets (\n        assetId TEXT PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, mime TEXT NOT NULL,\n        content BLOB NOT NULL, creatorId INTEGER REFERENCES users(userId) ON DELETE SET NULL, createdAt REAL NOT NULL)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "assetId",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "kind",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "mime",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "content",
+          "type": "BLOB",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "creatorId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "createdAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "creatorId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_learningAssets_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "assetId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "learningCache",
+      "sql": "CREATE TABLE learningCache (\n        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, contentId TEXT NOT NULL,\n        revision INTEGER NOT NULL, documentJson TEXT NOT NULL, assetsJson TEXT NOT NULL, byteCount INTEGER NOT NULL,\n        downloadedAt REAL NOT NULL, PRIMARY KEY(userId,apiUrl,contentId))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "contentId",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 3
+        },
+        {
+          "cid": 3,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "documentJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "assetsJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "byteCount",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "downloadedAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_learningCache_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "apiUrl"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "contentId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "learningCatalog",
+      "sql": "CREATE TABLE learningCatalog (\n        contentId TEXT PRIMARY KEY, revision INTEGER NOT NULL, state TEXT NOT NULL,\n        documentJson TEXT NOT NULL, creatorId INTEGER REFERENCES users(userId) ON DELETE SET NULL,\n        updatedAt TEXT NOT NULL)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "contentId",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "state",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "documentJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "creatorId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "updatedAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "creatorId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_learningCatalog_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "contentId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "learningCatalogNotices",
+      "sql": "CREATE TABLE learningCatalogNotices (\n        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, contentId TEXT NOT NULL,\n        revision INTEGER NOT NULL, title TEXT NOT NULL, isRead INTEGER NOT NULL DEFAULT 0, createdAt TEXT NOT NULL,\n        PRIMARY KEY(userId,apiUrl,contentId,revision))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "contentId",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 3
+        },
+        {
+          "cid": 3,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 4
+        },
+        {
+          "cid": 4,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "isRead",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_learningCatalogNotices_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "apiUrl"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "contentId"
+            },
+            {
+              "seqno": 3,
+              "cid": 3,
+              "name": "revision"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "learningIndex",
+      "sql": "CREATE TABLE learningIndex (\n        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, itemsJson TEXT NOT NULL,\n        PRIMARY KEY(userId,apiUrl))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "itemsJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_learningIndex_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "apiUrl"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "learningNotices",
+      "sql": "CREATE TABLE learningNotices (\n        noticeId INTEGER PRIMARY KEY AUTOINCREMENT,userId INTEGER NOT NULL,lessonId INTEGER NOT NULL,\n        kind TEXT NOT NULL,eventKey TEXT NOT NULL,createdAt TEXT NOT NULL,isRead INTEGER NOT NULL DEFAULT 0,\n        snoozedUntil TEXT,UNIQUE(userId,eventKey),\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "noticeId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "lessonId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "kind",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "eventKey",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "isRead",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "snoozedUntil",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_learningNotices_1",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 4,
+              "name": "eventKey"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "learningPersonal",
+      "sql": "CREATE TABLE learningPersonal (\n        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, contentId TEXT NOT NULL,\n        revision INTEGER NOT NULL, checkedJson TEXT NOT NULL DEFAULT '[]', favorite INTEGER NOT NULL DEFAULT 0,\n        note TEXT NOT NULL DEFAULT '', viewPending INTEGER NOT NULL DEFAULT 1, completePending INTEGER NOT NULL DEFAULT 0,\n        PRIMARY KEY(userId,apiUrl,contentId))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "contentId",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 3
+        },
+        {
+          "cid": 3,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "checkedJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'[]'",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "favorite",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "note",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "viewPending",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "completePending",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_learningPersonal_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "apiUrl"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "contentId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "learningSubscriptions",
+      "sql": "CREATE TABLE learningSubscriptions (\n        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, apiUrl TEXT NOT NULL, category TEXT NOT NULL,\n        PRIMARY KEY(userId,apiUrl,category))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "category",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 3
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_learningSubscriptions_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "apiUrl"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "category"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "learningUsage",
+      "sql": "CREATE TABLE learningUsage (\n        userId INTEGER REFERENCES users(userId) ON DELETE CASCADE, contentId TEXT REFERENCES learningCatalog(contentId) ON DELETE CASCADE,\n        revision INTEGER NOT NULL, viewedAt TEXT NOT NULL, completedAt TEXT, PRIMARY KEY(userId,contentId,revision))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "contentId",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 3
+        },
+        {
+          "cid": 3,
+          "name": "viewedAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "completedAt",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "learningCatalog",
+          "from": "contentId",
+          "to": "contentId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_learningUsage_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "contentId"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "revision"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lessonFavorites",
+      "sql": "CREATE TABLE lessonFavorites (\n        userId INTEGER NOT NULL, lessonId INTEGER NOT NULL,\n        savedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        PRIMARY KEY(userId,lessonId), FOREIGN KEY(userId) REFERENCES users(userId))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "lessonId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "savedAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_lessonFavorites_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "lessonId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lessonNotes",
+      "sql": "CREATE TABLE lessonNotes (\n        userId INTEGER NOT NULL, lessonId INTEGER NOT NULL, noteText TEXT NOT NULL,\n        updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        PRIMARY KEY(userId,lessonId), FOREIGN KEY(userId) REFERENCES users(userId))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "lessonId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "noteText",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "updatedAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_lessonNotes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "lessonId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lessonProgress",
+      "sql": "CREATE TABLE lessonProgress (\n        userId INTEGER NOT NULL, lessonId INTEGER NOT NULL, stateJson TEXT NOT NULL,\n        updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        PRIMARY KEY (userId, lessonId), FOREIGN KEY (userId) REFERENCES users(userId)\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "lessonId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "stateJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "updatedAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_lessonProgress_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "lessonId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "localPostExports",
+      "sql": "CREATE TABLE localPostExports (\n        apiUrl TEXT NOT NULL, userId INTEGER NOT NULL, localPostId INTEGER NOT NULL,\n        requestId TEXT NOT NULL, serverPostId INTEGER,\n        PRIMARY KEY (apiUrl, userId, localPostId),\n        FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE,\n        FOREIGN KEY (localPostId) REFERENCES posts(postId) ON DELETE CASCADE\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "localPostId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 3
+        },
+        {
+          "cid": 3,
+          "name": "requestId",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "serverPostId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "posts",
+          "from": "localPostId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_localPostExports_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "apiUrl"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "userId"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "localPostId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "modelFavorites",
+      "sql": "CREATE TABLE modelFavorites (\n        userId INTEGER NOT NULL, modelId TEXT NOT NULL,\n        PRIMARY KEY(userId,modelId), FOREIGN KEY(userId) REFERENCES users(userId))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "modelId",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_modelFavorites_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "modelId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "moderationReports",
+      "sql": "CREATE TABLE moderationReports (\n        reportId INTEGER PRIMARY KEY AUTOINCREMENT,\n        reporterId INTEGER, targetType TEXT NOT NULL, targetId INTEGER NOT NULL,\n        reason TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open',\n        resolution TEXT NOT NULL DEFAULT '', resolvedBy INTEGER,\n        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, resolvedAt TEXT,\n        UNIQUE(reporterId,targetType,targetId),\n        FOREIGN KEY(reporterId) REFERENCES users(userId) ON DELETE SET NULL,\n        FOREIGN KEY(resolvedBy) REFERENCES users(userId) ON DELETE SET NULL)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "reportId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "reporterId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "targetType",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "targetId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "reason",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "status",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'open'",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "resolution",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "resolvedBy",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "resolvedAt",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "resolvedBy",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "users",
+          "from": "reporterId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_moderationReports_1",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "reporterId"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "targetType"
+            },
+            {
+              "seqno": 2,
+              "cid": 3,
+              "name": "targetId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "notificationMailQueue",
+      "sql": "CREATE TABLE notificationMailQueue (\n        mailId TEXT PRIMARY KEY, userId INTEGER NOT NULL REFERENCES users(userId) ON DELETE CASCADE,\n        email TEXT NOT NULL, eventKey TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL,\n        state TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,\n        nextAttempt REAL NOT NULL DEFAULT 0, leaseUntil REAL NOT NULL DEFAULT 0,\n        createdAt REAL NOT NULL, lastError TEXT NOT NULL DEFAULT '')",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "mailId",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "email",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "eventKey",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "subject",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "body",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "state",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'pending'",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "attempts",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "nextAttempt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "leaseUntil",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "createdAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 11,
+          "name": "lastError",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_notificationMailQueue_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "mailId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "notificationMailState",
+      "sql": "CREATE TABLE notificationMailState (\n        userId INTEGER PRIMARY KEY REFERENCES users(userId) ON DELETE CASCADE, since TEXT NOT NULL)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "since",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "personalCheckpoints",
+      "sql": "CREATE TABLE personalCheckpoints (\n        checkpointId TEXT PRIMARY KEY,userId INTEGER NOT NULL,title TEXT NOT NULL,content BLOB NOT NULL,\n        checksum TEXT NOT NULL,createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "checkpointId",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "content",
+          "type": "BLOB",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "checksum",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_personalCheckpoints_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "checkpointId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "personalNoticeSettings",
+      "sql": "CREATE TABLE personalNoticeSettings (\n        userId INTEGER PRIMARY KEY, projectsEnabled INTEGER NOT NULL DEFAULT 1,\n        lessonsEnabled INTEGER NOT NULL DEFAULT 1, resumeDays INTEGER NOT NULL DEFAULT 3,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "projectsEnabled",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "lessonsEnabled",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "resumeDays",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "3",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "personalSyncState",
+      "sql": "CREATE TABLE personalSyncState (\n        userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,\n        checksum TEXT NOT NULL DEFAULT '',pending INTEGER NOT NULL DEFAULT 0,\n        PRIMARY KEY(userId,apiUrl),FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "checksum",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "pending",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_personalSyncState_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "apiUrl"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "personalVault",
+      "sql": "CREATE TABLE personalVault (\n        userId INTEGER PRIMARY KEY,revision INTEGER NOT NULL,checksum TEXT NOT NULL,\n        snapshotJson TEXT NOT NULL,deviceId TEXT NOT NULL,updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "checksum",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "snapshotJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "deviceId",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "updatedAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "personalVaultHistory",
+      "sql": "CREATE TABLE personalVaultHistory (\n        userId INTEGER NOT NULL,revision INTEGER NOT NULL,checksum TEXT NOT NULL,snapshotJson TEXT NOT NULL,\n        deviceId TEXT NOT NULL,updatedAt TEXT NOT NULL,PRIMARY KEY(userId,revision),\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "checksum",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "snapshotJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "deviceId",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "updatedAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_personalVaultHistory_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "revision"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "postComments",
+      "sql": "CREATE TABLE postComments (\n            commentId INTEGER PRIMARY KEY AUTOINCREMENT,\n            postId INTEGER NOT NULL,\n            userId INTEGER NOT NULL,\n            commentText TEXT NOT NULL,\n            createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, replyToId INTEGER REFERENCES postComments(commentId) ON DELETE SET NULL,\n            FOREIGN KEY (postId) REFERENCES posts(postId),\n            FOREIGN KEY (userId) REFERENCES users(userId)\n        )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "commentId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "commentText",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "replyToId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "posts",
+          "from": "postId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        },
+        {
+          "id": 2,
+          "seq": 0,
+          "table": "postComments",
+          "from": "replyToId",
+          "to": "commentId",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "postLikes",
+      "sql": "CREATE TABLE postLikes (\n            likeId INTEGER PRIMARY KEY AUTOINCREMENT,\n            postId INTEGER NOT NULL,\n            userId INTEGER NOT NULL,\n            createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n            FOREIGN KEY (postId) REFERENCES posts(postId),\n            FOREIGN KEY (userId) REFERENCES users(userId),\n            UNIQUE(postId, userId)\n        )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "likeId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "posts",
+          "from": "postId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_postLikes_1",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "postId"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "userId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "postPhotos",
+      "sql": "CREATE TABLE postPhotos (\n        photoId INTEGER PRIMARY KEY AUTOINCREMENT, postId INTEGER NOT NULL,\n        position INTEGER NOT NULL, imageData BLOB NOT NULL,\n        FOREIGN KEY (postId) REFERENCES posts(postId), UNIQUE(postId, position)\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "photoId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "position",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "imageData",
+          "type": "BLOB",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "posts",
+          "from": "postId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_postPhotos_1",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "postId"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "position"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "posts",
+      "sql": "CREATE TABLE posts (\n            postId INTEGER PRIMARY KEY AUTOINCREMENT,\n            userId INTEGER NOT NULL,\n            titleText TEXT NOT NULL,\n            descriptionText TEXT NOT NULL,\n            categoryName TEXT NOT NULL,\n            tagsText TEXT,\n            likesCount INTEGER NOT NULL DEFAULT 0,\n            createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, isDeleted INTEGER NOT NULL DEFAULT 0, projectDetailsJson TEXT NOT NULL DEFAULT '',\n            FOREIGN KEY (userId) REFERENCES users(userId)\n        )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "titleText",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "descriptionText",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "categoryName",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "tagsText",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "likesCount",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "isDeleted",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "projectDetailsJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "projectMixtures",
+      "sql": "CREATE TABLE projectMixtures (\n        projectMixtureId INTEGER PRIMARY KEY AUTOINCREMENT, projectId INTEGER NOT NULL,\n        mixtureJson TEXT NOT NULL, FOREIGN KEY (projectId) REFERENCES projects(projectId)\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "projectMixtureId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "projectId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "mixtureJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "projects",
+          "from": "projectId",
+          "to": "projectId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "projectReminders",
+      "sql": "CREATE TABLE projectReminders (\n        reminderId INTEGER PRIMARY KEY AUTOINCREMENT,\n        userId INTEGER NOT NULL, projectId INTEGER NOT NULL,\n        deadlineDate TEXT NOT NULL, kind TEXT NOT NULL,\n        generatedDate TEXT NOT NULL, isRead INTEGER NOT NULL DEFAULT 0,\n        UNIQUE(userId,projectId,deadlineDate,kind),\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE,\n        FOREIGN KEY(projectId) REFERENCES projects(projectId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "reminderId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "projectId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "deadlineDate",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "kind",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "generatedDate",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "isRead",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "projects",
+          "from": "projectId",
+          "to": "projectId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_projectReminders_1",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "projectId"
+            },
+            {
+              "seqno": 2,
+              "cid": 3,
+              "name": "deadlineDate"
+            },
+            {
+              "seqno": 3,
+              "cid": 4,
+              "name": "kind"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "projectSteps",
+      "sql": "CREATE TABLE projectSteps (\n            stepId INTEGER PRIMARY KEY AUTOINCREMENT,\n            projectId INTEGER NOT NULL,\n            stepDescription TEXT NOT NULL,\n            isCompleted INTEGER NOT NULL DEFAULT 0,\n            createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, photoImage BLOB, detailsText TEXT NOT NULL DEFAULT '', sortOrder INTEGER NOT NULL DEFAULT 0,\n            FOREIGN KEY (projectId) REFERENCES projects(projectId)\n        )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "stepId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "projectId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "stepDescription",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "isCompleted",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "photoImage",
+          "type": "BLOB",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "detailsText",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "sortOrder",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "projects",
+          "from": "projectId",
+          "to": "projectId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "projects",
+      "sql": "CREATE TABLE projects (\n            projectId INTEGER PRIMARY KEY AUTOINCREMENT,\n            userId INTEGER NOT NULL,\n            projectName TEXT NOT NULL,\n            categoryName TEXT NOT NULL,\n            deadlineDate TEXT,\n            descriptionText TEXT,\n            progressPercent REAL NOT NULL DEFAULT 0,\n            createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, finalPhotoImage BLOB, isFinished INTEGER NOT NULL DEFAULT 0, completedAt TEXT,\n            FOREIGN KEY (userId) REFERENCES users(userId)\n        )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "projectId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "projectName",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "categoryName",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "deadlineDate",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "descriptionText",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "progressPercent",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "finalPhotoImage",
+          "type": "BLOB",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "isFinished",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "completedAt",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "publicationDrafts",
+      "sql": "CREATE TABLE publicationDrafts (\n        draftId TEXT PRIMARY KEY,userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,payloadJson TEXT NOT NULL,updatedAt REAL NOT NULL,\n        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "draftId",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "payloadJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "updatedAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_publicationDrafts_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "draftId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "referenceImages",
+      "sql": "CREATE TABLE referenceImages (\n        referenceId TEXT PRIMARY KEY,userId INTEGER NOT NULL REFERENCES users(userId) ON DELETE CASCADE,\n        apiUrl TEXT NOT NULL,title TEXT NOT NULL,image BLOB NOT NULL,createdAt REAL NOT NULL)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "referenceId",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "image",
+          "type": "BLOB",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "createdAt",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_referenceImages_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "referenceId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "remoteAccounts",
+      "sql": "CREATE TABLE remoteAccounts (\n        apiUrl TEXT NOT NULL, remoteUserId INTEGER NOT NULL, localUserId INTEGER NOT NULL UNIQUE,\n        displayNickname TEXT NOT NULL, PRIMARY KEY (apiUrl, remoteUserId),\n        FOREIGN KEY (localUserId) REFERENCES users(userId)\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "remoteUserId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "localUserId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "displayNickname",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "localUserId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_remoteAccounts_2",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "apiUrl"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "remoteUserId"
+            }
+          ]
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_remoteAccounts_1",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "localUserId"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "remoteProfileCache",
+      "sql": "CREATE TABLE remoteProfileCache (\n        userId INTEGER NOT NULL,apiUrl TEXT NOT NULL,profileJson TEXT NOT NULL,\n        PRIMARY KEY(userId,apiUrl),FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "profileJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_remoteProfileCache_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "apiUrl"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "remoteSessionBindings",
+      "sql": "CREATE TABLE remoteSessionBindings (\n        tokenHash TEXT PRIMARY KEY, apiUrl TEXT NOT NULL, localUserId INTEGER NOT NULL,\n        FOREIGN KEY (localUserId) REFERENCES users(userId)\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "tokenHash",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "apiUrl",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "localUserId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "localUserId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_remoteSessionBindings_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "tokenHash"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "searchHistory",
+      "sql": "CREATE TABLE searchHistory (\n        userId INTEGER NOT NULL, queryKey TEXT NOT NULL, queryText TEXT NOT NULL,\n        lastUsed INTEGER NOT NULL, PRIMARY KEY(userId,queryKey),\n        FOREIGN KEY(userId) REFERENCES users(userId))",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "queryKey",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "queryText",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "lastUsed",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_searchHistory_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "queryKey"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "users",
+      "sql": "CREATE TABLE users (\n            userId INTEGER PRIMARY KEY AUTOINCREMENT,\n            email TEXT NOT NULL UNIQUE,\n            passwordHash TEXT NOT NULL,\n            passwordSalt TEXT NOT NULL,\n            nickname TEXT NOT NULL UNIQUE,\n            roleName TEXT NOT NULL DEFAULT 'user',\n            isBlocked INTEGER NOT NULL DEFAULT 0,\n            createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP\n        , emailVerified INTEGER NOT NULL DEFAULT 1, loginFailures INTEGER NOT NULL DEFAULT 0, loginBlockedUntil REAL NOT NULL DEFAULT 0, passwordFailures INTEGER NOT NULL DEFAULT 0, passwordBlockedUntil REAL NOT NULL DEFAULT 0, bioText TEXT DEFAULT '', ageCategory TEXT DEFAULT 'Взрослый 18+', favoriteColorsJson TEXT DEFAULT '[]', themeMode TEXT DEFAULT 'light', languageCode TEXT DEFAULT 'ru', notificationsEnabled INTEGER DEFAULT 1, avatarPath TEXT DEFAULT '', avatarImage BLOB)",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "email",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "passwordHash",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "passwordSalt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "nickname",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "roleName",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'user'",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "isBlocked",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "createdAt",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "emailVerified",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "loginFailures",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "loginBlockedUntil",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 11,
+          "name": "passwordFailures",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 12,
+          "name": "passwordBlockedUntil",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 13,
+          "name": "bioText",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 14,
+          "name": "ageCategory",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "'Взрослый 18+'",
+          "pk": 0
+        },
+        {
+          "cid": 15,
+          "name": "favoriteColorsJson",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "'[]'",
+          "pk": 0
+        },
+        {
+          "cid": 16,
+          "name": "themeMode",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "'light'",
+          "pk": 0
+        },
+        {
+          "cid": 17,
+          "name": "languageCode",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "'ru'",
+          "pk": 0
+        },
+        {
+          "cid": 18,
+          "name": "notificationsEnabled",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 19,
+          "name": "avatarPath",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 20,
+          "name": "avatarImage",
+          "type": "BLOB",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_users_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 4,
+              "name": "nickname"
+            }
+          ]
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_users_1",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "email"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "workshopProgress",
+      "sql": "CREATE TABLE workshopProgress (\n        userId INTEGER NOT NULL, postId INTEGER NOT NULL, stateJson TEXT NOT NULL,\n        PRIMARY KEY (userId, postId),\n        FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE,\n        FOREIGN KEY (postId) REFERENCES posts(postId) ON DELETE CASCADE\n    )",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "userId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "postId",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "stateJson",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "posts",
+          "from": "postId",
+          "to": "postId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "users",
+          "from": "userId",
+          "to": "userId",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_workshopProgress_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "userId"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "postId"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "internalTables": [
+    {
+      "name": "sqlite_sequence",
+      "sql": "CREATE TABLE sqlite_sequence(name,seq)"
+    }
+  ],
+  "triggers": [],
+  "indexes": [
+    {
+      "name": "activityRecipient",
+      "tbl_name": "activityNotices",
+      "sql": "CREATE INDEX activityRecipient ON activityNotices(userId,noticeId)"
+    },
+    {
+      "name": "commentEventsUserTime",
+      "tbl_name": "commentEvents",
+      "sql": "CREATE INDEX commentEventsUserTime ON commentEvents(userId, createdAt)"
+    }
+  ]
+}

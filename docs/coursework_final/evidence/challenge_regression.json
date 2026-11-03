@@ -1,0 +1,15 @@
+{
+  "method": "Controlled before/after execution of actual Flet callbacks, isolated temporary SQLite; not Android",
+  "before": {
+    "status": "FAIL",
+    "sourceCommit": "e713009d527774eff77f1f8d0ce37736b044684e",
+    "expected": "/discovery/compose with selected challenge",
+    "observedRoute": "/home",
+    "composerVisible": false
+  },
+  "after": {
+    "status": "PASS",
+    "observedRoute": "/discovery/compose",
+    "selectedChallenge": "1"
+  }
+}

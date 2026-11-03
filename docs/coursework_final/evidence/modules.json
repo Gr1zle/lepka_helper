@@ -1,0 +1,2070 @@
+[
+  {
+    "path": "account_gateway.py",
+    "lines": 228,
+    "sha256": "2c4f427e88196970ae277a843ad99d86650d8bce008bec10a5102b95644b9dba",
+    "description": "Единый вход для интерфейса: прежние локальные сервисы или HTTP API.",
+    "functions": [
+      "pairRequest",
+      "registerUser",
+      "loginUser",
+      "ensureDemoUser",
+      "getSessionUser",
+      "logoutUser",
+      "requestRegistrationCode",
+      "confirmRegistration",
+      "requestPasswordRecovery",
+      "changePasswordByEmail",
+      "getUserProfile",
+      "saveUserAvatar",
+      "removeUserAvatar",
+      "profileRequest",
+      "saveUserProfile",
+      "saveUserSettings",
+      "accountRequest",
+      "changeUserPassword",
+      "requestEmailChange",
+      "confirmEmailChange",
+      "deleteUserAccount"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "account_security.py",
+    "lines": 123,
+    "sha256": "c1b37a14ad364af7e0f8416a0005be93aa1ca9ad866dcb30104a5996662ebbbc",
+    "description": "Одноразовые коды и сессии. В SQLite хранятся только их хеши.",
+    "functions": [
+      "hashToken",
+      "makePublicUser",
+      "createSession",
+      "getSessionUser",
+      "logoutUser",
+      "revokeUserSessions",
+      "requestAccountCode",
+      "issueAccountCode",
+      "checkAccountCode",
+      "confirmRegistration"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "activity_service.py",
+    "lines": 19,
+    "sha256": "0c87ec7f880652e5ec4d68a9d052e5570dbaa6a3047b9b6397d32fbaa401cf61",
+    "description": "Уведомления об активности: события записываются в транзакции самого действия.",
+    "functions": [
+      "record",
+      "comment"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "api_client.py",
+    "lines": 119,
+    "sha256": "4baa7027680bfe50db6cd041eb7bae6d4d118724c5332c42c8d9a20370382af1",
+    "description": "HTTP-транспорт клиента. Секрет Resend здесь не используется.",
+    "functions": [
+      "ApiError",
+      "validateApiUrl",
+      "getApiUrl",
+      "lanTransport",
+      "apiRequest"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "app_info.py",
+    "lines": 4,
+    "sha256": "9ae7c744969fc5d0dfb48350814710d60db97e56ff4c61ee28bb3b8abfe1fa8d",
+    "description": "Единая версия приложения для финальной контрольной версии.",
+    "functions": [],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "app_paths.py",
+    "lines": 10,
+    "sha256": "510061ed47b74f343aeb6560764946f851bea8747bef1fba278efa06b9fccc5f",
+    "description": "Единая папка данных, не зависящая от текущей рабочей директории.",
+    "functions": [],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "app_state.py",
+    "lines": 26,
+    "sha256": "ae0012e7d4295d3f16b7ab34e17ef081339029a6bb8a2524491ec60ae7e46edc",
+    "description": "",
+    "functions": [
+      "getAppState",
+      "setAppState"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "auth_service.py",
+    "lines": 162,
+    "sha256": "2d22613b2e5065c8f586d216f6780dc9ac1bda073dc3efcf595b7cb68a852f0f",
+    "description": "Регистрация и вход: проверки выполняются независимо от интерфейса Flet.",
+    "functions": [
+      "registerUser",
+      "loginUser",
+      "requestPasswordRecovery",
+      "requestRegistrationCode",
+      "changePasswordByEmail",
+      "deleteUserAccount",
+      "ensureDemoUser",
+      "requestEmailChange",
+      "confirmEmailChange"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "backend/__init__.py",
+    "lines": 1,
+    "sha256": "e28ef1eaebaad0799a076ecc0b9358ddab0c56196feb2934e092c7358d3dd77a",
+    "description": "Сервер аккаунтов Lepka Helper.",
+    "functions": [],
+    "android": false,
+    "server": true
+  },
+  {
+    "path": "backend/catalog.py",
+    "lines": 96,
+    "sha256": "54cb47e133cb634516bda556596efa3c1df4dc85fcdc7a33f7a29712c521d821",
+    "description": "",
+    "functions": [
+      "SaveInput",
+      "AssetInput",
+      "UsageInput",
+      "call",
+      "bounded",
+      "installCatalogRoutes"
+    ],
+    "android": false,
+    "server": true
+  },
+  {
+    "path": "backend/challenges.py",
+    "lines": 82,
+    "sha256": "4ddb4f61ffbfc5021b0e7295252aa2fe199839a5b4efcc2473245e91ea7e5f24",
+    "description": "HTTP конкурсного цикла; пользователь определяется только Bearer-сессией.",
+    "functions": [
+      "ChallengeInput",
+      "EntryInput",
+      "DecisionInput",
+      "VoteInput",
+      "installChallengeRoutes"
+    ],
+    "android": false,
+    "server": true
+  },
+  {
+    "path": "backend/community.py",
+    "lines": 268,
+    "sha256": "07e6f79b182a6daeb608b34c39edef3adaa841c86c4440aebbd57daada7d293c",
+    "description": "API сообщества. Личные действия используют только пользователя из Bearer-сессии.",
+    "functions": [
+      "CommunityBodyLimit",
+      "CommunityInput",
+      "PhotoInput",
+      "PostInput",
+      "CommentTextInput",
+      "CommentInput",
+      "ActionInput",
+      "ProgressInput",
+      "requirePost",
+      "installCommunityRoutes"
+    ],
+    "android": false,
+    "server": true
+  },
+  {
+    "path": "backend/delivery.py",
+    "lines": 26,
+    "sha256": "bde5ade39430f90f6c223667c0cd0cf4c50c8bfb1b61aad967b0609bc47b7fad",
+    "description": "",
+    "functions": [
+      "DeliveryInput",
+      "installDeliveryRoutes"
+    ],
+    "android": false,
+    "server": true
+  },
+  {
+    "path": "backend/main.py",
+    "lines": 303,
+    "sha256": "78a11f730c07ea52c234777fa6983cad6b5c8e1d951ba96d7ea0823cd5a6cd38",
+    "description": "Запуск: python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000.",
+    "functions": [
+      "InputModel",
+      "EmailInput",
+      "LoginInput",
+      "RegisterInput",
+      "ConfirmInput",
+      "ResetInput",
+      "ProfileInput",
+      "SettingsInput",
+      "PasswordInput",
+      "DeleteInput",
+      "NewEmailInput",
+      "ConfirmEmailInput",
+      "currentUser",
+      "optionalUser",
+      "resultResponse",
+      "createApp"
+    ],
+    "android": false,
+    "server": true
+  },
+  {
+    "path": "backend/moderation.py",
+    "lines": 95,
+    "sha256": "be8908286cdec9a9394a963187acdc08261bd18e23bf17e3c014baee8144e4b8",
+    "description": "HTTP права администратора проверяются заново для каждого действия.",
+    "functions": [
+      "ReasonInput",
+      "MaterialInput",
+      "ResolveInput",
+      "UserChangeInput",
+      "RoleInput",
+      "invoke",
+      "installModerationRoutes"
+    ],
+    "android": false,
+    "server": true
+  },
+  {
+    "path": "backend/personal.py",
+    "lines": 32,
+    "sha256": "2102494899786a45c75c7a5675ae2a15616593d5c4c0deb03cfacf268e1b62e9",
+    "description": "",
+    "functions": [
+      "SnapshotInput",
+      "installPersonalRoutes"
+    ],
+    "android": false,
+    "server": true
+  },
+  {
+    "path": "camera_web.py",
+    "lines": 33,
+    "sha256": "c60ce0d4bdbdb46acd4807bdb300993051dd9e31fb3695f0fc00406a4b45929d",
+    "description": "User-initiated browser camera, with a capture-input fallback for LAN HTTP.",
+    "functions": [
+      "cameraPage"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "catalog_client.py",
+    "lines": 144,
+    "sha256": "6d9f24b4511a1cca22cb39e8ddf639d9f77386a87299740a4895dbc6b62b741e",
+    "description": "Complete, checked offline packages, scoped to the current account and API.",
+    "functions": [
+      "CatalogClient",
+      "catalogNotices",
+      "readCatalog"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "catalog_media.py",
+    "lines": 61,
+    "sha256": "060ae6889b9fda36b07396c3cb6548261a4b25da62a11426f991a8f3fcc3c4cf",
+    "description": "Private cached video: short-lived web tickets with byte ranges, native files.",
+    "functions": [
+      "videoTicket",
+      "nativeVideo",
+      "media"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "catalog_sync.py",
+    "lines": 13,
+    "sha256": "1873b17597cf97ab20d5fde4214fc5ede07f2061c9d6f3a8d207942fa4d1fbfd",
+    "description": "Light metadata and usage sync; media is downloaded only by explicit request.",
+    "functions": [
+      "syncIfNeeded"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "catalog_upload.py",
+    "lines": 58,
+    "sha256": "ed31663d8a28520a12e16db011e80b8203221ad2a919c2348199f22a65264dc8",
+    "description": "Single-use bounded web uploads, validated by the current catalogue authority.",
+    "functions": [
+      "createUpload",
+      "cancelUpload",
+      "takeUpload",
+      "upload"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "challenge_gateway.py",
+    "lines": 49,
+    "sha256": "bfc7dd4e089bfcdfa1c0a6cbd2370e4bb31f9ac8b4e6961c6df76636fdb48394",
+    "description": "Идентификаторы заявок принадлежат текущему режиму сообщества.",
+    "functions": [
+      "ChallengeClient"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "challenge_service.py",
+    "lines": 296,
+    "sha256": "52a8d22494c3a228487876ff1ef343ecf0be252d442bb8135fda8313c23b6b12",
+    "description": "Конкурсы: единые транзакции для локального режима и API.",
+    "functions": [
+      "today",
+      "activeUser",
+      "identifier",
+      "getChallenge",
+      "status",
+      "create",
+      "listing",
+      "detail",
+      "submit",
+      "withdraw",
+      "finish",
+      "vote",
+      "saveAward",
+      "settle",
+      "settleDue",
+      "profile",
+      "notices",
+      "readNotice",
+      "noticeSummary",
+      "readAllNotices"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "clay_tools.py",
+    "lines": 90,
+    "sha256": "8534d7c14ff2f3299ef39f18237595602857872d39e3d8b36fed519102925834",
+    "description": "Простые расчёты объёма/массы и таймер на монотонных часах.",
+    "functions": [
+      "recipeLengths",
+      "positiveNumber",
+      "calculateClay",
+      "ClayTimer"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "color_export.py",
+    "lines": 70,
+    "sha256": "252d54f873073fe1a83650ab8b4de6180a26e289eb32d6233dc384c0543ffff3",
+    "description": "PNG-рецепт: одинаковая кириллица на всех ОС благодаря включённому шрифту.",
+    "functions": [
+      "createRecipePng",
+      "createRecipePdf"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "color_photo.py",
+    "lines": 66,
+    "sha256": "2c701aeb3e597428e952c46540bdebbd0e0ead600dadf16b892f4b4e308cfcc3",
+    "description": "Camera/gallery colour sampling and simple, explicit reference-image operations.",
+    "functions": [
+      "readImage",
+      "pngBytes",
+      "nearestColor",
+      "sampleColor",
+      "cropReference",
+      "removeBackground"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "color_service.py",
+    "lines": 402,
+    "sha256": "fd4c4ee4ba4895696ea4f531753258bd2d1692ccc7f69b6c762a34b2a6d102c7",
+    "description": "",
+    "functions": [
+      "validateHexColor",
+      "normalizeHexColor",
+      "convertHexToRgb",
+      "clampColorValue",
+      "convertRgbToHex",
+      "normalizeWeight",
+      "allocatePercentUnits",
+      "normalizeProportion",
+      "normalizeSelectedColors",
+      "_blendColors",
+      "calculateMixedColor",
+      "calculateRecipe",
+      "normalizeMixture",
+      "saveColorMixture",
+      "deleteColorMixture",
+      "getUserColorMixtures",
+      "calculateColorDistance",
+      "generateProportionVariants",
+      "_getRecipeCandidateCache",
+      "_calculateColorDistanceFromRgb",
+      "_copyRecipeResult",
+      "findClosestRecipeForTargetColor"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "color_wheel.py",
+    "lines": 83,
+    "sha256": "990b0bbebc722d2d726c6aebfb195c0bfa9f419d28413291052e935e6dfeaaaf",
+    "description": "Кешируемое изображение круга и выбор оттенка по координатам.",
+    "functions": [
+      "rgbToHex",
+      "getColorWheelHexAtPoint",
+      "createPngChunk",
+      "createColorWheelBase64"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "community_cache.py",
+    "lines": 24,
+    "sha256": "a2f403421a2033e11dc02aad89895a48a2cd06dff3e7410a8fc71e14e14ec430",
+    "description": "Ограниченный кеш прочитанных данных, разделённый по аккаунту и серверу.",
+    "functions": [
+      "readCache",
+      "writeCache"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "community_gateway.py",
+    "lines": 341,
+    "sha256": "c98b9a336d074b3a5dfdd9bf164284c3097eb7f3b362c315a8f1ab28e80e9ffb",
+    "description": "Сообщество: локальные сервисы или сервер API, без подмены режима при сбое.",
+    "functions": [
+      "ownsItem",
+      "CommunityClient"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "community_outbox.py",
+    "lines": 103,
+    "sha256": "9ff472d65dcffa05d0259fad7975d74a83e20db961d31f97d49e48eddc928d6e",
+    "description": "Долговечная очередь без токенов; повторяется только под владельцем и его API.",
+    "functions": [
+      "requireIdentity",
+      "serialize",
+      "enqueue",
+      "entries",
+      "result",
+      "remove",
+      "lastLike",
+      "flush"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "connection_monitor.py",
+    "lines": 76,
+    "sha256": "ee190a54c7c93599f684cf1cf1342ba4c964c6f78b6f00c03731eb79ac4c4f65",
+    "description": "",
+    "functions": [
+      "startConnectionMonitor"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "contest_entry.py",
+    "lines": 65,
+    "sha256": "535b59bf1e3e760097acb1a6aa46e9efb9ab36a48dbf0901131faa6afae2bbc6",
+    "description": "Теги конкурса и отбор публикаций в уже открытой транзакции.",
+    "functions": [
+      "tag",
+      "tokens",
+      "inPeriod",
+      "publicationTags",
+      "enroll",
+      "sync"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "database.py",
+    "lines": 1382,
+    "sha256": "1368c4eb28dcd4e735d7b69f1e91ff6e16d0c554959988f71a0c4d9f0dea7630",
+    "description": "",
+    "functions": [
+      "getConnection",
+      "openDatabase",
+      "addColumnIfNotExists",
+      "initializeDatabase",
+      "getUserByEmail",
+      "getUserByNickname",
+      "createUser",
+      "createColorMixture",
+      "deleteColorMixtureById",
+      "getColorMixturesByUserId",
+      "createProject",
+      "getProjectsByUserId",
+      "getProjectById",
+      "deleteProjectById",
+      "getUserProfileById",
+      "updateUserProfile",
+      "createProjectStep",
+      "reorderProjectSteps",
+      "getProjectStepsByProjectId",
+      "updateProjectStepStatus",
+      "deleteProjectStepById",
+      "updateProjectProgress",
+      "updateUserSettings",
+      "createPost",
+      "getAllPosts",
+      "getPostsByUserId",
+      "increasePostLikes",
+      "deletePostById",
+      "erasePost",
+      "createPostComment",
+      "togglePostLikeForUser",
+      "getCommentsByPostId",
+      "deletePostCommentById",
+      "getPostLikeByUser",
+      "createPostLike",
+      "deletePostLike",
+      "countPostLikes",
+      "updatePostLikesCount",
+      "deleteUserDataById",
+      "getUserPasswordById",
+      "updateUserPassword",
+      "createProjectWithSteps",
+      "getLessonProgress",
+      "saveLessonProgress",
+      "updateProjectById",
+      "updateProjectStepDescription",
+      "createPostWithPhotos",
+      "getPostPhotoIds",
+      "getPostPhoto",
+      "updatePostComment",
+      "setUserAvatar",
+      "getProjectStepPhoto",
+      "setProjectStepPhoto",
+      "updateStepDetails",
+      "projectFinalPhoto",
+      "setFinalPhoto",
+      "finishProjectRecord"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "date_field.py",
+    "lines": 29,
+    "sha256": "5df61fcb274b1db4629d19ebf2c49de136c7e2c4df2895c955d0d9ac4886ea44",
+    "description": "",
+    "functions": [
+      "createDeadlineField"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "deferred_community.py",
+    "lines": 40,
+    "sha256": "73f61ab980a1f60fdea2c2b55284aa7a50cf9dad0a2a89c826d0970d5951bc06",
+    "description": "Проверка и постановка пользовательских отправок до первого сетевого запроса.",
+    "functions": [
+      "validatePublication",
+      "submit"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "delivery_settings.py",
+    "lines": 28,
+    "sha256": "cc739a973fed915718776fb61dee77375a6b75cdea4d4fcda5bf3191bdc63850",
+    "description": "Preferences for device notifications and optional server email delivery.",
+    "functions": [
+      "getSettings",
+      "saveSettings"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "design_system.py",
+    "lines": 134,
+    "sha256": "cb9c1f84fbef114bf84458883bcbd8e2cfa39d65cc69075c6da35dfd1c1690d1",
+    "description": "Shared, theme-aware presentation. No application data or navigation side effects.",
+    "functions": [
+      "makeTheme",
+      "disclosure",
+      "workspace",
+      "polish",
+      "presentView",
+      "resizeLayouts",
+      "relativeLuminance",
+      "swatchTextColor"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "device_notifications.py",
+    "lines": 136,
+    "sha256": "fd368e51dc6c6c71a3630ede0ce28c6890e6c50bed7d656aa69c8bb0afc42180",
+    "description": "Build an account-scoped Android alarm plan. No remote token in native data.",
+    "functions": [
+      "ownerKey",
+      "buildPlan",
+      "bridge",
+      "clear",
+      "startNotificationMonitor"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "device_session.py",
+    "lines": 136,
+    "sha256": "86cf57a49d3515ad4c40fa17f72780a4fda1ab906f4d0f1977aa3384b3aaf57f",
+    "description": "Восстановление местной Android-сессии из закрытого каталога приложения.",
+    "functions": [
+      "supportsDeviceSession",
+      "forgetDeviceSession",
+      "saveDeviceSession",
+      "restoreDeviceSession",
+      "nativeClient",
+      "forgetDeviceSession",
+      "saveDeviceSession",
+      "restoreDeviceSession"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "download_service.py",
+    "lines": 50,
+    "sha256": "f26e7fdca22d3a2806df87769cfbc200a9bf6ea1a7f780e2cee95f2cdf8e8816",
+    "description": "Короткоживущие одноразовые ссылки на PNG, без доступа к файлам пользователя.",
+    "functions": [
+      "createDownload",
+      "downloadRecipe"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "feed_service.py",
+    "lines": 33,
+    "sha256": "1be8ff3019d21bf874f2b3c52185684769ddf7b5374cc4e2067eb10a5568844c",
+    "description": "Порционная лента с фильтрами и устойчивым порядком.",
+    "functions": [
+      "page",
+      "userStats"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "file_export.py",
+    "lines": 69,
+    "sha256": "0b58bf2b8ed46b4ac0236d86ace5f7d900818d66edc4a8e1ca1f110fcde23794",
+    "description": "Byte-oriented export: Android documents, browser downloads, atomic desktop files.",
+    "functions": [
+      "writeAtomic",
+      "exportBytes"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "interface_catalog.py",
+    "lines": 12,
+    "sha256": "30773089167ceb488c47e551bb21a3e971b45aa63c95ccc140e24b40848ee835",
+    "description": "Static English vocabulary shared by presentation and built-in search. No network.",
+    "functions": [
+      "englishCatalog",
+      "english"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "learning_assets.py",
+    "lines": 12,
+    "sha256": "4d2c746ea6590d79520745b50a82bc9387601ebabc9248400c96408cab912cdb",
+    "description": "Явный каталог авторских геометрических моделей и учебных схем.",
+    "functions": [],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "learning_catalog.py",
+    "lines": 194,
+    "sha256": "30f964c9ba786244f88f25a203f9c9a14d8c5ab1a9b2d4eb34dd7c10b6a27651",
+    "description": "Editable catalogue. Publications are versioned; binary files are immutable.",
+    "functions": [
+      "CatalogConflict",
+      "timestamp",
+      "validateAsset",
+      "upload",
+      "text",
+      "validateDocument",
+      "rowData",
+      "save",
+      "listing",
+      "detail",
+      "asset",
+      "usage",
+      "statistics",
+      "cleanUnused"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "lesson_library.py",
+    "lines": 152,
+    "sha256": "f6a10c881ee3c62f9e033756314d7771a4fc7e7dad5bf6b29af7bd5c3b48eb7e",
+    "description": "Личная библиотека встроенных уроков и история поиска в клиентской SQLite.",
+    "functions": [
+      "requireLesson",
+      "requireOwner",
+      "favoriteLessonIds",
+      "saveLessonFavorite",
+      "getLessonNote",
+      "saveLessonNote",
+      "normalizeSearchQuery",
+      "recentSearches",
+      "rememberSearch",
+      "clearSearchHistory",
+      "searchSuggestions",
+      "lessonSearchResults",
+      "lessonShareText"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "lesson_service.py",
+    "lines": 284,
+    "sha256": "f2df1945dbfc41ce13cc170739d331e28851db4721aebcf8506206bbac95317b",
+    "description": "",
+    "functions": [
+      "searchLessons",
+      "getLessonById",
+      "generateRandomIdea",
+      "getUserLessonState",
+      "normalizeLessonState",
+      "saveUserLessonState"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "localization.py",
+    "lines": 110,
+    "sha256": "cc2594a5122cb02811aa6b2b9995b280aa381672515989ca110c55ab437cf23d",
+    "description": "Offline Russian/English presentation; database values and user text stay intact.",
+    "functions": [
+      "language",
+      "setLanguage",
+      "restoreLanguage",
+      "tr",
+      "term",
+      "messagePatterns",
+      "message",
+      "localizeHints",
+      "builtinContent",
+      "clearSession",
+      "rebuildCurrentRoute"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "mail_service.py",
+    "lines": 44,
+    "sha256": "f457fd4b41c5bf913f2b6c019996a4c1a18a966adfd05fade734775a6b0cee44",
+    "description": "Доставка писем через HTTPS API Resend. Ключ задаётся вне исходного кода.",
+    "functions": [
+      "sendNotification",
+      "MailDeliveryError",
+      "sendAccountCode"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "main.py",
+    "lines": 204,
+    "sha256": "e2813346780a3675d5cc73ac01f6f0052539c67abd69596b3a8563b7416f54ab",
+    "description": "",
+    "functions": [
+      "main"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "mesh_renderer.py",
+    "lines": 120,
+    "sha256": "a51d5aaa5b548fe1832a05dd46e671fe8f8d65ba0de6b6464fcde102c6f67188",
+    "description": "Небольшой OBJ-просмотрщик: перспективная проекция, отсечение граней и свет.",
+    "functions": [
+      "subtract",
+      "cross",
+      "dot",
+      "unit",
+      "Mesh",
+      "parseObj",
+      "projectMesh"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "model_import.py",
+    "lines": 117,
+    "sha256": "9efbeaa4c3884fc445dc6f667a8c6499c796c3172b9da12427d6e64d32ead802",
+    "description": "Ограниченный импорт OBJ/MTL без распаковки файлов в файловую систему.",
+    "functions": [
+      "decodeModel",
+      "modelPreview",
+      "importModel",
+      "importedModel",
+      "listImportedModels",
+      "deleteImportedModel"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "model_service.py",
+    "lines": 138,
+    "sha256": "f0cd669565f8d74bdff034b8ba69f095b9fa24da3c2511168fb18c03cda588ef",
+    "description": "Каталог встроенных OBJ и личное избранное моделей.",
+    "functions": [
+      "personalItem",
+      "getModel",
+      "requireModel",
+      "loadBuiltinModel",
+      "loadModel",
+      "catalogModel",
+      "searchModels",
+      "favoriteModelIds",
+      "saveModelFavorite",
+      "modelBundle"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "model_upload.py",
+    "lines": 62,
+    "sha256": "efc4e36debc0e23a817713149e4507a86a96be2c5a872f3eb8a545d6e736f65b",
+    "description": "Одноразовая ограниченная передача личной модели из браузера.",
+    "functions": [
+      "createModelUpload",
+      "cancelModelUpload",
+      "takeModelUpload",
+      "uploadModel"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "moderation_gateway.py",
+    "lines": 92,
+    "sha256": "eb2644577f4e5c9e1868a6d4563df805a4f89d39ae10db4570f776542067757b",
+    "description": "Жалобы и панель: текущая локальная база или API, без обхода прав при сбое.",
+    "functions": [
+      "ModerationClient"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "moderation_service.py",
+    "lines": 168,
+    "sha256": "27681dd9878837a6484293efd11714fabb206da682f8e8b4811767d88422fc5a",
+    "description": "Жалобы и администрирование. actorId передаёт проверенный шлюз/API.",
+    "functions": [
+      "requireAdmin",
+      "cleanReason",
+      "audit",
+      "targetInfo",
+      "reportMaterial",
+      "listReports",
+      "resolveReport",
+      "removeMaterial",
+      "listUsers",
+      "changeUser",
+      "listAudit",
+      "deleteUser",
+      "myReports"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "notification_center.py",
+    "lines": 49,
+    "sha256": "6a58bffa2d72455789cf03526424dc0331c297bfa157a2c84f73103662d36658",
+    "description": "Объединение локальных личных событий и страниц API с разными пространствами ID.",
+    "functions": [
+      "NoticeCenter"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "notification_mail.py",
+    "lines": 106,
+    "sha256": "1e90d3e6b8564c379cf063437cc6979dec5cd6629badacd76961cf9f62f33120",
+    "description": "Opt-in mail spool. Disabled unless the server operator explicitly enables it.",
+    "functions": [
+      "enabled",
+      "deadlineEvents",
+      "collect",
+      "deliver",
+      "status"
+    ],
+    "android": false,
+    "server": true
+  },
+  {
+    "path": "offline_access.py",
+    "lines": 47,
+    "sha256": "f8df5a1958a9a6e53b8608f595f863b6fe09ceee973bbd697b14dc90de2b8878",
+    "description": "Ограниченный доступ к личным данным по ранее подтверждённой серверной сессии.",
+    "functions": [
+      "registerVerified",
+      "cachedUser",
+      "forgetVerified",
+      "noteUnavailable",
+      "coolingDown",
+      "cachedProfile"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "offline_mutations.py",
+    "lines": 49,
+    "sha256": "b9b201345b472c63c9df3c6e50ce2781af7ce2286fd76d298769a526de48f685",
+    "description": "Повторяемые серверные действия: заданный лайк и комментарий с квитанцией.",
+    "functions": [
+      "ActionConflict",
+      "ActionRateLimit",
+      "applyAction"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "password_service.py",
+    "lines": 22,
+    "sha256": "d914519af7aebca89b2838bf3f946d935dc52fbec4800ed2dd615db4d407cfd1",
+    "description": "Общий формат пароля для регистрации, входа и изменения пароля.",
+    "functions": [
+      "createPasswordHash",
+      "checkPassword"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "personal_checkpoints.py",
+    "lines": 54,
+    "sha256": "5928e7a7a61734ec58db7c2a4f87fed4342b5f21e0eabb216d009f5f54eadd0c",
+    "description": "Пять последних полных копий в личной SQLite, атомарное восстановление.",
+    "functions": [
+      "saveCheckpoint",
+      "listCheckpoints",
+      "readCheckpoint",
+      "deleteCheckpoint",
+      "restoreCheckpoint"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "personal_notices.py",
+    "lines": 105,
+    "sha256": "a99a94f20055a7620fede1587cb3c33afb3b2c5556a6d15eb0b40778c511e821",
+    "description": "Личные события устройства: дедлайны и обучение. Доставка при открытии приложения.",
+    "functions": [
+      "nowUtc",
+      "instant",
+      "settings",
+      "saveSettings",
+      "syncLearning",
+      "personalItems",
+      "readPersonal",
+      "snoozeLesson"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "personal_snapshot.py",
+    "lines": 144,
+    "sha256": "942a40934d9a478dca4fc0786abb0fe617a4b07a3a279118edd416ab2485a66a",
+    "description": "Перенос личных данных без аккаунтов, токенов, чужих ID и публикаций.",
+    "functions": [
+      "encodeSnapshot",
+      "requireOwner",
+      "timestamp",
+      "decodeSnapshot",
+      "exportSnapshot",
+      "applySnapshot",
+      "snapshotSummary"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "personal_sync.py",
+    "lines": 111,
+    "sha256": "f799f9c31e91fa2bfbeec23a5c895f0f95308fd2d6e755058bcd010fbf3fd3bb",
+    "description": "Ручная двусторонняя синхронизация снимка с проверкой версий и локальных изменений.",
+    "functions": [
+      "fingerprint",
+      "getDeviceId",
+      "PersonalSync"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "personal_vault.py",
+    "lines": 53,
+    "sha256": "3cdd02e6dd83ec804b87e473f98c6798d0427f4023a05dafb5f7cf24a99ff18c",
+    "description": "Версии личного снимка на сервере. Владельца задаёт проверенный Bearer-токен.",
+    "functions": [
+      "VaultConflict",
+      "checksum",
+      "metadata",
+      "getSnapshot",
+      "saveSnapshot",
+      "history"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "photo_picker.py",
+    "lines": 115,
+    "sha256": "a99a6960574026ece6171e809e9b497a612fdb2206648a7526c56450fd0fb508",
+    "description": "",
+    "functions": [
+      "createPhotoPicker"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "photo_service.py",
+    "lines": 65,
+    "sha256": "eb8b8d9a1df0b7413043caaa1500e73fbf3553e1309aa5a9e7be32b700605cf0",
+    "description": "Проверка фотографий до записи: исходники пользователя не изменяются.",
+    "functions": [
+      "preparePhoto",
+      "prepareAvatar",
+      "photoThumbnail"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "photo_upload.py",
+    "lines": 98,
+    "sha256": "f4881b5f5d78d782d54c70cdde94485a02b84336ea32f223994623125d3469c5",
+    "description": "Одноразовая загрузка фото из браузера. Черновики живут только в памяти.",
+    "functions": [
+      "photoUploadExists",
+      "createPhotoUpload",
+      "cancelPhotoUpload",
+      "takePhotoUpload",
+      "uploadPhoto",
+      "publishedPhoto"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "post_service.py",
+    "lines": 312,
+    "sha256": "50205debe0be93f18b007130aa28c5f6500b29f49e6aea84c96f7477ec14d7af",
+    "description": "",
+    "functions": [
+      "validatePostTitle",
+      "validatePostDescription",
+      "normalizeTags",
+      "savePost",
+      "getCommunityPosts",
+      "getUserPosts",
+      "togglePostLike",
+      "removePost",
+      "validateCommentText",
+      "savePostComment",
+      "getPostComments",
+      "removePostComment",
+      "editPostComment",
+      "checkPostLikedByUser",
+      "getPost",
+      "postDetail"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "profile_service.py",
+    "lines": 227,
+    "sha256": "c9b88d9ee7a5e424cbd6b801b17f5d42fa26181704277b336cee5ce7d474aa52",
+    "description": "",
+    "functions": [
+      "validateNewPassword",
+      "getUserProfile",
+      "saveUserAvatar",
+      "removeUserAvatar",
+      "saveUserProfile",
+      "saveUserSettings",
+      "changeUserPassword"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "project_archive.py",
+    "lines": 113,
+    "sha256": "0efc57cc8b80c141ff211b36647e2c4349540b02253cebcd4ade5c72ce2e92e0",
+    "description": "Перенос личного проекта: ограниченный JSON, без ID владельца и путей файлов.",
+    "functions": [
+      "decodeProject",
+      "exportProject",
+      "importProject"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "project_backups.py",
+    "lines": 56,
+    "sha256": "6671595f312aa01fc075f4ab83f8e6fe1902df7158534a37d07ac694e9c67f4d",
+    "description": "Копии JSON в закрытом каталоге Android, раздельно для местных владельцев.",
+    "functions": [
+      "backupDirectory",
+      "backupPath",
+      "saveBackup",
+      "listBackups",
+      "readBackup",
+      "deleteBackup"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "project_planner.py",
+    "lines": 103,
+    "sha256": "38449dcdb234be815a72067d7ecedb2326670f09f14e0c3383ce1b9d3decb153",
+    "description": "Личный календарь и локальные напоминания. Фоновой push-доставки нет.",
+    "functions": [
+      "parseDeadline",
+      "plannerProjects",
+      "monthPlan",
+      "syncProjectReminders",
+      "markProjectRemindersRead"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "project_service.py",
+    "lines": 336,
+    "sha256": "a8042e945e0007491bdffd1f9964ae70452dc2eecad61c46f435d96c6dbda2fe",
+    "description": "",
+    "functions": [
+      "validateProjectName",
+      "validateProjectDescription",
+      "validateStepDescription",
+      "validateProjectDeadline",
+      "normalizeProjectData",
+      "saveProject",
+      "getProjectSteps",
+      "saveProjectStepOrder",
+      "calculateProjectProgress",
+      "refreshProjectProgress",
+      "getUserProjects",
+      "removeProject",
+      "saveProjectStep",
+      "changeProjectStepStatus",
+      "saveProjectStepPhoto",
+      "removeProjectStepPhoto",
+      "removeProjectStep",
+      "editProject",
+      "editProjectStep",
+      "saveStep",
+      "saveFinalPhoto",
+      "removeFinalPhoto",
+      "finishProject"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "project_sharing.py",
+    "lines": 268,
+    "sha256": "6499e76b64e0c4fbefeedce522623f51590c1a7082531e75fa952f5b2aac5fef",
+    "description": "Связь личного проекта с палитрой и публикацией.",
+    "functions": [
+      "readMixture",
+      "getProjectMixtures",
+      "addProjectMixture",
+      "removeProjectMixture",
+      "validateSelectedIds",
+      "normalizeWorkshopInfo",
+      "prepareProjectPublication",
+      "publishProject",
+      "readPublishedProject",
+      "getPublishedProject",
+      "copyPublishedMixture",
+      "saveMixtureCopy"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "project_statistics.py",
+    "lines": 18,
+    "sha256": "b8a4004225e2a0f3d21e330eb988857c6c8ea018b4deeb481429a90cfa5a998c",
+    "description": "Статистика по дате последнего завершения; старые даты не выдумываются.",
+    "functions": [
+      "getProjectStatistics"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "project_upload.py",
+    "lines": 76,
+    "sha256": "fb6b9c61ec0ef40815933d7ebc6e0c61c29162a092ba4a7bf3b92935b14e3f65",
+    "description": "Ограниченная одноразовая загрузка JSON с проверкой сессии.",
+    "functions": [
+      "createProjectUpload",
+      "cancelProjectUpload",
+      "takeProjectUpload",
+      "uploadProject"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "publication_drafts.py",
+    "lines": 39,
+    "sha256": "b5b0594d427de56028597c89b4c5945e2309c823dc2b3bfa379aa41f88301ae2",
+    "description": "Незавершённые публикации: фото и текст сохраняются отдельно для владельца/API.",
+    "functions": [
+      "saveDraft",
+      "listDrafts",
+      "getDraft",
+      "deleteDraft"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "pull_refresh.py",
+    "lines": 26,
+    "sha256": "6a1b74f128061a2fce86440cc4ec02b2ff3cf5c34b9764b12460b051000ba1e1",
+    "description": "Native refresh gesture and a portable scroll fallback, one scroll owner.",
+    "functions": [
+      "PullRefresh",
+      "refreshable"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "reference_service.py",
+    "lines": 28,
+    "sha256": "3c633ff161dd92837032727ffce5f77ea889021e7f7cb361985dee850ee9e2a0",
+    "description": "",
+    "functions": [
+      "saveReference",
+      "listReferences",
+      "deleteReference"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "remote_account_cache.py",
+    "lines": 69,
+    "sha256": "bcba5a574e686851aa58764a41badf6422b65d539c8d634c18782abf9392672b",
+    "description": "Привязка серверного аккаунта к отдельному владельцу локальных проектов.",
+    "functions": [
+      "cacheRemoteUser",
+      "requireCachedUser",
+      "forgetRemoteSession"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "role_service.py",
+    "lines": 87,
+    "sha256": "206238fddaf72a33790bc27cb1446fa2cb6ab920a596ef1efb542d3c81cd5015",
+    "description": "Явные полномочия администрирования; встроенные роли не редактируются.",
+    "functions": [
+      "PermissionDenied",
+      "accessIn",
+      "access",
+      "require",
+      "roles",
+      "save",
+      "remove"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "scripts/__init__.py",
+    "lines": 1,
+    "sha256": "fc4ae5936e2dd570eae59f5d25aa0794b28951649bdc012ebdb7e993f4fdde16",
+    "description": "Служебные команды проекта; не содержат пользовательских данных и секретов.",
+    "functions": [],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/coursework_files.py",
+    "lines": 69,
+    "sha256": "ce12e32a24d0caed58e1c465d8500877eaa92f61acf77e3de7a9f06eeb933185",
+    "description": "Explicit final coursework delivery allowlist; never glob application data.",
+    "functions": [],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/create_server_demo.py",
+    "lines": 45,
+    "sha256": "c4400b6329e70b53f1237612bc04b863209a92ce579e492a2e2b714a56103643",
+    "description": "Однократное создание тестового пользователя в существующей серверной базе.",
+    "functions": [
+      "createServerDemo"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/generate_coursework_demo.py",
+    "lines": 64,
+    "sha256": "0c9b82409754075d628f01d85084578b610a486226c17b57f24ef1504e0dea49",
+    "description": "Generate portable sample assets using a temporary DB; never provision a real server account.",
+    "functions": [
+      "generate"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/generate_final_inventory.py",
+    "lines": 54,
+    "sha256": "fbc2dd646977db3b9fe05697a0822b188446b7092c7cc81fbeb9550400cb41c9",
+    "description": "Export schema/API/source inventory from an isolated fresh database, never a user database.",
+    "functions": [
+      "main"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/generate_learning_models.py",
+    "lines": 212,
+    "sha256": "1e436929642bd9a1c5929aa1a3b23fb47f70bc7b62f534ba9374cb9de451afd2",
+    "description": "Авторские OBJ из геометрических деталей и 37 пошаговых 3D-схем.",
+    "functions": [
+      "Builder",
+      "build",
+      "materials",
+      "renderImage",
+      "generate"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/manage_admin.py",
+    "lines": 45,
+    "sha256": "8b9ee828ba2deea1d50249bac2e48f595f48fedbb2b06e947571722445b39269",
+    "description": "Назначить первого администратора в явно выбранной существующей базе.",
+    "functions": [
+      "grantAdmin"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/prepare_android.py",
+    "lines": 150,
+    "sha256": "b5931086029546d6fbefcc1cdcf6decaf46ba3736a0197cbaa4b594b17f405bf",
+    "description": "Готовит отдельную папку сборки без баз, .env и сервера.",
+    "functions": [
+      "nativeWheel",
+      "prepareAndroid"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/prepare_review.py",
+    "lines": 73,
+    "sha256": "49803109396e57613ba950e17c258a84dc520b85033a871aab44ca024e6d9ef9",
+    "description": "Архив контрольной версии по явному списку, без личных баз и секретов.",
+    "functions": [
+      "getReviewFiles",
+      "prepareReview"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/prepare_server.py",
+    "lines": 41,
+    "sha256": "4880427633050b8a6c7c7ae3d0e30a5df3f42a8f5c2dec27d18ac3362e0db48d",
+    "description": "Подготовить новый серверный пакет по явному списку, без GUI, баз и секретов.",
+    "functions": [
+      "prepareServer"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/run_final_checks.py",
+    "lines": 56,
+    "sha256": "c7f322963d55edd3b0038fc6cd43f474d6faa6c5652b164023bbf5c2ca06a12f",
+    "description": "Run the real unittest suite with per-case JSON evidence and no external mail.",
+    "functions": [
+      "RecordedResult",
+      "main"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/run_wifi_server.py",
+    "lines": 32,
+    "sha256": "a70cb1bf6abd08eb6e91958a109ab243015f16761d6ebc9a24efe56679d527fd",
+    "description": "Запуск API в домашней сети без Docker: python -m scripts.run_wifi_server.",
+    "functions": [
+      "main"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "scripts/server_backup.py",
+    "lines": 46,
+    "sha256": "039e4dc05a1cb0f366cc561bb2b4ccc5839a5ec1448910be977ad69b3120a597",
+    "description": "Согласованная копия SQLite; восстановление только в новый файл, без старых сессий.",
+    "functions": [
+      "copyDatabase"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "secure_device.py",
+    "lines": 75,
+    "sha256": "013a53c5a8e2e560d3a8eaced3d956fb896f2cdc616d6ee3f923f36349a2152c",
+    "description": "Android Keystore bridge. No plaintext-token fallback and no browser storage.",
+    "functions": [
+      "ProtectedSession",
+      "attachProtectedSession",
+      "getProtectedSession"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "social_feed.py",
+    "lines": 37,
+    "sha256": "fbe4a9525d94c7132dd2571600e4ae5b7da5987ecebf315fb26560b907718830",
+    "description": "Единый личный список: награды и события публикаций, без копирования текста материалов.",
+    "functions": [
+      "listing",
+      "summary",
+      "read",
+      "readAll"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "ui_helpers.py",
+    "lines": 107,
+    "sha256": "20be4a51f80c558eeea19e4fbc67118a76d723d2a2c3048e2af359e543622757",
+    "description": "",
+    "functions": [
+      "isWebClient",
+      "showMessage",
+      "confirmAction",
+      "createLoadError",
+      "serverAction",
+      "getCurrentUser",
+      "logoutPage",
+      "authenticatedAction"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "validators.py",
+    "lines": 66,
+    "sha256": "1d27a45f4852528e8229eba47c6b78fa4ebcb447ae9be2e02bf88cf427b6c156",
+    "description": "",
+    "functions": [
+      "validateEmail",
+      "validatePassword",
+      "validatePasswordConfirmation",
+      "validateNickname"
+    ],
+    "android": true,
+    "server": true
+  },
+  {
+    "path": "views/about_dialog.py",
+    "lines": 30,
+    "sha256": "57690bf4b5ed15b7c0f5f8dccdac11c2f619dee1c15ccc465d91c34649304c30",
+    "description": "",
+    "functions": [
+      "showDataInfo",
+      "showAbout"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/admin_permissions.py",
+    "lines": 14,
+    "sha256": "a29173994b456201e8d2fa8e4ef89d5db4a341ce6f8ec72f2ceb8d5af511514d",
+    "description": "Короткий снимок для видимости кнопок. Разрешение действия всегда проверяет сервис.",
+    "functions": [
+      "panelAccess"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/admin_view.py",
+    "lines": 140,
+    "sha256": "09dbd0d463b6c7fa080a9fdb1de7702dedd3aece3c73d558b48dbd3870217285",
+    "description": "",
+    "functions": [
+      "createAdminView"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/auth_view.py",
+    "lines": 333,
+    "sha256": "7f9eb27dbc9c906e18ea64dda41d419d3f4f6d6f66c230c489d362b09a42acf1",
+    "description": "",
+    "functions": [
+      "createAuthView"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/catalog_file_picker.py",
+    "lines": 53,
+    "sha256": "936f11ac30be0766ef9fd29a866fc032d95748d2d77fdc7b79b53c2d15bfde93",
+    "description": "",
+    "functions": [
+      "createCatalogFilePicker"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/challenge_view.py",
+    "lines": 219,
+    "sha256": "a9eb166886ea654b6f64ac6c4457e866dd6c249781a761dc5497f4fce1e56370",
+    "description": "",
+    "functions": [
+      "createChallengeView"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/clay_tools_view.py",
+    "lines": 108,
+    "sha256": "30fce152e6f2d5c291088aac30f3f3fdf436ff70eb8f677a53b963320f408924",
+    "description": "",
+    "functions": [
+      "createClayTools"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/color_scan.py",
+    "lines": 114,
+    "sha256": "50917764e23d30a6a3e13caac09000f33e493bd1704b400d0304274f7c58fc88",
+    "description": "",
+    "functions": [
+      "openColorScan"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/community_notices.py",
+    "lines": 159,
+    "sha256": "1a972e6ae67a27489ac28b8b37f83b239101a574aab26b2ba5e3199f5331df22",
+    "description": "",
+    "functions": [
+      "createNoticeButton",
+      "createChallengeProfile"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/community_tab.py",
+    "lines": 491,
+    "sha256": "53db5aa9e2faa0f2d3a668ddc5ba159f8772dd7413d12236cbe25426db772c20",
+    "description": "",
+    "functions": [
+      "webAddress",
+      "createPhotoViewer",
+      "createPostCard",
+      "createHomeTab",
+      "createMyWorksButton",
+      "createLocalWorksButton"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/contest_picker.py",
+    "lines": 39,
+    "sha256": "9828b5d015d0916e7ee3a967c7570e89ed9873711822dd9793ddb4c87cff68f9",
+    "description": "",
+    "functions": [
+      "selectedContest",
+      "createContestPicker"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/discovery.py",
+    "lines": 203,
+    "sha256": "04672c3dc0ac4bfb1da70b38f89ddfa21b232d122dd4984017b4f68570db4e92",
+    "description": "",
+    "functions": [
+      "openPage",
+      "openSearch",
+      "openBuiltinCatalog",
+      "openPost",
+      "createPostTile",
+      "creationDialog",
+      "openPostComposer",
+      "openCreate",
+      "createDiscovery",
+      "Masonry"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/home_view.py",
+    "lines": 2060,
+    "sha256": "ed1ea805e22b53bc309d703f974f3bd42e28242ed8d40b29ca89bb4c01fe7d93",
+    "description": "",
+    "functions": [
+      "getPageBackgroundColor",
+      "createSearchTab",
+      "createColorsTab",
+      "createProjectsTab",
+      "createHomeView"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/learning_catalog.py",
+    "lines": 232,
+    "sha256": "3ff813fd4840273fe4d06a0c47d846796e3b140b5925ea8f3c0f5b72998e2cd5",
+    "description": "",
+    "functions": [
+      "fail",
+      "rootView",
+      "createCatalogView",
+      "createCatalogDetail",
+      "createCatalogEditor"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/lesson_library_view.py",
+    "lines": 94,
+    "sha256": "57daae1354f85543f7588ab46dafcab0536b177d2ccaf640eb7e4e95f6b83232",
+    "description": "",
+    "functions": [
+      "createLessonFavorite",
+      "createLessonNotebook",
+      "createLessonShare",
+      "createProfileLessonLibrary"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/model_gallery.py",
+    "lines": 99,
+    "sha256": "db7698259da9bf34830758e10e800395102e3780759931cf5d568a1b547df865",
+    "description": "",
+    "functions": [
+      "modelUser",
+      "createModelFavorite",
+      "createModelCard",
+      "createModelGallery",
+      "createFavoriteModelsButton"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/model_import.py",
+    "lines": 80,
+    "sha256": "83b6f7ba24842e895fd4fb28dc17daa31907a2343a068413d051fcd77f810761",
+    "description": "",
+    "functions": [
+      "createModelImport"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/model_view.py",
+    "lines": 151,
+    "sha256": "148de89728f71a18253830582264f56dd3d697f2eebbd0148481cdfd988a7cc2",
+    "description": "",
+    "functions": [
+      "createModelView"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/moderation_actions.py",
+    "lines": 57,
+    "sha256": "75c18564deef4baed755f17aaacd1622834123169e334cc90c4f8c53a96d4549",
+    "description": "",
+    "functions": [
+      "reasonDialog",
+      "createReportButton",
+      "createModerationDelete",
+      "createAdminButton"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/notification_delivery.py",
+    "lines": 75,
+    "sha256": "dd3cf48cf826449afb17398f474828ef5bea52a2ba3828eeb6a46d557bb8a8df",
+    "description": "",
+    "functions": [
+      "openDeliverySettings"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/offline_controls.py",
+    "lines": 138,
+    "sha256": "a73a95a5d7e0c035c823455279d948af1a5dd2a0ec84a1434f506d835489a65e",
+    "description": "",
+    "functions": [
+      "createConnectionBanner",
+      "createOutboxButton",
+      "createDraftTools"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/onboarding_view.py",
+    "lines": 157,
+    "sha256": "834caf479a7ed342b3d555ba43751de0a2de903bd8f8ffc3ae52138506499165",
+    "description": "",
+    "functions": [
+      "createOnboardingView"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/personal_data.py",
+    "lines": 226,
+    "sha256": "0d13cfb1c1abfd493d38d5b478d804cfdf03a8ad946e9280de09ca65d0ff3abc",
+    "description": "",
+    "functions": [
+      "localAction",
+      "summaryText",
+      "createPersonalDataButton",
+      "createPersonalImport"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/personal_notice_settings.py",
+    "lines": 23,
+    "sha256": "d1ec10445de473ffef21e8977783e62ce0e4b66397ba071c7bdb56c265ad99aa",
+    "description": "",
+    "functions": [
+      "openPersonalNoticeSettings"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/profile_edit_view.py",
+    "lines": 49,
+    "sha256": "d4ad0334286f6ce45a25f61885d2d7d3726c182f95e95ff23a8130c03d57ef76",
+    "description": "",
+    "functions": [
+      "createProfileEditView"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "views/profile_tab.py",
+    "lines": 770,
+    "sha256": "0dd4a3f3b568795c540123a89d0976fc95e10a65811b85769d41f46611bbe1d0",
+    "description": "",
+    "functions": [
+      "createInfoCard",
+      "createProfileTab"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/profile_view.py",
+    "lines": 40,
+    "sha256": "8bfc22bb9e5ef8ecf56ff5f619af04f502d9dfbe08b798c588c54c0726edebe7",
+    "description": "",
+    "functions": [
+      "createProfileView",
+      "logout"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "views/project_editor.py",
+    "lines": 166,
+    "sha256": "5cbc3e92da199c2b7dc0856f1f5a458042092b2c08c814373d6726cfddbc7f87",
+    "description": "",
+    "functions": [
+      "createProjectEditor"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/project_planner.py",
+    "lines": 131,
+    "sha256": "0775ce124936c6a4a8c8a5efb38cdcd25b342dd462aecafd21ae7d9d751de735",
+    "description": "",
+    "functions": [
+      "openPlannerProject",
+      "createDeadlineSummary",
+      "createProjectPlanner"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/project_sharing.py",
+    "lines": 159,
+    "sha256": "80cd8c4261e20746051410ec7645ef5faec01ea7bd1f8ec8cdbaf89fa691858e",
+    "description": "",
+    "functions": [
+      "createMixtureRecipe",
+      "createPublishedProject",
+      "createProjectSharing"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/project_statistics.py",
+    "lines": 34,
+    "sha256": "cbc3cb00fa203854c9c8142e515542fddb5063f41a2d120850b61e382ffa7851",
+    "description": "",
+    "functions": [
+      "createProjectStatistics"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/project_step_order.py",
+    "lines": 55,
+    "sha256": "5e2ea8fb9e52484e078cae2fe32afe45abc73c4acc70dff9529493bc5690ecf9",
+    "description": "",
+    "functions": [
+      "createOrderEditor",
+      "createStepOrderButton"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/project_transfer.py",
+    "lines": 190,
+    "sha256": "a0d1f05e3601fdfb5e1d979d611085c02d716f2d90f45cc66a1af9bd6f4be57c",
+    "description": "",
+    "functions": [
+      "androidClient",
+      "webAddress",
+      "createProjectExport",
+      "createProjectImport"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/reference_gallery.py",
+    "lines": 80,
+    "sha256": "93e1c75810abfb480127fd8199d0d69d7185e34ccd489b061d0f911e0f644509",
+    "description": "",
+    "functions": [
+      "createReferenceGallery"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/report_history.py",
+    "lines": 38,
+    "sha256": "cc70717f48e1a1d783bfb30acf95569dbad43668f37d5a6ac08ae1010a4a8721",
+    "description": "",
+    "functions": [
+      "createReportHistoryButton"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/role_editor.py",
+    "lines": 57,
+    "sha256": "94909dcef34012cabeafd880a22b9f5e6eda4e3d14ac71936d0ff7f4812053cc",
+    "description": "",
+    "functions": [
+      "openRoleEditor",
+      "openRoleAssignment"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/server_connection.py",
+    "lines": 61,
+    "sha256": "4a558c6eeb6f725f3340250160aef7e6e4553c11c4c1c857d05e1e7ae2f8e44c",
+    "description": "",
+    "functions": [
+      "openServerConnection"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/splash_view.py",
+    "lines": 114,
+    "sha256": "e5491714a8a4a751fa9ddb8572237e47b6074d119440ea3093e50c122857bf53",
+    "description": "",
+    "functions": [
+      "createSplashView"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "views/workshop_view.py",
+    "lines": 146,
+    "sha256": "7ea572d3b5773d705f793fcb788e93ca332bf07a46dd376e1f60d4a626413aa7",
+    "description": "",
+    "functions": [
+      "createWorkshopView",
+      "openWorkshop"
+    ],
+    "android": true,
+    "server": false
+  },
+  {
+    "path": "web_app.py",
+    "lines": 36,
+    "sha256": "964cb70f6683e746a34c72b7e56646466fa950251757061817cb952c7d2bddbb",
+    "description": "Веб-запуск Flet с отдельным маршрутом скачивания PNG.",
+    "functions": [
+      "createWebApp"
+    ],
+    "android": false,
+    "server": false
+  },
+  {
+    "path": "workshop_service.py",
+    "lines": 112,
+    "sha256": "dc1ef481d9dc64a239b3f806e26f1cbca9da2a6ff91c022831658b461352aecf",
+    "description": "Чтение опубликованного мастер-класса и личный прогресс читателя.",
+    "functions": [
+      "getWorkshop",
+      "normalizeWorkshopState",
+      "getUserWorkshopState",
+      "saveUserWorkshopState",
+      "addWorkshopAsProject",
+      "searchCommunityWorks"
+    ],
+    "android": true,
+    "server": true
+  }
+]

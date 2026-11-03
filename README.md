@@ -1,3 +1,7 @@
+# Финальная подготовка 0.18.0
+
+[Итоговый отчёт](docs/coursework_final/FINAL_REPORT.md) · [Все материалы](docs/coursework_final/README.md) · [Сценарий защиты](docs/coursework_final/DEMO_SCENARIO.md). Проверенные результаты и аппаратные ограничения разделены в отчёте.
+
 [Скачать APK 0.17.0 — исправления постов, языка и публикации](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.17.0-fixes-arm64.apk) · [Wi-Fi-сервер 0.17](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.17.0.zip) · [PR №33](https://github.com/Gr1zle/lepka_helper/pull/33).
 
 [№33: исправления открытия постов, языка и публикации](docs/interaction_fixes.md).

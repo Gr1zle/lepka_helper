@@ -120,6 +120,34 @@ def creationDialog(page,title,body,compact=False):
     return dialog
 
 
+def openPostComposer(page,user,challengeId=None,onPublished=None):
+    """Shared full-page entry point, including challenge shortcuts."""
+    from views.community_tab import createHomeTab
+    token=user.get('sessionToken') if user else None
+    with _navigationLock:
+        if not user or (page.session.get('currentUser') or {}).get('sessionToken')!=token:return None
+        existing=next((v for v in page.views if v.route=='/discovery/compose'),None)
+        if existing is not None:return existing
+        view=openPage(page,tr(page,'Новая публикация'),ft.ProgressRing(),'/discovery/compose')
+    if challengeId is not None:
+        page.session.set('publicationChallenge',dict(challengeId=challengeId,userId=user['userId'],sessionToken=token))
+    def published():
+        if view not in page.views or (page.session.get('currentUser') or {}).get('sessionToken')!=token:return
+        page.views.remove(view);page.update()
+        if onPublished:onPublished()
+        callback=page.session.get('refreshCommunityFeed')
+        if callable(callback):callback()
+        page.update()
+    try:
+        body=createHomeTab(page,user,user['nickname'],mode='compose',onPublished=published)
+    except Exception:
+        if view in page.views:page.views.remove(view);page.update()
+        raise
+    if view in page.views and (page.session.get('currentUser') or {}).get('sessionToken')==token:
+        view.controls=[body];presentView(page,view);page.update()
+    return view
+
+
 def openCreate(page,user):
     chosen={'value':False}
     @authenticatedAction(page,user)
@@ -128,6 +156,7 @@ def openCreate(page,user):
         chosen['value']=True
         # Wait for the modal route to leave before pushing a full page.
         opened={'value':False}
+        @serverAction(page)
         def dismissed(event):
             if opened['value']:return
             opened['value']=True
@@ -135,14 +164,7 @@ def openCreate(page,user):
             from views.home_view import createProjectsTab
             from views.community_tab import createHomeTab
             if kind=='post':
-                def published():
-                    if view in page.views:page.views.remove(view)
-                    page.update()
-                    callback=page.session.get('refreshCommunityFeed')
-                    if callable(callback):callback()
-                    page.update()
-                body=createHomeTab(page,user,user['nickname'],mode='compose',onPublished=published)
-                view=openPage(page,tr(page,'Новая публикация'),body,'/discovery/compose')
+                openPostComposer(page,user)
             else:
                 def created(projectId):
                     page.close(dialog)

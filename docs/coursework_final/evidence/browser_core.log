@@ -1,0 +1,5 @@
+PASS explicit English before login overrides Russian account
+PASS fullscreen/no drafts/no-challenge publication without refreshing competitions
+TIMING ms {"cold":317,"warm":534,"pid":1}
+PASS real 30-event tap burst creates one load and one page
+PASS language visible in profile Settings, switch to Russian applies immediately
