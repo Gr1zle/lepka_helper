@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "version": "0.18.0",
+  "buildNumber": 15,
+  "versionCode": 2015,
+  "package": "ru.gr1zle.lepka_helper",
+  "minSdk": 28,
+  "targetSdk": 35,
+  "abi": "arm64-v8a",
+  "sizeBytes": 49686085,
+  "sha256": "cda8cce116ea56e1f08b4c45893f45597c65c293cacec8c49c10b969a072d571",
+  "certificateSHA256": "6428780dae2dc54778a9dd90eb4a52324b556b63fbdc3bd438784c4b5a0c8c2a",
+  "verification": [
+    "Flet build exit 0",
+    "ZIP integrity",
+    "All current packaged Python modules, views and assets match source",
+    "Empty API config",
+    "No database/session/private keys/backend",
+    "aapt manifest",
+    "apksigner signature and previous certificate"
+  ],
+  "physicalAndroid": "NOT TESTED"
+}

@@ -33,7 +33,7 @@ def createChallengeView(page):
         return authenticatedAction(page, user)(callback)
 
     def button(text, callback):
-        return ft.OutlinedButton(text, on_click=action(callback))
+        return ft.OutlinedButton(term(page,text), on_click=action(callback))
 
     def openDetail(challengeId):
         selected.update(id=challengeId, offset=0)
@@ -170,8 +170,8 @@ def createChallengeView(page):
                         controls.append(button('Отозвать мою заявку', lambda e: (client.withdraw(cid), render())))
                 elif item['status'] == 'open':
                     def publishNew(event):
-                        page.session.set('publicationChallenge',dict(challengeId=cid,userId=user['userId'],sessionToken=user['sessionToken']))
-                        page.session.set('homeTab',0);page.go('/home')
+                        from views.discovery import openPostComposer
+                        openPostComposer(page,user,cid,onPublished=lambda:render())
                     controls.append(button('Опубликовать новую работу в конкурс',publishNew))
                     controls.append(button('Участвовать: отправить свою работу', lambda e: submitDialog(cid)))
                 if manage and item['state'] == 'open':

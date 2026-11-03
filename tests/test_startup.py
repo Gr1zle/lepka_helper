@@ -241,7 +241,8 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
         self.page.session.set('openChallengeId',cid)
         view=self.mount(createChallengeView(self.page))
         find(view,ft.OutlinedButton,text='Опубликовать новую работу в конкурс').on_click(None)
-        view=self.mount(ft.View('/home',controls=[createHomeTab(self.page,self.user,self.user['nickname'])]))
+        view=self.page.views[-1]
+        self.assertEqual(view.route,'/discovery/compose')
         self.assertEqual(find(view,ft.Dropdown,label='Участие в конкурсе').value,str(cid))
         self.assertIsNone(self.page.session.get('publicationChallenge'))
 

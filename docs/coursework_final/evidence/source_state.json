@@ -1,0 +1,21 @@
+{
+  "baseCommit": "e713009d527774eff77f1f8d0ce37736b044684e",
+  "changedFiles": [
+    " M README.md",
+    " M app_info.py",
+    " M docs/remaining_work.md",
+    " M scripts/prepare_review.py",
+    " M scripts/prepare_server.py",
+    " M tests/test_startup.py",
+    " M views/challenge_view.py",
+    " M views/discovery.py",
+    "?? DEMO_SCENARIO.md",
+    "?? FINAL_REPORT.md",
+    "?? docs/coursework_final/",
+    "?? scripts/coursework_files.py",
+    "?? scripts/generate_coursework_demo.py",
+    "?? scripts/generate_final_inventory.py",
+    "?? scripts/run_final_checks.py",
+    "?? tests/test_final_acceptance.py"
+  ]
+}

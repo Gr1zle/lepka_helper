@@ -1,0 +1,13 @@
+{
+  "before": {
+    "status": "FAIL",
+    "test": "test_server_package.ServerPackageTests.test_dockerfile_copies_manifest_python_modules_and_checks_readiness",
+    "reason": "Documentation allowlist helper was unnecessarily added to runtime server Python file list; Docker COPY consistency check caught it."
+  },
+  "fix": "Keep helper in full source kit; server runtime package contains final documents, not the unused packaging helper.",
+  "after": {
+    "status": "PASS",
+    "evidence": "automated_tests.json",
+    "test": "test_server_package.ServerPackageTests.test_dockerfile_copies_manifest_python_modules_and_checks_readiness"
+  }
+}

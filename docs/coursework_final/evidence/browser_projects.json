@@ -1,0 +1,36 @@
+{
+  "mode": "Flet Web, isolated synthetic local database, Playwright Chromium; no physical Android",
+  "cases": [
+    {
+      "id": "B10",
+      "description": "Drag two stages; visual ordering changes before Save",
+      "status": "PASS"
+    },
+    {
+      "id": "B11",
+      "description": "Add stage with optional description, check stages without photos",
+      "status": "PASS"
+    },
+    {
+      "id": "B12",
+      "description": "Completion requires final photo; upload and completed state",
+      "status": "PASS"
+    },
+    {
+      "id": "B13",
+      "description": "Stage photo, selected stage publication, JSON v2 download with photo and descriptions",
+      "status": "PASS"
+    },
+    {
+      "id": "B14",
+      "description": "Stage deletion requires confirmation; Cancel preserves all three",
+      "status": "PASS"
+    },
+    {
+      "id": "B15",
+      "description": "Completed project at 320 px and dark theme at 820 px",
+      "status": "PASS"
+    }
+  ],
+  "downloadSHA256": "05cada61bcb1351f75eaa287d0a9945f3021fda668f3d1429d42a58af8ebabd9"
+}

@@ -1,0 +1,7 @@
+{
+  "status": "NOT TESTED",
+  "connectedDeviceCount": 0,
+  "command": "adb devices -l",
+  "exitCode": 0,
+  "reason": "В среде не обнаружены подключённые Android-устройства"
+}
