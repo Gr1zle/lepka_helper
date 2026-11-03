@@ -16,12 +16,12 @@
 
 ### Сервер и версия для ПК
 
-Нужен Python 3.12. В корне проекта создайте окружение для сервера и запустите его:
+Нужен Python 3.12. В корне проекта создайте окружение для сервера и запустите его. Если сервер уже использовался, в `--data-dir` укажите **его прежнюю папку из строки «Данные сервера»**. Например, для данных в `AppData\Local\LepkaHelperServer`:
 
 ```powershell
 py -3.12 -m venv .server-venv
 .\.server-venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-.\.server-venv\Scripts\python.exe -m scripts.run_wifi_server --data-dir "$HOME\LepkaHelperServer" --port 8000
+.\.server-venv\Scripts\python.exe -m scripts.run_wifi_server --data-dir "$env:LOCALAPPDATA\LepkaHelperServer" --port 8000
 ```
 
 Компьютер должен оставаться включённым, пока телефон пользуется сервером. Команды для локального запуска клиента на ПК, настройки почты, создания первого администратора и резервных копий приведены в [краткой консольной инструкции](CONSOLE_COMMANDS.md).
@@ -31,7 +31,7 @@ py -3.12 -m venv .server-venv
 После первого запуска сервера создайте обычный тестовый аккаунт:
 
 ```powershell
-.\.server-venv\Scripts\python.exe -m scripts.create_server_demo --data-dir "$HOME\LepkaHelperServer"
+.\.server-venv\Scripts\python.exe -m scripts.create_server_demo --data-dir "$env:LOCALAPPDATA\LepkaHelperServer"
 ```
 
 **Email:** `test@email.com` · **пароль:** `Test123456`. Если пароль уже меняли, команда его не сбросит. Для проверки публикаций от двух авторов нужны два разных аккаунта.
