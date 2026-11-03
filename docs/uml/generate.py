@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import struct
 import subprocess
+import zlib
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parent
@@ -174,13 +175,26 @@ def main():
             output=images/(source_path.stem+'.'+fmt)
             run([args.dot,'-T'+fmt,str(source_path),'-o',str(output)])
             assert output.stat().st_size>0
+            if fmt=='png':
+                # Graphviz uses dpi for raster dimensions but may omit PNG physical-resolution metadata.
+                # Insert pHYs without decoding, resizing or changing the image pixels.
+                data=output.read_bytes();chunks=[];pos=8
+                while pos<len(data):
+                    length=struct.unpack('>I',data[pos:pos+4])[0];kind=data[pos+4:pos+8]
+                    chunk=data[pos:pos+length+12];pos+=length+12
+                    if kind!=b'pHYs':chunks.append(chunk)
+                    if kind==b'IHDR':
+                        payload=struct.pack('>IIB',11811,11811,1)
+                        chunks.append(struct.pack('>I',len(payload))+b'pHYs'+payload+struct.pack('>I',zlib.crc32(b'pHYs'+payload)&0xffffffff))
+                output.write_bytes(data[:8]+b''.join(chunks))
         png=(images/(source_path.stem+'.png')).read_bytes()
         assert png[:8]==b'\x89PNG\r\n\x1a\n'
         width,height=struct.unpack('>II',png[16:24])
         render.append(dict(name=source_path.stem,pngWidth=width,pngHeight=height))
     after={p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
     assert after==before,'Application source changed during generation'
-    manifest=dict(sourceCommit=run(['git','rev-parse','HEAD'],cwd=ROOT).stdout.strip(),
+    manifest=dict(sourceCommit=run(['git','log','-1','--format=%H','--',*inputs],cwd=ROOT).stdout.strip(),
+        checkoutCommit=run(['git','rev-parse','HEAD'],cwd=ROOT).stdout.strip(),
         generatedUTC=datetime.now(timezone.utc).isoformat(),
         pyreverseVersion=run([str(Path(args.pyreverse).parent/'pylint'),'--version']).stdout.strip(),
         graphvizVersion=run([args.dot,'-V']).stderr.strip(),
