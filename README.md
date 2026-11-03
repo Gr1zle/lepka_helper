@@ -1,3 +1,13 @@
+# Финальная подготовка курсовой — 0.18.0
+
+[APK](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.18.0-final-arm64.apk) · [Сервер](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.18.0.zip) · [Полный комплект исходников и документов](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-coursework-final-0.18.0.zip) · [Материалы к защите](https://github.com/Gr1zle/lepka_helper/tree/release/coursework-final/docs/coursework_final) · [PR №34](https://github.com/Gr1zle/lepka_helper/pull/34).
+
+Исходники `582790ea0041c42ab0b381b5da58e85de25afb34`. Android 9+, ARM64, versionCode 2015, прежние package и сертификат. Ставить поверх предыдущего APK без удаления данных. Адрес API задаётся на экране Wi-Fi; сервер на ПК, Docker/хостинг не нужны. Используйте прежний --data-dir; не заменяйте свою базу чужой.
+
+Исправлен переход из задания сообщества в полную форму публикации с выбранным конкурсом; защита повторов и позднего завершения после смены аккаунта. 518 автотестов PASS, 15 законченных браузерных сценариев PASS (два независимых клиента, реальные HTTP, лайк/комментарий/ответ, перезапуск API, проекты, drag-and-drop, фото, экспорт). APK действительно собран, содержимое и подпись проверены. Серверный пакет дополнительно запущен с временной БД, /ready успешен. Манифесты архивов содержат sourceCommit и SHA-256 каждого файла; контрольные суммы самих архивов — SHA256SUMS.txt.
+
+Общий статус **PARTIAL**: физический Android, домашний Wi-Fi и реальные письма NOT TESTED. Google OAuth и FCM отсутствуют; полный список ограничений — в FINAL_REPORT.md. Документы включают все 58 таблиц/ER, 81 операцию API, требования, руководство, тест-кейсы, инструкции Windows и сценарии защиты 5–7/15–25 минут. Предыдущие поставки ниже сохранены.
+
 # Android 0.17.0 — открытие постов, язык и публикация
 
 [Скачать APK](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.17.0-fixes-arm64.apk) · [Сервер 0.17](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.17.0.zip) · [PR №33](https://github.com/Gr1zle/lepka_helper/pull/33) · [Отчёт и снимки](https://github.com/Gr1zle/lepka_helper/blob/fix/community-interaction/docs/interaction_fixes.md).
