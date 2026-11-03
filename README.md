@@ -1,3 +1,13 @@
+# Android 0.19.0 — цвет с фото, внешний JSON, команды сервера
+
+[APK](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.19.0-final-fixes-arm64.apk) · [Сервер с инструкцией](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.19.0.zip) · [Исходники и документация](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-coursework-final-0.19.0.zip) · [Краткие команды](https://github.com/Gr1zle/lepka_helper/blob/fix/android-color-json/CONSOLE_COMMANDS.md) · [PR №36](https://github.com/Gr1zle/lepka_helper/pull/36).
+
+«Готово» после полноэкранного фото возвращает окно «Цвет с камеры или фото», выбранный образец сохраняется. «В целевой HEX» переносит его в подбор. JSON проекта и личных данных теперь сохраняется через системный выбор файла Android, как PNG/PDF. Native bridge принимает JSON до 20 МБ и проверяет фактические байты/SHA-256 после записи; прежние внутренние копии проектов сохранены.
+
+Android 9+, ARM64, versionCode 2016, прежние package и сертификат. Ставить поверх предыдущего APK, не удаляя данные. Серверный API не менялся: сервер 0.18 совместим; новый серверный ZIP включает CONSOLE_COMMANDS.md (параметры запуска, тестовый пользователь, первый администратор, почта, backup/restore, Wi-Fi/Firewall).
+
+521 автотест PASS; реальные браузерные выбор/возврат цвета на 390/320 px и скачивания двух JSON PASS. CLI проверены на новой временной базе; готовый серверный пакет отдельно отвечает /ready. APK действительно собран Flutter/Gradle; версия, ZIP, текущие Python/ресурсы, подпись и новый нативный код проверены. Завершающее копирование Flet CLI после сборки выполнено вручную из-за места в среде, байты проверены. Физический Android SAF/камера/Back и реальные письма NOT TESTED. Исходники пакетов `cdee061b208c4ec8020f81c7d424f9cf9c8f882f`; манифесты и SHA256SUMS содержат контрольные суммы. Все предыдущие поставки сохранены.
+
 # UML классов — Pyreverse, исходники 0.18.0
 
 [Скачать все диаграммы ZIP](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-uml-pyreverse-0.18.0.zip) · [Каталог и инструкция Word](https://github.com/Gr1zle/lepka_helper/tree/docs/pyreverse-uml/docs/uml).

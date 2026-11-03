@@ -28,3 +28,6 @@ cda8cce116ea56e1f08b4c45893f45597c65c293cacec8c49c10b969a072d571  lepka-helper-0
 ff916bdd07049d5c441a5673da0a51167f1ce6e0eaa61d10bbbec938bb25970a  lepka-server-0.18.0.zip
 29673eb136600941fbed7b0e28d5f8158fc9f14a89cfc4012b606f9692e7c902  lepka-coursework-final-0.18.0.zip
 facf1ce1c757117140ae5d1ca0ec2743abb6517c460c97d54e5634946b186164  lepka-uml-pyreverse-0.18.0.zip
+aeab1e05f0cb7c06cd02ab13bbc1cd7933fce0b37ad5e1e087424008c475e410  lepka-helper-0.19.0-final-fixes-arm64.apk
+7c2ed4f056d94d0caf60b0864bfc39516e39f34d5bdf29bf5880e11133bbc447  lepka-server-0.19.0.zip
+319537791c0d79eee50801e82b61ab6cfb0354394f4dbc8cb77df85f8d4953f7  lepka-coursework-final-0.19.0.zip
