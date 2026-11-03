@@ -1,3 +1,9 @@
+# UML классов — Pyreverse, исходники 0.18.0
+
+[Скачать все диаграммы ZIP](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-uml-pyreverse-0.18.0.zip) · [Каталог и инструкция Word](https://github.com/Gr1zle/lepka_helper/tree/docs/pyreverse-uml/docs/uml).
+
+53 класса, 22 связи наследования, 2 связи полей с классами. 1 общая и 10 подробных схем. Редактируемые DOT, полный исходный вывод Pyreverse в DOT/PUML, векторные SVG/PDF и PNG 300 dpi. Одна связь list[PhotoInput] восстановлена по явной аннотации с сохранением неизменённого raw-вывода Pyreverse; источник отдельно отмечен в manifest. Тесты, окружение и сторонние классы исключены. Код приложения не менялся. SHA-256 архива: `facf1ce1c757117140ae5d1ca0ec2743abb6517c460c97d54e5634946b186164`.
+
 # Финальная подготовка курсовой — 0.18.0
 
 [APK](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-helper-0.18.0-final-arm64.apk) · [Сервер](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-server-0.18.0.zip) · [Полный комплект исходников и документов](https://github.com/Gr1zle/lepka_helper/raw/refs/heads/artifacts/android-demo-20261031/lepka-coursework-final-0.18.0.zip) · [Материалы к защите](https://github.com/Gr1zle/lepka_helper/tree/release/coursework-final/docs/coursework_final) · [PR №34](https://github.com/Gr1zle/lepka_helper/pull/34).
