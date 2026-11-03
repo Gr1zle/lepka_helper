@@ -74,6 +74,26 @@ class CatalogTests(unittest.TestCase):
         with db.openDatabase() as c:c.execute('DELETE FROM accountSessions WHERE userId=?',(self.admin,))
         self.assertEqual(self.http.post('/admin/catalog-assets',headers=self.headers,json=payload).status_code,401)
 
+    def test_catalog_upload_over_moderation_limit_accepts_image_and_video(self):
+        from io import BytesIO
+        from PIL import Image
+        from random import Random
+        pixels=Random(0).randbytes(256*256*3)
+        output=BytesIO()
+        Image.frombytes('RGB',(256,256),pixels).save(output,format='PNG')
+        image=output.getvalue()
+        self.assertGreater(len(image),8192)
+        mp4=(24).to_bytes(4,'big')+b'ftyp'+b'isom'+b'\0\0\0\1'+b'isomiso2'
+        mp4+=(8).to_bytes(4,'big')+b'moov'
+        mp4+=(65536).to_bytes(4,'big')+b'mdat'+b'\0'*(65536-8)
+        for name,kind,content in [('step.png','image',image),('step.mp4','video',mp4)]:
+            response=self.http.post('/admin/catalog-assets',headers=self.headers,json=dict(
+                name=name,kind=kind,contentBase64=base64.b64encode(content).decode()))
+            self.assertEqual(response.status_code,200,response.text)
+            self.assertEqual(len(response.json()['data']['assetId']),64)
+        self.assertEqual(self.http.post('/admin/catalog-assets',headers=self.readerHeaders,json=dict(
+            name='step.mp4',kind='video',contentBase64=base64.b64encode(mp4).decode())).status_code,403)
+
     def test_revision_conflict_returns_409_without_overwriting(self):
         self.save()
         response=self.http.put('/admin/catalog/'+self.cid,headers=self.headers,json=dict(expectedRevision=0,state='published',document=document(),reason='Повтор старой версии'))

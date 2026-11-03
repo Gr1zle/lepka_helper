@@ -6,7 +6,6 @@ import sqlite3
 import flet as ft
 from project_archive import MAX_ARCHIVE_BYTES, decodeProject, exportProject, importProject
 from project_upload import createProjectUpload, cancelProjectUpload, takeProjectUpload
-from download_service import createDownload
 from project_backups import saveBackup, listBackups, readBackup, deleteBackup
 from ui_helpers import authenticatedAction, isWebClient, showMessage, confirmAction
 
@@ -31,34 +30,9 @@ def createProjectExport(page, user, projectId):
     def export(event):
         try:
             content = exportProject(projectId, user['userId'])
-            if isWebClient(page):
-                address = webAddress(page)
-                ticket = createDownload(content, 'lepka-project.json', 'application/json', user)
-                page.launch_url(f'{address}/downloads/{ticket}', web_window_name='_self')
-                showMessage(page, tr(page, 'JSON проекта передан браузеру для скачивания'))
-                return
-            if androidClient(page):
-                saveBackup(user['userId'],content)
-                showMessage(page,tr(page, 'JSON-копия сохранена. Для восстановления откройте «Копии в приложении»'))
-                return
-
-            @authenticatedAction(page, user)
-            def picked(event):
-                if not event.path:
-                    return
-                try:
-                    path = Path(event.path).with_suffix('.json')
-                    with path.open('xb') as stream:
-                        stream.write(content)
-                    showMessage(page, tr(page, 'JSON проекта сохранён'))
-                except FileExistsError:
-                    showMessage(page, tr(page, 'Файл уже существует. Выберите другое имя'), True)
-                except OSError:
-                    showMessage(page, tr(page, 'Не удалось сохранить JSON в выбранную папку'), True)
-            picker = ft.FilePicker(on_result=picked)
-            page.overlay.append(picker)
-            page.update()
-            picker.save_file(file_name='lepka-project.json', file_type=ft.FilePickerFileType.CUSTOM, allowed_extensions=['json'])
+            if androidClient(page):saveBackup(user['userId'],content)
+            from file_export import exportBytes
+            exportBytes(page,user,content,'lepka-project.json','application/json')
         except (ValueError, OSError) as error:
             showMessage(page, str(error) if isinstance(error,ValueError) else 'Не удалось сохранить копию проекта', True)
     return ft.TextButton(tr(page, 'Экспорт JSON'), icon=ft.Icons.DOWNLOAD_OUTLINED, on_click=export)

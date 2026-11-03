@@ -52,11 +52,12 @@ public final class MediaActions implements PluginRegistry.ActivityResultListener
                 JSONObject input=new JSONObject(value);fileName=input.getString("name");
                 String mime=input.getString("mime");
                 if(fileName.length()>120 || fileName.contains("/") || fileName.contains("\\") ||
-                   !(mime.equals("image/png") || mime.equals("application/pdf")))throw new IllegalArgumentException();
+                   !(mime.equals("image/png") || mime.equals("application/pdf") || mime.equals("application/json")))throw new IllegalArgumentException();
                 String encoded=input.getString("base64");
-                if(encoded.length()>14*1024*1024)throw new IllegalArgumentException();
+                int maxBytes=(mime.equals("application/json")?20:10)*1024*1024;
+                if(encoded.length()>((maxBytes+2)/3)*4)throw new IllegalArgumentException();
                 bytes=Base64.decode(encoded,Base64.DEFAULT);
-                if(bytes.length==0 || bytes.length>10*1024*1024)throw new IllegalArgumentException();
+                if(bytes.length==0 || bytes.length>maxBytes)throw new IllegalArgumentException();
                 intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                     .setType(mime).putExtra(Intent.EXTRA_TITLE,fileName);
                 activity.startActivityForResult(intent,SAVE);

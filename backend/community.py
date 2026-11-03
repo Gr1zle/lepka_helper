@@ -28,14 +28,15 @@ class CommunityBodyLimit:
         moderation=scope['path'].startswith('/admin/') or scope['path']=='/community/reports'
         private=scope['path'].startswith('/personal/')
         action=scope['path']=='/community/actions'
-        limit=(20*1024*1024+32768) if private else 32768 if (challenge or action) else (8192 if moderation else MAX_COMMUNITY_BODY)
+        catalogAsset=scope['path']=='/admin/catalog-assets'
+        limit=(20*1024*1024+32768) if private else 18*1024*1024 if catalogAsset else 32768 if (challenge or action) else (8192 if moderation else MAX_COMMUNITY_BODY)
         body = bytearray()
         while True:
             event = await receive()
             if event['type'] == 'http.disconnect':
                 return
             if len(body) + len(event.get('body', b'')) > limit:
-                detail='Личный снимок слишком большой (до 20 МБ)' if private else 'Действие очереди слишком большое (до 32 КБ)' if action else 'Запрос задания слишком большой (до 32 КБ)' if challenge else 'Запрос модерации слишком большой (до 8 КБ)' if moderation else 'Публикация слишком большая (до 48 МБ)'
+                detail='Личный снимок слишком большой (до 20 МБ)' if private else 'Учебный файл слишком большой (до 12 МБ)' if catalogAsset else 'Действие очереди слишком большое (до 32 КБ)' if action else 'Запрос задания слишком большой (до 32 КБ)' if challenge else 'Запрос модерации слишком большой (до 8 КБ)' if moderation else 'Публикация слишком большая (до 48 МБ)'
                 return await JSONResponse({'detail': detail}, status_code=413)(scope, receive, send)
             body.extend(event.get('body', b''))
             if not event.get('more_body', False):

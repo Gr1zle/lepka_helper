@@ -36,8 +36,8 @@ def openColorScan(page,user,onColor,onBaseColor):
     @authenticatedAction(page,user)
     def fullPhoto(event):
         if state['image'] is None:return
-        from views.discovery import openPage
-        width=max(240,(page.width or 390)-24);height=max(220,(page.height or 780)-240)
+        if state.get('fullscreen'):return
+        width=max(240,(page.width or 390)-24);height=max(220,(page.height or 780)-190)
         fullResult=ft.Text(resultText.value)
         def choose(event):
             try:
@@ -49,24 +49,23 @@ def openColorScan(page,user,onColor,onBaseColor):
         viewer=ft.InteractiveViewer(content=ft.GestureDetector(on_tap_up=choose,
             content=ft.Container(content=image,width=width,height=height)),constrained=False,min_scale=1,max_scale=10,
             expand=True,trackpad_scroll_causes_scale=True)
-        def done(event):
-            page.views.pop();page.open(dialog);page.update()
-        body=ft.Column(expand=True,controls=[viewer,fullResult,
-            ft.Text(tr(page, 'Разведите пальцы для увеличения, перемещайте фото и коснитесь нужного оттенка.'),size=12),
-            ft.Row(wrap=True,controls=[ft.TextButton(tr(page, 'Сбросить масштаб'),on_click=lambda e:viewer.reset()),
-                ft.FilledButton(tr(page, 'Готово'),on_click=done)])])
+        previous={name:getattr(dialog,name) for name in ('title','content','actions','inset_padding')}
         @authenticatedAction(page,user)
-        def dismissed(event):
-            dialog.on_dismiss=None
-            fullButton.disabled=False
-            view=openPage(page,tr(page, 'Выбрать цвет'),ft.SafeArea(expand=True,content=body),'/discovery/color-photo')
-            view.appbar.leading.on_click=done
-            page.session.set('restoreColorScan',lambda:page.open(dialog))
-        # Wait for Flutter's modal-dismiss acknowledgement before changing pages.
-        # Otherwise Flet 0.28 can pop the newly added page while closing the modal.
-        fullButton.disabled=True
-        dialog.on_dismiss=dismissed
-        page.close(dialog)
+        def done(event):
+            if not state.get('fullscreen'):return
+            state['fullscreen']=False
+            for name,value in previous.items():setattr(dialog,name,value)
+            page.update()
+        # Keep one modal route alive. Popping a full-page View and reopening the
+        # previous AlertDialog races Flutter's modal navigation on Android.
+        state['fullscreen']=True
+        dialog.title=ft.Text(tr(page,'Выбрать цвет'))
+        dialog.inset_padding=ft.padding.all(0)
+        dialog.content=ft.Container(width=width,height=height,content=ft.Column(expand=True,controls=[viewer,fullResult,
+            ft.Text(tr(page, 'Разведите пальцы для увеличения, перемещайте фото и коснитесь нужного оттенка.'),size=12)]))
+        dialog.actions=[ft.TextButton(tr(page,'Сбросить масштаб'),on_click=lambda e:viewer.reset()),
+            ft.FilledButton(tr(page,'Готово'),on_click=done)]
+        page.update()
     @authenticatedAction(page,user)
     def camera(event):
         from views.project_transfer import androidClient,webAddress

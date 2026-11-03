@@ -13,6 +13,8 @@ from app_info import APP_VERSION, REVIEW_DATE
 from scripts.prepare_android import MODULES, VIEWS, ASSETS,NATIVE_FILES
 from scripts.coursework_files import FILES as COURSEWORK_FILES
 
+ANDROID_FINAL_EVIDENCE = ('docs/android_final_evidence/apk.json', 'docs/android_final_evidence/apk_badging.txt', 'docs/android_final_evidence/apk_signature.txt', 'docs/android_final_evidence/browser.js.txt', 'docs/android_final_evidence/browser.json', 'docs/android_final_evidence/browser.log', 'docs/android_final_evidence/console.json', 'docs/android_final_evidence/screenshots/android-final-photo-applied.png', 'docs/android_final_evidence/screenshots/android-final-photo-full-0.png', 'docs/android_final_evidence/screenshots/android-final-photo-full-2.png', 'docs/android_final_evidence/screenshots/android-final-photo-return.png', 'docs/android_final_evidence/tests.json')
+
 DOCS = ('ТЗ', 'Plan', 'day1_requirements_audit.md', 'day2_stabilization.md', 'day3_tools.md',
         'day4_community_android.md', 'account_backend_validation.md', 'avatar_stage_photos.md',
         'project_sharing.md', 'workshops.md', 'server_community.md', 'review_version.md', 'project_step_order.md', 'project_tools_batch.md', 'lesson_library_search.md', 'offline_models_media.md', 'development_backlog.md', 'project_calendar_reminders.md', 'model_import_fullscreen.md', 'community_moderation.md', 'community_challenges.md','challenge_results.md','community_complete_batch.md','roles_admin_server.md','wifi_server.md','personal_notices_performance.md','personal_vault_sync.md','remaining_work.md','offline_session_outbox.md','notification_delivery.md','learning_catalog.md','color_camera_references.md','design_system.md','discovery_navigation.md','project_workflow.md','english_community.md','interaction_fixes.md')
@@ -32,7 +34,7 @@ SCREENSHOTS = ('interaction-fixes-compose-full.png','interaction-fixes-compose-p
 
 
 def getReviewFiles():
-    return [*COURSEWORK_FILES, 'DEMO_SCENARIO.md', 'FINAL_REPORT.md', 'scripts/coursework_files.py', 'scripts/run_final_checks.py', 'scripts/generate_final_inventory.py', 'scripts/generate_coursework_demo.py', 'README.md', 'REVIEW_START.md', 'requirements.txt', '.gitignore', 'main.py', 'web_app.py',
+    return ['CONSOLE_COMMANDS.md', 'docs/android_final.md', *ANDROID_FINAL_EVIDENCE, *COURSEWORK_FILES, 'DEMO_SCENARIO.md', 'FINAL_REPORT.md', 'scripts/coursework_files.py', 'scripts/run_final_checks.py', 'scripts/generate_final_inventory.py', 'scripts/generate_coursework_demo.py', 'README.md', 'REVIEW_START.md', 'requirements.txt', '.gitignore', 'main.py', 'web_app.py',
              *['native/lepka_platform/'+name for name in NATIVE_FILES],
              *[name + '.py' for name in MODULES], *['views/' + name + '.py' for name in VIEWS],
              *['assets/' + name for name in ASSETS], 'assets/logo.png', 'assets/lessons/README.md', 'assets/models/README.md',

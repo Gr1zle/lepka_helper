@@ -1,0 +1,34 @@
+{
+  "scope": "Isolated temporary data; no existing user DB; email disabled; Linux CLI, not Windows shell",
+  "status": "PASS",
+  "cases": [
+    {
+      "command": "run_wifi_server --data-dir <temporary> --port 8611; GET /ready",
+      "status": "PASS"
+    },
+    {
+      "command": "scripts.create_server_demo",
+      "status": "PASS"
+    },
+    {
+      "command": "scripts.manage_admin",
+      "status": "PASS"
+    },
+    {
+      "command": "scripts.manage_admin",
+      "status": "PASS"
+    },
+    {
+      "command": "scripts.server_backup",
+      "status": "PASS"
+    },
+    {
+      "command": "scripts.server_backup",
+      "status": "PASS"
+    },
+    {
+      "command": "Restored SQLite integrity and expected test administrator",
+      "status": "PASS"
+    }
+  ]
+}

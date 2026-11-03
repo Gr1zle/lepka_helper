@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "mode": "Flet Web, isolated local demo data, Chromium Playwright, 390/320 px",
+  "cases": [
+    "3 full-photo sampling/Done cycles return to same scan dialog",
+    "Chosen HEX applied to target field",
+    "Real project JSON downloaded and parsed",
+    "Real personal JSON downloaded and parsed"
+  ],
+  "downloads": {
+    "project": {
+      "sizeBytes": 281,
+      "sha256": "ab7fe5be639cfbd3bfc830f11ad1bab9f5418ce587d21238ede8088d6e75659f",
+      "format": "lepka-helper-project"
+    },
+    "personal": {
+      "sizeBytes": 398,
+      "sha256": "2d652e457094889dd3a4841ca3985ae79651b6bd3fc6a3cd44ef26aa5808750b",
+      "format": "lepka-personal"
+    }
+  },
+  "physicalAndroid": "NOT TESTED"
+}

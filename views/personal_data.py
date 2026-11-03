@@ -97,21 +97,8 @@ def createPersonalDataButton(page,user):
         @action
         def exportFile(event):
             content=exportSnapshot(user['userId'])
-            if isWebClient(page):
-                from download_service import createDownload
-                address=urlsplit(page.url);scheme={'ws':'http','wss':'https'}.get(address.scheme,address.scheme)
-                ticket=createDownload(content,'lepka-personal.json','application/json',user)
-                page.launch_url(f'{scheme}://{address.netloc}/downloads/{ticket}',web_window_name='_self');return
-            if page.platform==ft.PagePlatform.ANDROID:
-                saveCheckpoint(user['userId'],content);refreshCopies();page.update()
-                showMessage(page,tr(page, 'На Android копия сохранена внутри приложения. Для другого устройства используйте Wi-Fi-синхронизацию.'));return
-            @action
-            def save(event):
-                if event.path:
-                    with Path(event.path).with_suffix('.json').open('xb') as stream:stream.write(content)
-                    showMessage(page,tr(page, 'Полный JSON-архив сохранён'))
-            picker=ft.FilePicker(on_result=save);page.overlay.append(picker);page.update()
-            picker.save_file(file_name='lepka-personal.json',file_type=ft.FilePickerFileType.CUSTOM,allowed_extensions=['json'])
+            from file_export import exportBytes
+            exportBytes(page,user,content,'lepka-personal.json','application/json')
 
         def networkError(error):
             if error.statusCode==401:raise error
