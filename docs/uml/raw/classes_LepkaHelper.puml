@@ -1,0 +1,381 @@
+@startuml classes_LepkaHelper
+set namespaceSeparator none
+class "<color:red>api_client.ApiError</color>" as api_client.ApiError {
+  statusCode : int
+  __init__(message, statusCode)
+}
+class "backend.catalog.AssetInput" as backend.catalog.AssetInput {
+  contentBase64 : str
+  kind : str
+  model_config
+  name : str
+}
+class "backend.catalog.SaveInput" as backend.catalog.SaveInput {
+  document : dict
+  expectedRevision : int
+  model_config
+  reason : str
+  state : str
+}
+class "backend.catalog.UsageInput" as backend.catalog.UsageInput {
+  completed : bool
+  model_config
+  revision : int
+}
+class "backend.challenges.ChallengeInput" as backend.challenges.ChallengeInput {
+  deadline : str
+  model_config
+  resultMode : str
+  rules : str
+  startsOn : str | None
+  theme : str
+  title : str
+}
+class "backend.challenges.DecisionInput" as backend.challenges.DecisionInput {
+  model_config
+  reason : str
+  state : str
+  winnerPostId : int | None
+}
+class "backend.challenges.EntryInput" as backend.challenges.EntryInput {
+  model_config
+  postId : int
+}
+class "backend.challenges.VoteInput" as backend.challenges.VoteInput {
+  liked : bool
+  model_config
+}
+class "backend.community.ActionInput" as backend.community.ActionInput {
+  kind : str
+  payload : dict
+  requestId : str
+}
+class "backend.community.CommentInput" as backend.community.CommentInput {
+  replyToId : int | None
+}
+class "backend.community.CommentTextInput" as backend.community.CommentTextInput {
+  commentText : str
+}
+class "backend.community.CommunityBodyLimit" as backend.community.CommunityBodyLimit {
+  app
+  __call__(scope, receive, send)
+  __init__(app)
+}
+class "backend.community.CommunityInput" as backend.community.CommunityInput {
+  model_config
+}
+class "backend.community.PhotoInput" as backend.community.PhotoInput {
+  imageBase64 : str
+  name : str
+}
+class "backend.community.PostInput" as backend.community.PostInput {
+  categoryName : str
+  challengeId : int | None
+  descriptionText : str
+  photos : list[PhotoInput]
+  projectDetailsJson : str
+  requestId : str
+  tagsText : str
+  titleText : str
+}
+class "backend.community.ProgressInput" as backend.community.ProgressInput {
+  checkedMaterials : list[int]
+  completedSteps : list[int]
+  isCompleted : bool
+  lastStep : int
+}
+class "backend.delivery.DeliveryInput" as backend.delivery.DeliveryInput {
+  awards : bool
+  comments : bool
+  deviceEnabled : bool
+  emailEnabled : bool
+  learning : bool
+  likes : bool
+  model_config
+  projects : bool
+  replies : bool
+}
+class "backend.main.ConfirmEmailInput" as backend.main.ConfirmEmailInput {
+  code : str
+  newEmail : str
+}
+class "backend.main.ConfirmInput" as backend.main.ConfirmInput {
+  code : str
+}
+class "backend.main.DeleteInput" as backend.main.DeleteInput {
+  password : str
+}
+class "backend.main.EmailInput" as backend.main.EmailInput {
+  email : str
+}
+class "backend.main.InputModel" as backend.main.InputModel {
+  model_config
+}
+class "backend.main.LoginInput" as backend.main.LoginInput {
+  password : str
+}
+class "backend.main.NewEmailInput" as backend.main.NewEmailInput {
+  newEmail : str
+  password : str
+}
+class "backend.main.PasswordInput" as backend.main.PasswordInput {
+  currentPassword : str
+  newPassword : str
+  repeatedNewPassword : str
+}
+class "backend.main.ProfileInput" as backend.main.ProfileInput {
+  ageCategory : str
+  avatarPath : str
+  bioText : str
+  favoriteColors : list[str]
+  nickname : str
+}
+class "backend.main.RegisterInput" as backend.main.RegisterInput {
+  isPolicyAccepted : bool
+  nickname : str
+  passwordConfirmation : str
+}
+class "backend.main.ResetInput" as backend.main.ResetInput {
+  newPassword : str
+  newPasswordConfirmation : str
+  recoveryCode : str
+}
+class "backend.main.SettingsInput" as backend.main.SettingsInput {
+  languageCode : str
+  notificationsEnabled : bool
+  themeMode : str
+}
+class "backend.moderation.MaterialInput" as backend.moderation.MaterialInput {
+  targetId : int
+  targetType : str
+}
+class "backend.moderation.ReasonInput" as backend.moderation.ReasonInput {
+  model_config
+  reason : str
+}
+class "backend.moderation.ResolveInput" as backend.moderation.ResolveInput {
+  status : str
+}
+class "backend.moderation.RoleInput" as backend.moderation.RoleInput {
+  permissions : list[str]
+  title : str
+}
+class "backend.moderation.UserChangeInput" as backend.moderation.UserChangeInput {
+  blocked : bool | None
+  role : str | None
+}
+class "backend.personal.SnapshotInput" as backend.personal.SnapshotInput {
+  deviceId : str
+  expectedRevision : int
+  model_config
+  snapshot : dict
+}
+class "catalog_client.CatalogClient" as catalog_client.CatalogClient {
+  url : str
+  user
+  __init__(user)
+  active()
+  adminIndex()
+  cached(cid)
+  cleanup()
+  detail(contentId, admin)
+  download(cid)
+  downloads()
+  flushUsage()
+  index(refresh)
+  personal(cid)
+  removeDownload(cid)
+  request(method, path, payload, callback)
+  save(cid, revision, state, document, reason)
+  savePersonal(cid, revision, checked, favorite, note)
+  statistics()
+  subscribe(category, selected)
+  upload(name, kind, content)
+}
+class "challenge_gateway.ChallengeClient" as challenge_gateway.ChallengeClient {
+  create(title, rules, deadline, startsOn, theme, resultMode)
+  detail(challengeId, offset, sort)
+  finish(challengeId, state, reason, winnerPostId)
+  listing(mode, offset)
+  noticeSummary()
+  notices(offset, kind, unread)
+  profile()
+  readAllNotices()
+  readNotice(noticeId)
+  submit(challengeId, postId)
+  vote(challengeId, postId, liked)
+  withdraw(challengeId)
+}
+class "clay_tools.ClayTimer" as clay_tools.ClayTimer {
+  clock
+  deadline : NoneType
+  duration : float
+  remaining : float
+  running
+  __init__(clock)
+  display()
+  pause()
+  reset()
+  seconds()
+  start(minutes)
+}
+class "community_gateway.CommunityClient" as community_gateway.CommunityClient {
+  apiUrl : str
+  publicationKeys : dict
+  remote
+  user
+  __init__(user)
+  copyProject(postId)
+  copyRecipe(postId, mixtureIndex)
+  deleteComment(commentId)
+  deletePost(postId)
+  editComment(commentId, text)
+  exportLocalPost(localPostId)
+  getComments(postId)
+  getCommentsPage(postId, offset, limit)
+  getLocalPosts()
+  getPhoto(photoId)
+  getPost(postId)
+  getPostDetail(postId)
+  getPosts(mine, search)
+  getPostsPage(mine, query, category, sort, offset, limit)
+  getState(postId)
+  getThumbnail(photoId)
+  getWorkshop(postId)
+  isLiked(item)
+  publishPost(titleText, descriptionText, categoryName, tagsText, photoFiles, challengeId)
+  publishProject(projectId, titleText, descriptionText, categoryName, tagsText, resultStepId, otherStepIds, projectMixtureIds, workshopInfo, challengeId)
+  request(method, path, payload, personal)
+  saveComment(postId, text, replyToId)
+  saveState(postId, state)
+  sendPublication(payload)
+  toggleLike(postId)
+  userStats()
+}
+class "<color:red>learning_catalog.CatalogConflict</color>" as learning_catalog.CatalogConflict {
+}
+class "<color:red>mail_service.MailDeliveryError</color>" as mail_service.MailDeliveryError {
+}
+class "mesh_renderer.Mesh" as mesh_renderer.Mesh {
+  faces : tuple
+  vertices : tuple
+  __init__(self, vertices: tuple, faces: tuple) -> None
+}
+class "moderation_gateway.ModerationClient" as moderation_gateway.ModerationClient {
+  apiUrl : str
+  remote
+  user
+  __init__(user)
+  access()
+  audit(offset)
+  call(method, path, payload, local)
+  changeUser(userId, reason, blocked, role)
+  deleteRole(code, reason)
+  deleteUser(userId, reason)
+  myReports(offset)
+  remove(targetType, targetId, reason)
+  report(targetType, targetId, reason)
+  reports(status, offset)
+  resolve(reportId, status, reason)
+  roles()
+  saveRole(code, title, permissions, reason, create)
+  users(query, offset)
+}
+class "notification_center.NoticeCenter" as notification_center.NoticeCenter {
+  community
+  user
+  __init__(user)
+  local(source, unread)
+  noticeSummary()
+  notices(offset, kind, unread, source)
+  readAllNotices()
+  readNotice(noticeId)
+}
+class "<color:red>offline_mutations.ActionConflict</color>" as offline_mutations.ActionConflict {
+}
+class "<color:red>offline_mutations.ActionRateLimit</color>" as offline_mutations.ActionRateLimit {
+}
+class "personal_sync.PersonalSync" as personal_sync.PersonalSync {
+  apiUrl : str
+  user
+  __init__(user)
+  base()
+  cancelPending()
+  compare()
+  download(comparison, revision)
+  history()
+  queue()
+  remember(metadata, connection)
+  request(method, path, payload)
+  upload(comparison)
+}
+class "<color:red>personal_vault.VaultConflict</color>" as personal_vault.VaultConflict {
+}
+class "pull_refresh.PullRefresh" as pull_refresh.PullRefresh {
+  content
+  onRefresh
+  __init__(content, onRefresh)
+  _get_children()
+  _get_control_name()
+  _refresh(event)
+}
+class "<color:red>role_service.PermissionDenied</color>" as role_service.PermissionDenied {
+}
+class "scripts.generate_learning_models.Builder" as scripts.generate_learning_models.Builder {
+  parts : list
+  vertices : list
+  __init__()
+  add(points, faces, stage, color, center)
+  box(center, size, stage, color)
+  cylinder(center, radius, height, stage, color, axis, cone, segments)
+  obj(modelId, step)
+  sphere(center, size, stage, color, segments, rings)
+  wing(side, stage)
+}
+class "secure_device.ProtectedSession" as secure_device.ProtectedSession {
+  _lock : lock
+  _pending : dict
+  _serial : lock
+  _uiPending : NoneType
+  __init__()
+  _get_control_name()
+  _received(event)
+  call(operation, value, stillActive)
+  delete()
+  read()
+  requestUi(operation, value, callback)
+  write(value)
+}
+class "views.discovery.Masonry" as views.discovery.Masonry {
+  controls : list
+  count : int
+  items : list
+  pageRef
+  __init__(page)
+  reflow(force)
+  setItems(items)
+}
+backend.community.ActionInput --|> backend.community.CommunityInput
+backend.community.CommentInput --|> backend.community.CommentTextInput
+backend.community.CommentTextInput --|> backend.community.CommunityInput
+backend.community.PhotoInput --|> backend.community.CommunityInput
+backend.community.PostInput --|> backend.community.CommunityInput
+backend.community.ProgressInput --|> backend.community.CommunityInput
+backend.main.ConfirmEmailInput --|> backend.main.InputModel
+backend.main.ConfirmInput --|> backend.main.EmailInput
+backend.main.DeleteInput --|> backend.main.InputModel
+backend.main.EmailInput --|> backend.main.InputModel
+backend.main.LoginInput --|> backend.main.EmailInput
+backend.main.NewEmailInput --|> backend.main.InputModel
+backend.main.PasswordInput --|> backend.main.InputModel
+backend.main.ProfileInput --|> backend.main.InputModel
+backend.main.RegisterInput --|> backend.main.LoginInput
+backend.main.ResetInput --|> backend.main.EmailInput
+backend.main.SettingsInput --|> backend.main.InputModel
+backend.moderation.MaterialInput --|> backend.moderation.ReasonInput
+backend.moderation.ResolveInput --|> backend.moderation.ReasonInput
+backend.moderation.RoleInput --|> backend.moderation.ReasonInput
+backend.moderation.UserChangeInput --|> backend.moderation.ReasonInput
+challenge_gateway.ChallengeClient --|> moderation_gateway.ModerationClient
+challenge_gateway.ChallengeClient --* notification_center.NoticeCenter : community
+@enduml

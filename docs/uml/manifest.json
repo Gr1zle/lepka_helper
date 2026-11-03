@@ -1,0 +1,2037 @@
+{
+  "sourceCommit": "582790ea0041c42ab0b381b5da58e85de25afb34",
+  "generatedUTC": "2026-11-03T02:43:59.702529+00:00",
+  "pyreverseVersion": "pylint 3.3.9\nastroid 3.3.11\nPython 3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "graphvizVersion": "dot - graphviz version 2.42.4 (0)",
+  "pythonSourceFiles": {
+    "account_gateway.py": "2c4f427e88196970ae277a843ad99d86650d8bce008bec10a5102b95644b9dba",
+    "account_security.py": "c1b37a14ad364af7e0f8416a0005be93aa1ca9ad866dcb30104a5996662ebbbc",
+    "activity_service.py": "0c87ec7f880652e5ec4d68a9d052e5570dbaa6a3047b9b6397d32fbaa401cf61",
+    "api_client.py": "4baa7027680bfe50db6cd041eb7bae6d4d118724c5332c42c8d9a20370382af1",
+    "app_info.py": "9ae7c744969fc5d0dfb48350814710d60db97e56ff4c61ee28bb3b8abfe1fa8d",
+    "app_paths.py": "510061ed47b74f343aeb6560764946f851bea8747bef1fba278efa06b9fccc5f",
+    "app_state.py": "ae0012e7d4295d3f16b7ab34e17ef081339029a6bb8a2524491ec60ae7e46edc",
+    "auth_service.py": "2d22613b2e5065c8f586d216f6780dc9ac1bda073dc3efcf595b7cb68a852f0f",
+    "backend/__init__.py": "e28ef1eaebaad0799a076ecc0b9358ddab0c56196feb2934e092c7358d3dd77a",
+    "backend/catalog.py": "54cb47e133cb634516bda556596efa3c1df4dc85fcdc7a33f7a29712c521d821",
+    "backend/challenges.py": "4ddb4f61ffbfc5021b0e7295252aa2fe199839a5b4efcc2473245e91ea7e5f24",
+    "backend/community.py": "07e6f79b182a6daeb608b34c39edef3adaa841c86c4440aebbd57daada7d293c",
+    "backend/delivery.py": "bde5ade39430f90f6c223667c0cd0cf4c50c8bfb1b61aad967b0609bc47b7fad",
+    "backend/main.py": "78a11f730c07ea52c234777fa6983cad6b5c8e1d951ba96d7ea0823cd5a6cd38",
+    "backend/moderation.py": "be8908286cdec9a9394a963187acdc08261bd18e23bf17e3c014baee8144e4b8",
+    "backend/personal.py": "2102494899786a45c75c7a5675ae2a15616593d5c4c0deb03cfacf268e1b62e9",
+    "camera_web.py": "c60ce0d4bdbdb46acd4807bdb300993051dd9e31fb3695f0fc00406a4b45929d",
+    "catalog_client.py": "6d9f24b4511a1cca22cb39e8ddf639d9f77386a87299740a4895dbc6b62b741e",
+    "catalog_media.py": "060ae6889b9fda36b07396c3cb6548261a4b25da62a11426f991a8f3fcc3c4cf",
+    "catalog_sync.py": "1873b17597cf97ab20d5fde4214fc5ede07f2061c9d6f3a8d207942fa4d1fbfd",
+    "catalog_upload.py": "ed31663d8a28520a12e16db011e80b8203221ad2a919c2348199f22a65264dc8",
+    "challenge_gateway.py": "bfc7dd4e089bfcdfa1c0a6cbd2370e4bb31f9ac8b4e6961c6df76636fdb48394",
+    "challenge_service.py": "52a8d22494c3a228487876ff1ef343ecf0be252d442bb8135fda8313c23b6b12",
+    "clay_tools.py": "8534d7c14ff2f3299ef39f18237595602857872d39e3d8b36fed519102925834",
+    "color_export.py": "252d54f873073fe1a83650ab8b4de6180a26e289eb32d6233dc384c0543ffff3",
+    "color_photo.py": "2c701aeb3e597428e952c46540bdebbd0e0ead600dadf16b892f4b4e308cfcc3",
+    "color_service.py": "fd4c4ee4ba4895696ea4f531753258bd2d1692ccc7f69b6c762a34b2a6d102c7",
+    "color_wheel.py": "990b0bbebc722d2d726c6aebfb195c0bfa9f419d28413291052e935e6dfeaaaf",
+    "community_cache.py": "a2f403421a2033e11dc02aad89895a48a2cd06dff3e7410a8fc71e14e14ec430",
+    "community_gateway.py": "c98b9a336d074b3a5dfdd9bf164284c3097eb7f3b362c315a8f1ab28e80e9ffb",
+    "community_outbox.py": "9ff472d65dcffa05d0259fad7975d74a83e20db961d31f97d49e48eddc928d6e",
+    "connection_monitor.py": "ee190a54c7c93599f684cf1cf1342ba4c964c6f78b6f00c03731eb79ac4c4f65",
+    "contest_entry.py": "535b59bf1e3e760097acb1a6aa46e9efb9ab36a48dbf0901131faa6afae2bbc6",
+    "database.py": "1368c4eb28dcd4e735d7b69f1e91ff6e16d0c554959988f71a0c4d9f0dea7630",
+    "date_field.py": "5df61fcb274b1db4629d19ebf2c49de136c7e2c4df2895c955d0d9ac4886ea44",
+    "deferred_community.py": "73f61ab980a1f60fdea2c2b55284aa7a50cf9dad0a2a89c826d0970d5951bc06",
+    "delivery_settings.py": "cc739a973fed915718776fb61dee77375a6b75cdea4d4fcda5bf3191bdc63850",
+    "design_system.py": "cb9c1f84fbef114bf84458883bcbd8e2cfa39d65cc69075c6da35dfd1c1690d1",
+    "device_notifications.py": "fd368e51dc6c6c71a3630ede0ce28c6890e6c50bed7d656aa69c8bb0afc42180",
+    "device_session.py": "86cf57a49d3515ad4c40fa17f72780a4fda1ab906f4d0f1977aa3384b3aaf57f",
+    "download_service.py": "f26e7fdca22d3a2806df87769cfbc200a9bf6ea1a7f780e2cee95f2cdf8e8816",
+    "feed_service.py": "1be8ff3019d21bf874f2b3c52185684769ddf7b5374cc4e2067eb10a5568844c",
+    "file_export.py": "0b58bf2b8ed46b4ac0236d86ace5f7d900818d66edc4a8e1ca1f110fcde23794",
+    "interface_catalog.py": "30773089167ceb488c47e551bb21a3e971b45aa63c95ccc140e24b40848ee835",
+    "learning_assets.py": "4d2c746ea6590d79520745b50a82bc9387601ebabc9248400c96408cab912cdb",
+    "learning_catalog.py": "30f964c9ba786244f88f25a203f9c9a14d8c5ab1a9b2d4eb34dd7c10b6a27651",
+    "lesson_library.py": "f6a10c881ee3c62f9e033756314d7771a4fc7e7dad5bf6b29af7bd5c3b48eb7e",
+    "lesson_service.py": "f2df1945dbfc41ce13cc170739d331e28851db4721aebcf8506206bbac95317b",
+    "localization.py": "cc2594a5122cb02811aa6b2b9995b280aa381672515989ca110c55ab437cf23d",
+    "mail_service.py": "f457fd4b41c5bf913f2b6c019996a4c1a18a966adfd05fade734775a6b0cee44",
+    "main.py": "e2813346780a3675d5cc73ac01f6f0052539c67abd69596b3a8563b7416f54ab",
+    "mesh_renderer.py": "a51d5aaa5b548fe1832a05dd46e671fe8f8d65ba0de6b6464fcde102c6f67188",
+    "model_import.py": "9efbeaa4c3884fc445dc6f667a8c6499c796c3172b9da12427d6e64d32ead802",
+    "model_service.py": "f0cd669565f8d74bdff034b8ba69f095b9fa24da3c2511168fb18c03cda588ef",
+    "model_upload.py": "efc4e36debc0e23a817713149e4507a86a96be2c5a872f3eb8a545d6e736f65b",
+    "moderation_gateway.py": "eb2644577f4e5c9e1868a6d4563df805a4f89d39ae10db4570f776542067757b",
+    "moderation_service.py": "27681dd9878837a6484293efd11714fabb206da682f8e8b4811767d88422fc5a",
+    "notification_center.py": "6a58bffa2d72455789cf03526424dc0331c297bfa157a2c84f73103662d36658",
+    "notification_mail.py": "1e90d3e6b8564c379cf063437cc6979dec5cd6629badacd76961cf9f62f33120",
+    "offline_access.py": "f8df5a1958a9a6e53b8608f595f863b6fe09ceee973bbd697b14dc90de2b8878",
+    "offline_mutations.py": "b9b201345b472c63c9df3c6e50ce2781af7ce2286fd76d298769a526de48f685",
+    "password_service.py": "d914519af7aebca89b2838bf3f946d935dc52fbec4800ed2dd615db4d407cfd1",
+    "personal_checkpoints.py": "5928e7a7a61734ec58db7c2a4f87fed4342b5f21e0eabb216d009f5f54eadd0c",
+    "personal_notices.py": "a99a94f20055a7620fede1587cb3c33afb3b2c5556a6d15eb0b40778c511e821",
+    "personal_snapshot.py": "942a40934d9a478dca4fc0786abb0fe617a4b07a3a279118edd416ab2485a66a",
+    "personal_sync.py": "f799f9c31e91fa2bfbeec23a5c895f0f95308fd2d6e755058bcd010fbf3fd3bb",
+    "personal_vault.py": "3cdd02e6dd83ec804b87e473f98c6798d0427f4023a05dafb5f7cf24a99ff18c",
+    "photo_picker.py": "a99a6960574026ece6171e809e9b497a612fdb2206648a7526c56450fd0fb508",
+    "photo_service.py": "eb8b8d9a1df0b7413043caaa1500e73fbf3553e1309aa5a9e7be32b700605cf0",
+    "photo_upload.py": "f4881b5f5d78d782d54c70cdde94485a02b84336ea32f223994623125d3469c5",
+    "post_service.py": "50205debe0be93f18b007130aa28c5f6500b29f49e6aea84c96f7477ec14d7af",
+    "profile_service.py": "c9b88d9ee7a5e424cbd6b801b17f5d42fa26181704277b336cee5ce7d474aa52",
+    "project_archive.py": "0efc57cc8b80c141ff211b36647e2c4349540b02253cebcd4ade5c72ce2e92e0",
+    "project_backups.py": "6671595f312aa01fc075f4ab83f8e6fe1902df7158534a37d07ac694e9c67f4d",
+    "project_planner.py": "38449dcdb234be815a72067d7ecedb2326670f09f14e0c3383ce1b9d3decb153",
+    "project_service.py": "a8042e945e0007491bdffd1f9964ae70452dc2eecad61c46f435d96c6dbda2fe",
+    "project_sharing.py": "6499e76b64e0c4fbefeedce522623f51590c1a7082531e75fa952f5b2aac5fef",
+    "project_statistics.py": "b8a4004225e2a0f3d21e330eb988857c6c8ea018b4deeb481429a90cfa5a998c",
+    "project_upload.py": "fb6b9c61ec0ef40815933d7ebc6e0c61c29162a092ba4a7bf3b92935b14e3f65",
+    "publication_drafts.py": "b5b0594d427de56028597c89b4c5945e2309c823dc2b3bfa379aa41f88301ae2",
+    "pull_refresh.py": "6a1b74f128061a2fce86440cc4ec02b2ff3cf5c34b9764b12460b051000ba1e1",
+    "reference_service.py": "3c633ff161dd92837032727ffce5f77ea889021e7f7cb361985dee850ee9e2a0",
+    "remote_account_cache.py": "bcba5a574e686851aa58764a41badf6422b65d539c8d634c18782abf9392672b",
+    "role_service.py": "206238fddaf72a33790bc27cb1446fa2cb6ab920a596ef1efb542d3c81cd5015",
+    "scripts/__init__.py": "fc4ae5936e2dd570eae59f5d25aa0794b28951649bdc012ebdb7e993f4fdde16",
+    "scripts/coursework_files.py": "ce12e32a24d0caed58e1c465d8500877eaa92f61acf77e3de7a9f06eeb933185",
+    "scripts/create_server_demo.py": "c4400b6329e70b53f1237612bc04b863209a92ce579e492a2e2b714a56103643",
+    "scripts/generate_coursework_demo.py": "0c9b82409754075d628f01d85084578b610a486226c17b57f24ef1504e0dea49",
+    "scripts/generate_final_inventory.py": "fbc2dd646977db3b9fe05697a0822b188446b7092c7cc81fbeb9550400cb41c9",
+    "scripts/generate_learning_models.py": "1e436929642bd9a1c5929aa1a3b23fb47f70bc7b62f534ba9374cb9de451afd2",
+    "scripts/manage_admin.py": "8b9ee828ba2deea1d50249bac2e48f595f48fedbb2b06e947571722445b39269",
+    "scripts/prepare_android.py": "b5931086029546d6fbefcc1cdcf6decaf46ba3736a0197cbaa4b594b17f405bf",
+    "scripts/prepare_review.py": "49803109396e57613ba950e17c258a84dc520b85033a871aab44ca024e6d9ef9",
+    "scripts/prepare_server.py": "4880427633050b8a6c7c7ae3d0e30a5df3f42a8f5c2dec27d18ac3362e0db48d",
+    "scripts/run_wifi_server.py": "a70cb1bf6abd08eb6e91958a109ab243015f16761d6ebc9a24efe56679d527fd",
+    "scripts/server_backup.py": "039e4dc05a1cb0f366cc561bb2b4ccc5839a5ec1448910be977ad69b3120a597",
+    "secure_device.py": "013a53c5a8e2e560d3a8eaced3d956fb896f2cdc616d6ee3f923f36349a2152c",
+    "social_feed.py": "fbe4a9525d94c7132dd2571600e4ae5b7da5987ecebf315fb26560b907718830",
+    "ui_helpers.py": "20be4a51f80c558eeea19e4fbc67118a76d723d2a2c3048e2af359e543622757",
+    "validators.py": "1d27a45f4852528e8229eba47c6b78fa4ebcb447ae9be2e02bf88cf427b6c156",
+    "views/about_dialog.py": "57690bf4b5ed15b7c0f5f8dccdac11c2f619dee1c15ccc465d91c34649304c30",
+    "views/admin_permissions.py": "a29173994b456201e8d2fa8e4ef89d5db4a341ce6f8ec72f2ceb8d5af511514d",
+    "views/admin_view.py": "09dbd0d463b6c7fa080a9fdb1de7702dedd3aece3c73d558b48dbd3870217285",
+    "views/auth_view.py": "7f9eb27dbc9c906e18ea64dda41d419d3f4f6d6f66c230c489d362b09a42acf1",
+    "views/catalog_file_picker.py": "936f11ac30be0766ef9fd29a866fc032d95748d2d77fdc7b79b53c2d15bfde93",
+    "views/challenge_view.py": "a9eb166886ea654b6f64ac6c4457e866dd6c249781a761dc5497f4fce1e56370",
+    "views/clay_tools_view.py": "30fce152e6f2d5c291088aac30f3f3fdf436ff70eb8f677a53b963320f408924",
+    "views/color_scan.py": "50917764e23d30a6a3e13caac09000f33e493bd1704b400d0304274f7c58fc88",
+    "views/community_notices.py": "1a972e6ae67a27489ac28b8b37f83b239101a574aab26b2ba5e3199f5331df22",
+    "views/community_tab.py": "53db5aa9e2faa0f2d3a668ddc5ba159f8772dd7413d12236cbe25426db772c20",
+    "views/contest_picker.py": "9828b5d015d0916e7ee3a967c7570e89ed9873711822dd9793ddb4c87cff68f9",
+    "views/discovery.py": "04672c3dc0ac4bfb1da70b38f89ddfa21b232d122dd4984017b4f68570db4e92",
+    "views/home_view.py": "ed1ea805e22b53bc309d703f974f3bd42e28242ed8d40b29ca89bb4c01fe7d93",
+    "views/learning_catalog.py": "3ff813fd4840273fe4d06a0c47d846796e3b140b5925ea8f3c0f5b72998e2cd5",
+    "views/lesson_library_view.py": "57daae1354f85543f7588ab46dafcab0536b177d2ccaf640eb7e4e95f6b83232",
+    "views/model_gallery.py": "db7698259da9bf34830758e10e800395102e3780759931cf5d568a1b547df865",
+    "views/model_import.py": "83b6f7ba24842e895fd4fb28dc17daa31907a2343a068413d051fcd77f810761",
+    "views/model_view.py": "148de89728f71a18253830582264f56dd3d697f2eebbd0148481cdfd988a7cc2",
+    "views/moderation_actions.py": "75c18564deef4baed755f17aaacd1622834123169e334cc90c4f8c53a96d4549",
+    "views/notification_delivery.py": "dd3cf48cf826449afb17398f474828ef5bea52a2ba3828eeb6a46d557bb8a8df",
+    "views/offline_controls.py": "a73a95a5d7e0c035c823455279d948af1a5dd2a0ec84a1434f506d835489a65e",
+    "views/onboarding_view.py": "834caf479a7ed342b3d555ba43751de0a2de903bd8f8ffc3ae52138506499165",
+    "views/personal_data.py": "0d13cfb1c1abfd493d38d5b478d804cfdf03a8ad946e9280de09ca65d0ff3abc",
+    "views/personal_notice_settings.py": "d1ec10445de473ffef21e8977783e62ce0e4b66397ba071c7bdb56c265ad99aa",
+    "views/profile_edit_view.py": "d4ad0334286f6ce45a25f61885d2d7d3726c182f95e95ff23a8130c03d57ef76",
+    "views/profile_tab.py": "0dd4a3f3b568795c540123a89d0976fc95e10a65811b85769d41f46611bbe1d0",
+    "views/profile_view.py": "8bfc22bb9e5ef8ecf56ff5f619af04f502d9dfbe08b798c588c54c0726edebe7",
+    "views/project_editor.py": "5cbc3e92da199c2b7dc0856f1f5a458042092b2c08c814373d6726cfddbc7f87",
+    "views/project_planner.py": "0775ce124936c6a4a8c8a5efb38cdcd25b342dd462aecafd21ae7d9d751de735",
+    "views/project_sharing.py": "80cd8c4261e20746051410ec7645ef5faec01ea7bd1f8ec8cdbaf89fa691858e",
+    "views/project_statistics.py": "cbc3cb00fa203854c9c8142e515542fddb5063f41a2d120850b61e382ffa7851",
+    "views/project_step_order.py": "5e2ea8fb9e52484e078cae2fe32afe45abc73c4acc70dff9529493bc5690ecf9",
+    "views/project_transfer.py": "a0d1f05e3601fdfb5e1d979d611085c02d716f2d90f45cc66a1af9bd6f4be57c",
+    "views/reference_gallery.py": "93e1c75810abfb480127fd8199d0d69d7185e34ccd489b061d0f911e0f644509",
+    "views/report_history.py": "cc70717f48e1a1d783bfb30acf95569dbad43668f37d5a6ac08ae1010a4a8721",
+    "views/role_editor.py": "94909dcef34012cabeafd880a22b9f5e6eda4e3d14ac71936d0ff7f4812053cc",
+    "views/server_connection.py": "4a558c6eeb6f725f3340250160aef7e6e4553c11c4c1c857d05e1e7ae2f8e44c",
+    "views/splash_view.py": "e5491714a8a4a751fa9ddb8572237e47b6074d119440ea3093e50c122857bf53",
+    "views/workshop_view.py": "7ea572d3b5773d705f793fcb788e93ca332bf07a46dd376e1f60d4a626413aa7",
+    "web_app.py": "964cb70f6683e746a34c72b7e56646466fa950251757061817cb952c7d2bddbb",
+    "workshop_service.py": "dc1ef481d9dc64a239b3f806e26f1cbca9da2a6ff91c022831658b461352aecf"
+  },
+  "classes": {
+    "api_client.ApiError": {
+      "module": "api_client",
+      "file": "api_client.py",
+      "line": 12,
+      "bases": [
+        "Exception"
+      ],
+      "resolvedBases": [
+        "api_client.Exception"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "Exception"
+      ]
+    },
+    "backend.catalog.SaveInput": {
+      "module": "backend.catalog",
+      "file": "backend/catalog.py",
+      "line": 11,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "expectedRevision",
+          "annotation": "int",
+          "referencedTypes": [
+            "backend.catalog.int"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "state",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.catalog.str"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "document",
+          "annotation": "dict",
+          "referencedTypes": [
+            "backend.catalog.dict"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "reason",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.catalog.str"
+          ],
+          "limits": {
+            "min_length": 10,
+            "max_length": 500
+          }
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.catalog.AssetInput": {
+      "module": "backend.catalog",
+      "file": "backend/catalog.py",
+      "line": 19,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "name",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.catalog.str"
+          ],
+          "limits": {
+            "max_length": 120
+          }
+        },
+        {
+          "name": "kind",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.catalog.str"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "contentBase64",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.catalog.str"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.catalog.UsageInput": {
+      "module": "backend.catalog",
+      "file": "backend/catalog.py",
+      "line": 26,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "revision",
+          "annotation": "int",
+          "referencedTypes": [
+            "backend.catalog.int"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "completed",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.catalog.bool"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.challenges.ChallengeInput": {
+      "module": "backend.challenges",
+      "file": "backend/challenges.py",
+      "line": 8,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "title",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.challenges.str"
+          ],
+          "limits": {
+            "min_length": 3,
+            "max_length": 100
+          }
+        },
+        {
+          "name": "rules",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.challenges.str"
+          ],
+          "limits": {
+            "min_length": 10,
+            "max_length": 2000
+          }
+        },
+        {
+          "name": "deadline",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.challenges.str"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "startsOn",
+          "annotation": "str | None",
+          "referencedTypes": [
+            "backend.challenges.str"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "theme",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.challenges.str"
+          ],
+          "limits": {
+            "max_length": 80
+          }
+        },
+        {
+          "name": "resultMode",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.challenges.str"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.challenges.EntryInput": {
+      "module": "backend.challenges",
+      "file": "backend/challenges.py",
+      "line": 18,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "postId",
+          "annotation": "int",
+          "referencedTypes": [
+            "backend.challenges.int"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.challenges.DecisionInput": {
+      "module": "backend.challenges",
+      "file": "backend/challenges.py",
+      "line": 23,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "state",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.challenges.str"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "reason",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.challenges.str"
+          ],
+          "limits": {
+            "min_length": 10,
+            "max_length": 500
+          }
+        },
+        {
+          "name": "winnerPostId",
+          "annotation": "int | None",
+          "referencedTypes": [
+            "backend.challenges.int"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.challenges.VoteInput": {
+      "module": "backend.challenges",
+      "file": "backend/challenges.py",
+      "line": 30,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "liked",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.challenges.bool"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.community.CommunityBodyLimit": {
+      "module": "backend.community",
+      "file": "backend/community.py",
+      "line": 18,
+      "bases": [],
+      "resolvedBases": [],
+      "annotatedFields": [],
+      "externalBases": []
+    },
+    "backend.community.CommunityInput": {
+      "module": "backend.community",
+      "file": "backend/community.py",
+      "line": 54,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.community.PhotoInput": {
+      "module": "backend.community",
+      "file": "backend/community.py",
+      "line": 58,
+      "bases": [
+        "CommunityInput"
+      ],
+      "resolvedBases": [
+        "backend.community.CommunityInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "name",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {
+            "min_length": 1,
+            "max_length": 160
+          }
+        },
+        {
+          "name": "imageBase64",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.community.PostInput": {
+      "module": "backend.community",
+      "file": "backend/community.py",
+      "line": 63,
+      "bases": [
+        "CommunityInput"
+      ],
+      "resolvedBases": [
+        "backend.community.CommunityInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "titleText",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {
+            "max_length": 100
+          }
+        },
+        {
+          "name": "descriptionText",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {
+            "max_length": 2000
+          }
+        },
+        {
+          "name": "categoryName",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {
+            "max_length": 40
+          }
+        },
+        {
+          "name": "tagsText",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {
+            "max_length": 320
+          }
+        },
+        {
+          "name": "photos",
+          "annotation": "list[PhotoInput]",
+          "referencedTypes": [
+            "backend.community.list",
+            "backend.community.PhotoInput"
+          ],
+          "limits": {
+            "min_length": 1,
+            "max_length": 10
+          }
+        },
+        {
+          "name": "projectDetailsJson",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {
+            "max_length": 131072
+          }
+        },
+        {
+          "name": "challengeId",
+          "annotation": "int | None",
+          "referencedTypes": [
+            "backend.community.int"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "requestId",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {
+            "min_length": 16,
+            "max_length": 80
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.community.CommentTextInput": {
+      "module": "backend.community",
+      "file": "backend/community.py",
+      "line": 74,
+      "bases": [
+        "CommunityInput"
+      ],
+      "resolvedBases": [
+        "backend.community.CommunityInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "commentText",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {
+            "max_length": 1000
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.community.CommentInput": {
+      "module": "backend.community",
+      "file": "backend/community.py",
+      "line": 78,
+      "bases": [
+        "CommentTextInput"
+      ],
+      "resolvedBases": [
+        "backend.community.CommentTextInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "replyToId",
+          "annotation": "int | None",
+          "referencedTypes": [
+            "backend.community.int"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.community.ActionInput": {
+      "module": "backend.community",
+      "file": "backend/community.py",
+      "line": 82,
+      "bases": [
+        "CommunityInput"
+      ],
+      "resolvedBases": [
+        "backend.community.CommunityInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "requestId",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "kind",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.community.str"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "payload",
+          "annotation": "dict",
+          "referencedTypes": [
+            "backend.community.dict"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.community.ProgressInput": {
+      "module": "backend.community",
+      "file": "backend/community.py",
+      "line": 88,
+      "bases": [
+        "CommunityInput"
+      ],
+      "resolvedBases": [
+        "backend.community.CommunityInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "lastStep",
+          "annotation": "int",
+          "referencedTypes": [
+            "backend.community.int"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "completedSteps",
+          "annotation": "list[int]",
+          "referencedTypes": [
+            "backend.community.list",
+            "backend.community.int"
+          ],
+          "limits": {
+            "max_length": 100
+          }
+        },
+        {
+          "name": "checkedMaterials",
+          "annotation": "list[int]",
+          "referencedTypes": [
+            "backend.community.list",
+            "backend.community.int"
+          ],
+          "limits": {
+            "max_length": 60
+          }
+        },
+        {
+          "name": "isCompleted",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.community.bool"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.delivery.DeliveryInput": {
+      "module": "backend.delivery",
+      "file": "backend/delivery.py",
+      "line": 7,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "deviceEnabled",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.delivery.bool"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "likes",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.delivery.bool"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "comments",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.delivery.bool"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "replies",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.delivery.bool"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "awards",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.delivery.bool"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "projects",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.delivery.bool"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "learning",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.delivery.bool"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "emailEnabled",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.delivery.bool"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.main.InputModel": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 34,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.main.EmailInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 38,
+      "bases": [
+        "InputModel"
+      ],
+      "resolvedBases": [
+        "backend.main.InputModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "email",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 100
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.LoginInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 42,
+      "bases": [
+        "EmailInput"
+      ],
+      "resolvedBases": [
+        "backend.main.EmailInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "password",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 64
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.RegisterInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 46,
+      "bases": [
+        "LoginInput"
+      ],
+      "resolvedBases": [
+        "backend.main.LoginInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "passwordConfirmation",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 64
+          }
+        },
+        {
+          "name": "nickname",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 20
+          }
+        },
+        {
+          "name": "isPolicyAccepted",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.main.bool"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.ConfirmInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 52,
+      "bases": [
+        "EmailInput"
+      ],
+      "resolvedBases": [
+        "backend.main.EmailInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "code",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 20
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.ResetInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 56,
+      "bases": [
+        "EmailInput"
+      ],
+      "resolvedBases": [
+        "backend.main.EmailInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "newPassword",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 64
+          }
+        },
+        {
+          "name": "newPasswordConfirmation",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 64
+          }
+        },
+        {
+          "name": "recoveryCode",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 20
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.ProfileInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 62,
+      "bases": [
+        "InputModel"
+      ],
+      "resolvedBases": [
+        "backend.main.InputModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "nickname",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 20
+          }
+        },
+        {
+          "name": "bioText",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 500
+          }
+        },
+        {
+          "name": "ageCategory",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 40
+          }
+        },
+        {
+          "name": "favoriteColors",
+          "annotation": "list[str]",
+          "referencedTypes": [
+            "backend.main.list",
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 5
+          }
+        },
+        {
+          "name": "avatarPath",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 0
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.SettingsInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 71,
+      "bases": [
+        "InputModel"
+      ],
+      "resolvedBases": [
+        "backend.main.InputModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "themeMode",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 10
+          }
+        },
+        {
+          "name": "languageCode",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 5
+          }
+        },
+        {
+          "name": "notificationsEnabled",
+          "annotation": "bool",
+          "referencedTypes": [
+            "backend.main.bool"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.PasswordInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 77,
+      "bases": [
+        "InputModel"
+      ],
+      "resolvedBases": [
+        "backend.main.InputModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "currentPassword",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 64
+          }
+        },
+        {
+          "name": "newPassword",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 64
+          }
+        },
+        {
+          "name": "repeatedNewPassword",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 64
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.DeleteInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 83,
+      "bases": [
+        "InputModel"
+      ],
+      "resolvedBases": [
+        "backend.main.InputModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "password",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 64
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.NewEmailInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 87,
+      "bases": [
+        "InputModel"
+      ],
+      "resolvedBases": [
+        "backend.main.InputModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "newEmail",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 100
+          }
+        },
+        {
+          "name": "password",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 64
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.main.ConfirmEmailInput": {
+      "module": "backend.main",
+      "file": "backend/main.py",
+      "line": 92,
+      "bases": [
+        "InputModel"
+      ],
+      "resolvedBases": [
+        "backend.main.InputModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "newEmail",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 100
+          }
+        },
+        {
+          "name": "code",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.main.str"
+          ],
+          "limits": {
+            "max_length": 20
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.moderation.ReasonInput": {
+      "module": "backend.moderation",
+      "file": "backend/moderation.py",
+      "line": 9,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "reason",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.moderation.str"
+          ],
+          "limits": {
+            "min_length": 10,
+            "max_length": 500
+          }
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "backend.moderation.MaterialInput": {
+      "module": "backend.moderation",
+      "file": "backend/moderation.py",
+      "line": 14,
+      "bases": [
+        "ReasonInput"
+      ],
+      "resolvedBases": [
+        "backend.moderation.ReasonInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "targetType",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.moderation.str"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "targetId",
+          "annotation": "int",
+          "referencedTypes": [
+            "backend.moderation.int"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.moderation.ResolveInput": {
+      "module": "backend.moderation",
+      "file": "backend/moderation.py",
+      "line": 19,
+      "bases": [
+        "ReasonInput"
+      ],
+      "resolvedBases": [
+        "backend.moderation.ReasonInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "status",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.moderation.str"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.moderation.UserChangeInput": {
+      "module": "backend.moderation",
+      "file": "backend/moderation.py",
+      "line": 23,
+      "bases": [
+        "ReasonInput"
+      ],
+      "resolvedBases": [
+        "backend.moderation.ReasonInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "blocked",
+          "annotation": "bool | None",
+          "referencedTypes": [
+            "backend.moderation.bool"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "role",
+          "annotation": "str | None",
+          "referencedTypes": [
+            "backend.moderation.str"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.moderation.RoleInput": {
+      "module": "backend.moderation",
+      "file": "backend/moderation.py",
+      "line": 28,
+      "bases": [
+        "ReasonInput"
+      ],
+      "resolvedBases": [
+        "backend.moderation.ReasonInput"
+      ],
+      "annotatedFields": [
+        {
+          "name": "title",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.moderation.str"
+          ],
+          "limits": {
+            "min_length": 3,
+            "max_length": 50
+          }
+        },
+        {
+          "name": "permissions",
+          "annotation": "list[str]",
+          "referencedTypes": [
+            "backend.moderation.list",
+            "backend.moderation.str"
+          ],
+          "limits": {
+            "max_length": 8
+          }
+        }
+      ],
+      "externalBases": []
+    },
+    "backend.personal.SnapshotInput": {
+      "module": "backend.personal",
+      "file": "backend/personal.py",
+      "line": 6,
+      "bases": [
+        "BaseModel"
+      ],
+      "resolvedBases": [
+        "pydantic.BaseModel"
+      ],
+      "annotatedFields": [
+        {
+          "name": "expectedRevision",
+          "annotation": "int",
+          "referencedTypes": [
+            "backend.personal.int"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "deviceId",
+          "annotation": "str",
+          "referencedTypes": [
+            "backend.personal.str"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "snapshot",
+          "annotation": "dict",
+          "referencedTypes": [
+            "backend.personal.dict"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": [
+        "BaseModel"
+      ]
+    },
+    "catalog_client.CatalogClient": {
+      "module": "catalog_client",
+      "file": "catalog_client.py",
+      "line": 17,
+      "bases": [],
+      "resolvedBases": [],
+      "annotatedFields": [],
+      "externalBases": []
+    },
+    "challenge_gateway.ChallengeClient": {
+      "module": "challenge_gateway",
+      "file": "challenge_gateway.py",
+      "line": 7,
+      "bases": [
+        "ModerationClient"
+      ],
+      "resolvedBases": [
+        "moderation_gateway.ModerationClient"
+      ],
+      "annotatedFields": [],
+      "externalBases": []
+    },
+    "clay_tools.ClayTimer": {
+      "module": "clay_tools",
+      "file": "clay_tools.py",
+      "line": 55,
+      "bases": [],
+      "resolvedBases": [],
+      "annotatedFields": [],
+      "externalBases": []
+    },
+    "community_gateway.CommunityClient": {
+      "module": "community_gateway",
+      "file": "community_gateway.py",
+      "line": 25,
+      "bases": [],
+      "resolvedBases": [],
+      "annotatedFields": [],
+      "externalBases": []
+    },
+    "learning_catalog.CatalogConflict": {
+      "module": "learning_catalog",
+      "file": "learning_catalog.py",
+      "line": 20,
+      "bases": [
+        "ValueError"
+      ],
+      "resolvedBases": [
+        "learning_catalog.ValueError"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "ValueError"
+      ]
+    },
+    "mail_service.MailDeliveryError": {
+      "module": "mail_service",
+      "file": "mail_service.py",
+      "line": 21,
+      "bases": [
+        "Exception"
+      ],
+      "resolvedBases": [
+        "mail_service.Exception"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "Exception"
+      ]
+    },
+    "mesh_renderer.Mesh": {
+      "module": "mesh_renderer",
+      "file": "mesh_renderer.py",
+      "line": 31,
+      "bases": [],
+      "resolvedBases": [],
+      "annotatedFields": [
+        {
+          "name": "vertices",
+          "annotation": "tuple",
+          "referencedTypes": [
+            "mesh_renderer.tuple"
+          ],
+          "limits": {}
+        },
+        {
+          "name": "faces",
+          "annotation": "tuple",
+          "referencedTypes": [
+            "mesh_renderer.tuple"
+          ],
+          "limits": {}
+        }
+      ],
+      "externalBases": []
+    },
+    "moderation_gateway.ModerationClient": {
+      "module": "moderation_gateway",
+      "file": "moderation_gateway.py",
+      "line": 11,
+      "bases": [],
+      "resolvedBases": [],
+      "annotatedFields": [],
+      "externalBases": []
+    },
+    "notification_center.NoticeCenter": {
+      "module": "notification_center",
+      "file": "notification_center.py",
+      "line": 8,
+      "bases": [],
+      "resolvedBases": [],
+      "annotatedFields": [],
+      "externalBases": []
+    },
+    "offline_mutations.ActionConflict": {
+      "module": "offline_mutations",
+      "file": "offline_mutations.py",
+      "line": 9,
+      "bases": [
+        "ValueError"
+      ],
+      "resolvedBases": [
+        "offline_mutations.ValueError"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "ValueError"
+      ]
+    },
+    "offline_mutations.ActionRateLimit": {
+      "module": "offline_mutations",
+      "file": "offline_mutations.py",
+      "line": 10,
+      "bases": [
+        "ValueError"
+      ],
+      "resolvedBases": [
+        "offline_mutations.ValueError"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "ValueError"
+      ]
+    },
+    "personal_sync.PersonalSync": {
+      "module": "personal_sync",
+      "file": "personal_sync.py",
+      "line": 26,
+      "bases": [],
+      "resolvedBases": [],
+      "annotatedFields": [],
+      "externalBases": []
+    },
+    "personal_vault.VaultConflict": {
+      "module": "personal_vault",
+      "file": "personal_vault.py",
+      "line": 9,
+      "bases": [
+        "ValueError"
+      ],
+      "resolvedBases": [
+        "personal_vault.ValueError"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "ValueError"
+      ]
+    },
+    "pull_refresh.PullRefresh": {
+      "module": "pull_refresh",
+      "file": "pull_refresh.py",
+      "line": 6,
+      "bases": [
+        "ConstrainedControl"
+      ],
+      "resolvedBases": [
+        "flet.core.constrained_control.ConstrainedControl"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "ConstrainedControl"
+      ]
+    },
+    "role_service.PermissionDenied": {
+      "module": "role_service",
+      "file": "role_service.py",
+      "line": 19,
+      "bases": [
+        "ValueError"
+      ],
+      "resolvedBases": [
+        "role_service.ValueError"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "ValueError"
+      ]
+    },
+    "scripts.generate_learning_models.Builder": {
+      "module": "scripts.generate_learning_models",
+      "file": "scripts/generate_learning_models.py",
+      "line": 22,
+      "bases": [],
+      "resolvedBases": [],
+      "annotatedFields": [],
+      "externalBases": []
+    },
+    "secure_device.ProtectedSession": {
+      "module": "secure_device",
+      "file": "secure_device.py",
+      "line": 8,
+      "bases": [
+        "ft.Control"
+      ],
+      "resolvedBases": [
+        "flet.Control"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "ft.Control"
+      ]
+    },
+    "views.discovery.Masonry": {
+      "module": "views.discovery",
+      "file": "views/discovery.py",
+      "line": 189,
+      "bases": [
+        "ft.Row"
+      ],
+      "resolvedBases": [
+        "flet.Row"
+      ],
+      "annotatedFields": [],
+      "externalBases": [
+        "ft.Row"
+      ]
+    }
+  },
+  "classCount": 53,
+  "inheritanceCount": 22,
+  "associationCount": 2,
+  "pyreverseAssociationCount": 1,
+  "annotatedAssociations": [
+    {
+      "source": "backend.community.PostInput",
+      "target": "backend.community.PhotoInput",
+      "field": "photos",
+      "annotation": "list[PhotoInput]",
+      "limits": {
+        "min_length": 1,
+        "max_length": 10
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "source": "backend.community.ActionInput",
+      "target": "backend.community.CommunityInput",
+      "dot": "\"backend.community.ActionInput\" -> \"backend.community.CommunityInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.community.CommentInput",
+      "target": "backend.community.CommentTextInput",
+      "dot": "\"backend.community.CommentInput\" -> \"backend.community.CommentTextInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.community.CommentTextInput",
+      "target": "backend.community.CommunityInput",
+      "dot": "\"backend.community.CommentTextInput\" -> \"backend.community.CommunityInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.community.PhotoInput",
+      "target": "backend.community.CommunityInput",
+      "dot": "\"backend.community.PhotoInput\" -> \"backend.community.CommunityInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.community.PostInput",
+      "target": "backend.community.CommunityInput",
+      "dot": "\"backend.community.PostInput\" -> \"backend.community.CommunityInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.community.ProgressInput",
+      "target": "backend.community.CommunityInput",
+      "dot": "\"backend.community.ProgressInput\" -> \"backend.community.CommunityInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.ConfirmEmailInput",
+      "target": "backend.main.InputModel",
+      "dot": "\"backend.main.ConfirmEmailInput\" -> \"backend.main.InputModel\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.ConfirmInput",
+      "target": "backend.main.EmailInput",
+      "dot": "\"backend.main.ConfirmInput\" -> \"backend.main.EmailInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.DeleteInput",
+      "target": "backend.main.InputModel",
+      "dot": "\"backend.main.DeleteInput\" -> \"backend.main.InputModel\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.EmailInput",
+      "target": "backend.main.InputModel",
+      "dot": "\"backend.main.EmailInput\" -> \"backend.main.InputModel\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.LoginInput",
+      "target": "backend.main.EmailInput",
+      "dot": "\"backend.main.LoginInput\" -> \"backend.main.EmailInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.NewEmailInput",
+      "target": "backend.main.InputModel",
+      "dot": "\"backend.main.NewEmailInput\" -> \"backend.main.InputModel\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.PasswordInput",
+      "target": "backend.main.InputModel",
+      "dot": "\"backend.main.PasswordInput\" -> \"backend.main.InputModel\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.ProfileInput",
+      "target": "backend.main.InputModel",
+      "dot": "\"backend.main.ProfileInput\" -> \"backend.main.InputModel\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.RegisterInput",
+      "target": "backend.main.LoginInput",
+      "dot": "\"backend.main.RegisterInput\" -> \"backend.main.LoginInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.ResetInput",
+      "target": "backend.main.EmailInput",
+      "dot": "\"backend.main.ResetInput\" -> \"backend.main.EmailInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.main.SettingsInput",
+      "target": "backend.main.InputModel",
+      "dot": "\"backend.main.SettingsInput\" -> \"backend.main.InputModel\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.moderation.MaterialInput",
+      "target": "backend.moderation.ReasonInput",
+      "dot": "\"backend.moderation.MaterialInput\" -> \"backend.moderation.ReasonInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.moderation.ResolveInput",
+      "target": "backend.moderation.ReasonInput",
+      "dot": "\"backend.moderation.ResolveInput\" -> \"backend.moderation.ReasonInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.moderation.RoleInput",
+      "target": "backend.moderation.ReasonInput",
+      "dot": "\"backend.moderation.RoleInput\" -> \"backend.moderation.ReasonInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "backend.moderation.UserChangeInput",
+      "target": "backend.moderation.ReasonInput",
+      "dot": "\"backend.moderation.UserChangeInput\" -> \"backend.moderation.ReasonInput\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "challenge_gateway.ChallengeClient",
+      "target": "moderation_gateway.ModerationClient",
+      "dot": "\"challenge_gateway.ChallengeClient\" -> \"moderation_gateway.ModerationClient\" [arrowhead=\"empty\", arrowtail=\"none\"];"
+    },
+    {
+      "source": "challenge_gateway.ChallengeClient",
+      "target": "notification_center.NoticeCenter",
+      "dot": "\"challenge_gateway.ChallengeClient\" -> \"notification_center.NoticeCenter\" [arrowhead=\"diamond\", arrowtail=\"none\", fontcolor=\"green\", label=\"community\", style=\"solid\"];"
+    },
+    {
+      "source": "backend.community.PostInput",
+      "target": "backend.community.PhotoInput",
+      "dot": "\"backend.community.PostInput\" -> \"backend.community.PhotoInput\" [arrowhead=\"vee\", arrowtail=\"none\", label=\"photos [1..10]\", style=\"solid\"];"
+    }
+  ],
+  "groups": [
+    {
+      "name": "01_client_community",
+      "title": "Клиент: сообщество и уведомления",
+      "classes": [
+        "api_client.ApiError",
+        "challenge_gateway.ChallengeClient",
+        "community_gateway.CommunityClient",
+        "moderation_gateway.ModerationClient",
+        "notification_center.NoticeCenter"
+      ],
+      "classCount": 5
+    },
+    {
+      "name": "02_server_accounts",
+      "title": "API: авторизация и аккаунт",
+      "classes": [
+        "backend.main.ConfirmEmailInput",
+        "backend.main.ConfirmInput",
+        "backend.main.DeleteInput",
+        "backend.main.EmailInput",
+        "backend.main.InputModel",
+        "backend.main.LoginInput",
+        "backend.main.NewEmailInput",
+        "backend.main.PasswordInput",
+        "backend.main.ProfileInput",
+        "backend.main.RegisterInput",
+        "backend.main.ResetInput",
+        "backend.main.SettingsInput"
+      ],
+      "classCount": 12
+    },
+    {
+      "name": "03_server_community",
+      "title": "API: публикации и комментарии",
+      "classes": [
+        "backend.community.ActionInput",
+        "backend.community.CommentInput",
+        "backend.community.CommentTextInput",
+        "backend.community.CommunityBodyLimit",
+        "backend.community.CommunityInput",
+        "backend.community.PhotoInput",
+        "backend.community.PostInput",
+        "backend.community.ProgressInput"
+      ],
+      "classCount": 8
+    },
+    {
+      "name": "04_server_challenges",
+      "title": "API: задания сообщества",
+      "classes": [
+        "backend.challenges.ChallengeInput",
+        "backend.challenges.DecisionInput",
+        "backend.challenges.EntryInput",
+        "backend.challenges.VoteInput"
+      ],
+      "classCount": 4
+    },
+    {
+      "name": "05_server_moderation",
+      "title": "API: модерация и роли",
+      "classes": [
+        "backend.moderation.MaterialInput",
+        "backend.moderation.ReasonInput",
+        "backend.moderation.ResolveInput",
+        "backend.moderation.RoleInput",
+        "backend.moderation.UserChangeInput"
+      ],
+      "classCount": 5
+    },
+    {
+      "name": "06_server_catalog_personal",
+      "title": "API: каталог, снимки и доставка",
+      "classes": [
+        "backend.catalog.AssetInput",
+        "backend.catalog.SaveInput",
+        "backend.catalog.UsageInput",
+        "backend.delivery.DeliveryInput",
+        "backend.personal.SnapshotInput"
+      ],
+      "classCount": 5
+    },
+    {
+      "name": "07_learning_colors_3d",
+      "title": "Каталог, таймер и геометрия",
+      "classes": [
+        "catalog_client.CatalogClient",
+        "clay_tools.ClayTimer",
+        "learning_catalog.CatalogConflict",
+        "mesh_renderer.Mesh"
+      ],
+      "classCount": 4
+    },
+    {
+      "name": "08_ui_native_controls",
+      "title": "Интерфейс и нативный мост",
+      "classes": [
+        "pull_refresh.PullRefresh",
+        "secure_device.ProtectedSession",
+        "views.discovery.Masonry"
+      ],
+      "classCount": 3
+    },
+    {
+      "name": "10_asset_generation",
+      "title": "Генерация встроенных 3D-ресурсов",
+      "classes": [
+        "scripts.generate_learning_models.Builder"
+      ],
+      "classCount": 1
+    },
+    {
+      "name": "09_sync_domain_errors",
+      "title": "Синхронизация и ошибки сервисов",
+      "classes": [
+        "mail_service.MailDeliveryError",
+        "offline_mutations.ActionConflict",
+        "offline_mutations.ActionRateLimit",
+        "personal_sync.PersonalSync",
+        "personal_vault.VaultConflict",
+        "role_service.PermissionDenied"
+      ],
+      "classCount": 6
+    }
+  ],
+  "rendered": [
+    {
+      "name": "00_overview",
+      "pngWidth": 4182,
+      "pngHeight": 8186
+    },
+    {
+      "name": "01_client_community",
+      "pngWidth": 3165,
+      "pngHeight": 3338
+    },
+    {
+      "name": "02_server_accounts",
+      "pngWidth": 3594,
+      "pngHeight": 3342
+    },
+    {
+      "name": "03_server_community",
+      "pngWidth": 3715,
+      "pngHeight": 2151
+    },
+    {
+      "name": "04_server_challenges",
+      "pngWidth": 1082,
+      "pngHeight": 2372
+    },
+    {
+      "name": "05_server_moderation",
+      "pngWidth": 2124,
+      "pngHeight": 1857
+    },
+    {
+      "name": "06_server_catalog_personal",
+      "pngWidth": 1344,
+      "pngHeight": 3211
+    },
+    {
+      "name": "07_learning_colors_3d",
+      "pngWidth": 1244,
+      "pngHeight": 3038
+    },
+    {
+      "name": "08_ui_native_controls",
+      "pngWidth": 1215,
+      "pngHeight": 2313
+    },
+    {
+      "name": "09_sync_domain_errors",
+      "pngWidth": 1461,
+      "pngHeight": 3132
+    },
+    {
+      "name": "10_asset_generation",
+      "pngWidth": 1536,
+      "pngHeight": 874
+    }
+  ],
+  "externalClassNodes": 0,
+  "applicationSourcesUnchanged": true,
+  "excluded": [
+    "tests/**",
+    "scripts/run_final_checks.py",
+    "docs/**",
+    "native/** (not Python)",
+    "venv/site-packages/vendor/**"
+  ],
+  "files": {
+    "raw/classes_LepkaHelper.dot": "c4aea117a15ce33a00c0027e6bd8e80a0133970fee9bc041de43cdef94e0cdf2",
+    "raw/classes_LepkaHelper.puml": "095af534d494bfacd9bf921e5570edb4930c07f93198add4ef64d1d5e3874781",
+    "editable/00_overview.dot": "a0b8b7005a9da1e6d5c80c752b4e20c3b4770a88dc0b1267862ab3803fa7ea6b",
+    "editable/01_client_community.dot": "c585e90155dd1dc7763ce4543b34e0f57666c9ad2b11bee58eb055dda6bcd2f4",
+    "editable/02_server_accounts.dot": "63aa72047e217656c7b0fc1a60d1c868c54588be587780def312cdd86c5360be",
+    "editable/03_server_community.dot": "136daa0b3acbf8d516c9c665d055c6aa41562b95237c1c73930771a44b2fdc14",
+    "editable/04_server_challenges.dot": "689fdc49f7500ef4e20bff0850eb95f6bbb7e9b67687f1ff6119996e3a4b8784",
+    "editable/05_server_moderation.dot": "9e1bd66e7448f11a956514a62f319d5801ff67e8afea3899d59803c7b58a2b06",
+    "editable/06_server_catalog_personal.dot": "6ef04a5f016c8c59b0f10862e7ee4760750876f62b4d1a9391959c26fc085f8c",
+    "editable/07_learning_colors_3d.dot": "009952afb683ac590ffcf74183b4a28a07bbe6394ade2b88242c27c3840c08fd",
+    "editable/08_ui_native_controls.dot": "4c7feac77e661b743351380653749bb4066a7aa3c6cae47be4f674924d8e5461",
+    "editable/09_sync_domain_errors.dot": "ea171cd802a4eba7a3dc49db13c5b3ec6fa4b310fcf0fa3ad8c38b1bd94db685",
+    "editable/10_asset_generation.dot": "39e3daddfadd395450ff5020a08ddab92add4186241fd77f10b35cd3af1bfb97",
+    "images/00_overview.pdf": "3661ea07cbb70f88c66aa820b2b610cc6a357af4c9706f0b06d88a06cf0c2997",
+    "images/00_overview.png": "0778659723d36f76b294f5c5cd98ba9effff756a117af74a417ba0d5942c7e50",
+    "images/00_overview.svg": "4077222c107ffa085c825a6bbe7335dad0525864e1d216afd269934ca7327f35",
+    "images/01_client_community.pdf": "9227e94588e42eb8394077402f86f4acff144a17f869ae9704afe283f05e57e4",
+    "images/01_client_community.png": "93dad1c0b6f971e211b85a45cdaf4fad3fbed22eaa89cef3ea46704be2456248",
+    "images/01_client_community.svg": "fab8acb72c6bc985731e09f4eafd1c559dad49858823ce5292a2e6c8d2d35fa0",
+    "images/02_server_accounts.pdf": "6aa52489945da39fbd4890df954a903b2c6677c053931e6deec413922cf7169b",
+    "images/02_server_accounts.png": "2332cabd9c9d53b06d67612b33351170737b768d9e6e78c930a74061bec7e1c5",
+    "images/02_server_accounts.svg": "760cbbed6465f9ca284bf494d3f5c51ae29a4e09d1665a217eb0a99e0a6eb01a",
+    "images/03_server_community.pdf": "f4da309c9c7b378fa4f61e67d9161815a8635b2993fd180a448302cff8e8d7a8",
+    "images/03_server_community.png": "1db1f7acf31cadfdd79da118d2cc1e8796224bec25c154fbdb598500d1781407",
+    "images/03_server_community.svg": "af97887284f2d1617a84414875933d6c14ba55346dcfeba0ee435cb44b21558c",
+    "images/04_server_challenges.pdf": "06ebdcd8afa6be7ca6d996ca40863ad61684c5f06089fc05f37a70180ea74e48",
+    "images/04_server_challenges.png": "4976d3b55a965ccb4a30a919fedef9b82c53099c2f4d65f18b566d88dd02b6f9",
+    "images/04_server_challenges.svg": "f5ba3f4752af9044eb112be724205ffc3e7360d76b0ed6fabf33ac716edb56e9",
+    "images/05_server_moderation.pdf": "5abf4a4dc3ba3b951fd1f33fda763bdf9a50472173d81890a0e89698c42e2544",
+    "images/05_server_moderation.png": "79e247f082b5ca795ea3ef32aadf35fa0d8e34128eece344a8ff9cd45fab1798",
+    "images/05_server_moderation.svg": "f7a1b7be7d7f21d5aa8ca361e2b2c7a778e690fd557f1f6ff9d3faa3ebed6fba",
+    "images/06_server_catalog_personal.pdf": "7518482f6d83076f16855c4b6a44da990455f960637f0c48da137a10e372bd58",
+    "images/06_server_catalog_personal.png": "bc499c3d8d5a9cb6f4026c5d26612f09679f6c232e1ed41ef2300c2088079954",
+    "images/06_server_catalog_personal.svg": "e8d330d9b14a69aaa4144697530a3adbaa08fd0c1354781e012b0314aaf22b13",
+    "images/07_learning_colors_3d.pdf": "1bcc2eb8eb411920c92aa907111988c8b4b2b82d4ce7d2662fa1dcb21e22a573",
+    "images/07_learning_colors_3d.png": "1bc2aa8a9eb61c169a435c9ecc40db2ecb16b4a2d66a1eb349a842b6400bdddb",
+    "images/07_learning_colors_3d.svg": "bbce355c6ab6854486d7d7659d7c1a12ef0d23e237c160a9fde6f44784fae251",
+    "images/08_ui_native_controls.pdf": "0366ba99c1d93224deab2ff9173c1b207fa1246e9ddc53a33dc77ae668bd224b",
+    "images/08_ui_native_controls.png": "c70f3abca5c06f4d23f80e46b7cc1ff863b023329a84b4a3b31f9a8dbe97c817",
+    "images/08_ui_native_controls.svg": "57f92b31abab9608748cbf3dcb26f25c87725479bc69d93862059d7a2562fe1a",
+    "images/09_sync_domain_errors.pdf": "bb4ba96be63ae754e34d5461342346b765eab828a6b45cf2761f786fe1a56af3",
+    "images/09_sync_domain_errors.png": "356b41ce0860027bae322a728612ef4accf53fc6e27aca5d3210744a12e53fd2",
+    "images/09_sync_domain_errors.svg": "24432bbfe544341079de9267cbe9d9bae6613d6845047581cf75e65e8056fb7f",
+    "images/10_asset_generation.pdf": "9de17c9d02ceac3d3dc7051e59edfbdbb85255f4ae47a0911fa6cfc95b55ee36",
+    "images/10_asset_generation.png": "f7172651a902829542cb72abc4417f26eceac00c318b86a732f50ea84a9bc398",
+    "images/10_asset_generation.svg": "68bb03a2c29c212ced4ea0fcfa99924cd0de8d2dc2e89d7224ebaf65e4f6ad4e"
+  }
+}

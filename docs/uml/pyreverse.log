@@ -1,0 +1,5 @@
+$ pyreverse -p LepkaHelper -f ALL -m y -a 0 -s 0 --source-roots /workspace/lepka_helper -d /workspace/lepka_helper/docs/uml/raw -o dot <141 explicit project paths>
+Analysed 141 modules with a total of 592 imports
+
+$ pyreverse -p LepkaHelper -f ALL -m y -a 0 -s 0 --source-roots /workspace/lepka_helper -d /workspace/lepka_helper/docs/uml/raw -o puml <141 explicit project paths>
+Analysed 141 modules with a total of 592 imports
