@@ -1,6 +1,6 @@
 # Развёртывание и сборка
 
-Состояние 0.18.0. Ниже команды для PowerShell/Windows; их синтаксис основан на текущих CLI. Финальные тесты и сборка выполняются в Linux-среде; эти команды **не являются протоколом запуска на Windows**. Не удаляйте текущие каталоги данных и не копируйте чужую SQLite поверх своей.
+Состояние 0.19.0. Ниже команды для PowerShell/Windows; их синтаксис основан на текущих CLI. Финальные тесты и сборка выполняются в Linux-среде; эти команды **не являются протоколом запуска на Windows**. Не удаляйте текущие каталоги данных и не копируйте чужую SQLite поверх своей.
 
 ## 1. Исходники и Python
 
@@ -109,14 +109,14 @@ $env:LEPKA_DATA_DIR = "$HOME\LepkaHelperLocalDemo"
 ```powershell
 .\.venv\Scripts\python.exe -m pip install flet-cli==0.28.3
 $BuildFlet = (Resolve-Path .\.venv\Scripts\flet.exe).Path
-.\.venv\Scripts\python.exe scripts\prepare_android.py --output ..\lepka-android-018 --api-url=
-Set-Location ..\lepka-android-018
-& $BuildFlet build apk --build-version 0.18.0 --build-number 15 --verbose
+.\.venv\Scripts\python.exe scripts\prepare_android.py --output ..\lepka-android-019 --api-url=
+Set-Location ..\lepka-android-019
+& $BuildFlet build apk --build-version 0.19.0 --build-number 16 --verbose
 ```
 
-Каталог `lepka-android-018` должен быть новым. `--api-url=` намеренно пуст: адрес Wi-Fi задаётся в UI установленного приложения. Не подставляйте HTTP в `--api-url` — текущий packager допускает там только HTTPS либо пустую строку. Прямой `flet build apk` из корня полного репозитория может упаковать лишние серверные/локальные файлы; используйте подготовленный каталог. Сохраните `build/flutter-packages`, локальный wheel и закреплённые media_kit/screen_brightness overrides из pyproject. Flet CLI может сам скачать минимально совместимый Flutter, но заданный Flutter 3.29.2 делает окружение определённым.
+Каталог `lepka-android-019` должен быть новым. `--api-url=` намеренно пуст: адрес Wi-Fi задаётся в UI установленного приложения. Не подставляйте HTTP в `--api-url` — текущий packager допускает там только HTTPS либо пустую строку. Прямой `flet build apk` из корня полного репозитория может упаковать лишние серверные/локальные файлы; используйте подготовленный каталог. Сохраните `build/flutter-packages`, локальный wheel и закреплённые media_kit/screen_brightness overrides из pyproject. Flet CLI может сам скачать минимально совместимый Flutter, но заданный Flutter 3.29.2 делает окружение определённым.
 
-Результат — `build\apk\app-arm64-v8a-release.apk`. Из-за split-per-ABI код ARM64 должен быть 2015 при базовом build-number 15; версия проверяется через `aapt dump badging`, подпись — `apksigner verify --print-certs`. Проверить SHA-256 можно `Get-FileHash <путь-к-apk> -Algorithm SHA256`. Для обновления существующей установки необходимы тот же package и сертификат. Чужая сборочная машина с новым debug-keystore не обязана подписать файл тем же ключом: не удаляйте приложение с пользовательскими данными ради обхода несовместимой подписи; используйте опубликованный подписанный APK или прежний keystore оператора. Приватный ключ в комплект не входит. Это учебная подпись, не выпуск в Google Play.
+Результат — `build\apk\app-arm64-v8a-release.apk`. Из-за split-per-ABI код ARM64 должен быть 2016 при базовом build-number 16; версия проверяется через `aapt dump badging`, подпись — `apksigner verify --print-certs`. Проверить SHA-256 можно `Get-FileHash <путь-к-apk> -Algorithm SHA256`. Для обновления существующей установки необходимы тот же package и сертификат. Чужая сборочная машина с новым debug-keystore не обязана подписать файл тем же ключом: не удаляйте приложение с пользовательскими данными ради обхода несовместимой подписи; используйте опубликованный подписанный APK или прежний keystore оператора. Приватный ключ в комплект не входит. Это учебная подпись, не выпуск в Google Play.
 
 ## 7. Установка и проверка Android
 

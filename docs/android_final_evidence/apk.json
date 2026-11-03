@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "version": "0.19.0",
+  "buildNumber": 16,
+  "versionCode": 2016,
+  "package": "ru.gr1zle.lepka_helper",
+  "minSdk": 28,
+  "targetSdk": 35,
+  "abi": "arm64-v8a",
+  "sourceRuntimeCommit": "80afa73",
+  "sizeBytes": 49685437,
+  "sha256": "aeab1e05f0cb7c06cd02ab13bbc1cd7933fce0b37ad5e1e087424008c475e410",
+  "certificateSHA256": "6428780dae2dc54778a9dd90eb4a52324b556b63fbdc3bd438784c4b5a0c8c2a",
+  "nativeWheel": "0.1.0+05a2d78d3e78",
+  "nativeSourceMatches": true,
+  "compiledNativeJSONMimePresent": true,
+  "physicalAndroid": "NOT TESTED",
+  "buildNote": "Flutter/Gradle successfully produced signed APK. Flet final copy failed due workspace disk space; verified original output then removed intermediates and copied exact bytes manually.",
+  "checks": [
+    "Real Flutter/Gradle APK build succeeded",
+    "APK ZIP integrity",
+    "All packaged app modules, views and assets match current source",
+    "Empty API config; no database, session, private keys or backend",
+    "aapt SDK/version and apksigner previous certificate",
+    "All native extension source files match build inputs; compiled MediaActions contains JSON MIME; Python Flet dependency installed"
+  ]
+}
