@@ -1,0 +1,6 @@
+digraph UML {
+graph [rankdir=LR, charset="UTF-8", bgcolor="white", fontname="DejaVu Sans", fontsize=16, labelloc=t, label="Генерация встроенных 3D-ресурсов", pad="0.22", nodesep="0.25", ranksep="0.55", splines=polyline, dpi=300];
+node [fontname="DejaVu Sans", fontsize=10, color="#334155", fontcolor="#111827", penwidth=1.1];
+edge [fontname="DejaVu Sans", fontsize=9, color="#334155", fontcolor="#111827", penwidth=1.1];
+"scripts.generate_learning_models.Builder" [shape=plain, label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6"><TR><TD ALIGN="LEFT"><B>scripts.generate_learning_models.Builder</B></TD></TR><TR><TD ALIGN="LEFT">parts : list<BR ALIGN="LEFT"/>vertices : list<BR ALIGN="LEFT"/></TD></TR><TR><TD ALIGN="LEFT">__init__()<BR ALIGN="LEFT"/>add(points, faces, stage, color, center)<BR ALIGN="LEFT"/>box(center, size, stage, color)<BR ALIGN="LEFT"/>cylinder(center, radius, height, stage, color, axis, cone, segments)<BR ALIGN="LEFT"/>obj(modelId, step)<BR ALIGN="LEFT"/>sphere(center, size, stage, color, segments, rings)<BR ALIGN="LEFT"/>wing(side, stage)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+}

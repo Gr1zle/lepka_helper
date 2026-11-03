@@ -1,0 +1,3 @@
+# Diagram tooling only. Install into a separate venv, not the application environment.
+pylint==3.3.9
+astroid==3.3.11
